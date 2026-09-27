@@ -282,3 +282,5 @@ input[type=date],input[type=time]{font:400 15px var(--body);color:var(--text);ba
 .prov span{font:700 10px/1 var(--head);letter-spacing:.14em;text-transform:uppercase;color:var(--void);background:var(--needle,#F5C433);padding:5px 7px;border-radius:3px}
 .pagehead .prov{margin-top:14px}
 .tracks{display:block;font:400 12px var(--mono);color:var(--muted)}
+
+.post{display:grid;gap:10px}

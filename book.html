@@ -33,6 +33,7 @@
       <p class="label">Book</p>
       <h1>Book a <em>release</em> or promo</h1>
       <p class="lede">Every booking goes into the RRR release calendar and is confirmed by email. Booking is for members with an active membership.</p>
+      <p class="prov"><span>Provisional</span> Placeholder prices while we finalise the new model. They may change before launch.</p>
     </div>
   </div>
 
@@ -53,14 +54,14 @@
             <form class="panel booking-form" data-kind="bandcamp-release" novalidate>
               <h2>Bandcamp release</h2>
               <p class="intro">Released through the RRR Bandcamp catalogue, shown on your page and the RRR page. You keep 100% of royalties.</p>
-              <div class="feerow"><span>Single<b data-fee="single">€1.00</b></span><span>EP<b data-fee="ep">€2.00</b></span><span>Album<b data-fee="album">€2.50</b></span></div>
+              <div class="feerow"><span>Single<b data-fee="single">€2.00</b></span><span>EP (2–5 tracks)<b data-fee="ep">€3.00</b></span><span>Album<b data-fee="album">€3.50</b></span></div>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
                   <label for="bc-artist">Artist name<input id="bc-artist" name="artist" type="text" required></label>
                   <label for="bc-email">Email<input id="bc-email" name="email" type="email" required></label>
                   <label for="bc-title">Release title<input id="bc-title" name="title" type="text" required></label>
-                  <label for="bc-format">Format<select id="bc-format" name="format" required><option value="single">Single – €1.00</option><option value="ep">EP – €2.00</option><option value="album">Album – €2.50</option></select></label>
+                  <label for="bc-format">Format<select id="bc-format" name="format" required><option value="single">Single – €2.00</option><option value="ep">EP, 2–5 tracks – €3.00</option><option value="album">Album – €3.50</option></select></label>
                   <label for="bc-date">Release date<input id="bc-date" name="release_date" type="date" required></label>
                   <label for="bc-page">Your Bandcamp page<input id="bc-page" name="bandcamp" type="url" placeholder="https://yourname.bandcamp.com"></label>
                   <label for="bc-notes" class="wide">Notes<textarea id="bc-notes" name="notes" placeholder="Genre, pre-order plans, anything we should know"></textarea></label>
@@ -79,14 +80,14 @@
             <form class="panel booking-form" data-kind="streaming-release" novalidate>
               <h2>Streaming release</h2>
               <p class="intro">Uploaded and managed through the RRR RouteNote account. You keep 100% of streaming royalties.</p>
-              <div class="feerow"><span>Single<b data-fee="single">€1.00</b></span><span>EP<b data-fee="ep">€2.00</b></span><span>Album<b data-fee="album">€2.50</b></span></div>
+              <div class="feerow"><span>Single<b data-fee="single">€2.00</b></span><span>EP (2–5 tracks)<b data-fee="ep">€3.00</b></span><span>Album<b data-fee="album">€3.50</b></span></div>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
                   <label for="st-artist">Artist name<input id="st-artist" name="artist" type="text" required></label>
                   <label for="st-email">Email<input id="st-email" name="email" type="email" required></label>
                   <label for="st-title">Release title<input id="st-title" name="title" type="text" required></label>
-                  <label for="st-format">Format<select id="st-format" name="format" required><option value="single">Single – €1.00</option><option value="ep">EP – €2.00</option><option value="album">Album – €2.50</option></select></label>
+                  <label for="st-format">Format<select id="st-format" name="format" required><option value="single">Single – €2.00</option><option value="ep">EP, 2–5 tracks – €3.00</option><option value="album">Album – €3.50</option></select></label>
                   <label for="st-date">Release date<input id="st-date" name="release_date" type="date" required></label>
                   <label for="st-isrc">ISRC codes (if you have them)<input id="st-isrc" name="isrc" type="text"></label>
                   <label for="st-notes" class="wide">Notes<textarea id="st-notes" name="notes"></textarea></label>
@@ -130,7 +131,8 @@
           <div class="tabpanel" id="panel-youtube" role="tabpanel" aria-labelledby="tab-youtube" hidden>
             <form class="panel booking-form" data-kind="youtube-upload" novalidate>
               <h2>YouTube upload</h2>
-              <p class="intro">Free video uploads to the RRR Community Channel for artist members.</p>
+              <p class="intro">Video uploads to the RRR Community Channel for artist members.</p>
+              <div class="feerow"><span>Per video<b data-fee="youtube">€2.00</b></span></div>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">

@@ -20,7 +20,7 @@ window.RRR_CONFIG = {
     clientId: "",            // Live client ID from developer.paypal.com
     currency: "EUR",
     plans: {                 // Subscription plan IDs, one per monthly tier
-      artist: "",            // €1.00 / month
+      artist: "",            // €3.00 / month (placeholder)
       fan: "",               // €0.50 / month
       supporterArtist: "",   // €0.50 / month
       supporterFan: ""       // €0.25 / month
@@ -28,7 +28,7 @@ window.RRR_CONFIG = {
   },
 
   // Release upload fees (one-off). Used by the booking page.
-  uploadFees: { single: 1.00, ep: 2.00, album: 2.50 },
+  uploadFees: { single: 2.00, ep: 3.00, album: 3.50, youtube: 2.00 },  // PLACEHOLDER prices, 27 Sep 2026
 
   // Asset deadlines in days before release day (from the price list).
   // Bandcamp editorial is NOT an RRR service; shown as a guideline only.

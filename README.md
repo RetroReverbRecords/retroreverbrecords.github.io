@@ -1,10 +1,33 @@
 # Retro Reverb Records – membership platform
 
-Website for the RRR Community: Artist and Fan membership, Community Supporter Status, Bandcamp and streaming (RouteNote) releases, Community Cards and rewards.
+Website for the RRR Community. Static site, no build step, hosted with GitHub Pages
+(Settings → Pages → Deploy from branch → `main` / root).
 
-- Static site, no build step: `index.html` plus `assets/`.
-- Hosted with GitHub Pages (Settings → Pages → Deploy from branch → `main` / root).
-- Content source: *RRR Community Membership & Services Price List*.
+## Pages
+- `index.html` – membership, release prices and deadlines, catalogue (coming up / out now), physical merch, community, sign-up, contacts
+- `how-it-works.html` – step-by-step for artists and fans, FAQ
+- `book.html` – booking forms: Bandcamp release, streaming release, social media post, YouTube upload, The Bandcamp Hour (Groover); deadline planner
 
-## Sign-up
-The sign-up form is built but switched off. To open it, set `SIGNUP_OPEN = true` near the bottom of `index.html` and connect the form to a real destination (payment or form service) first.
+## Settings – `assets/config.js`
+Everything that switches something on lives here. Nothing is live until changed on purpose.
+
+| Setting | What it does |
+|---|---|
+| `signupOpen` | Opens the sign-up form. Also needs `formEndpoint`. |
+| `bookingOpen` | Opens the booking forms. Also needs `formEndpoint`. |
+| `formEndpoint` | URL that receives form submissions (e.g. Formspree, or a Google Apps Script web app that writes to the RRR operations sheet and calendar). |
+| `paypal.clientId`, `paypal.plans.*` | PayPal subscription buttons for monthly membership. |
+| `deadlines` | Asset deadlines used by the planner (days before release). |
+
+## Adding releases – `assets/releases.js`
+Add booked releases to `upcoming` (date as `YYYY-MM-DD`). Past dates hide automatically.
+`latest` and `merch` are copied from the RRR Bandcamp page; update when the catalogue changes.
+
+## Setting up PayPal (owner only)
+1. Log in to a **PayPal Business** account for RRR.
+2. Go to developer.paypal.com → Apps & Credentials → **Live** → create an app, copy the **Client ID** into `paypal.clientId`.
+3. In PayPal, create a **Product** "RRR Membership", then four monthly **Plans**: Artist €1.00, Fan €0.50, Supporter Artist €0.50, Supporter Fan €0.25.
+4. Paste each Plan ID into `paypal.plans`.
+5. Set `signupOpen: true` only when everything else is ready.
+
+Content source: *RRR Community Membership & Services Price List* and the RRR Bandcamp page.

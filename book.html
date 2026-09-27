@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Book with RRR</title>
+<meta name="theme-color" content="#07061A">
+<link rel="icon" href="assets/rrr-logo-stack.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records home"></a>
+    <nav aria-label="Sections">
+      <a href="index.html#membership">Membership</a>
+      <a href="index.html#releases">Releases</a>
+      <a href="index.html#catalogue">Catalogue</a>
+      <a href="index.html#merch">Merch</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="book.html">Book</a>
+      <a href="index.html#contact">Contact</a>
+      <a class="btn primary small-btn" href="index.html#join">Create account</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <div class="pagehead">
+    <div class="wrap">
+      <p class="label">Book</p>
+      <h1>Book a <em>release</em> or promo</h1>
+      <p class="lede">Every booking goes into the RRR release calendar and is confirmed by email. Booking is for members with an active membership.</p>
+    </div>
+  </div>
+
+  <section class="side">
+    <div class="wrap">
+      <div class="tabs" role="tablist" aria-label="Booking type">
+        <button role="tab" id="tab-bandcamp" data-panel="bandcamp" aria-controls="panel-bandcamp">Bandcamp release</button>
+        <button role="tab" id="tab-streaming" data-panel="streaming" aria-controls="panel-streaming">Streaming release</button>
+        <button role="tab" id="tab-social" data-panel="social" aria-controls="panel-social">Social media post</button>
+        <button role="tab" id="tab-youtube" data-panel="youtube" aria-controls="panel-youtube">YouTube upload</button>
+        <button role="tab" id="tab-bandcamphour" data-panel="bandcamphour" aria-controls="panel-bandcamphour">The Bandcamp Hour</button>
+      </div>
+
+      <div class="bookgrid">
+        <div>
+          <!-- Bandcamp -->
+          <div class="tabpanel" id="panel-bandcamp" role="tabpanel" aria-labelledby="tab-bandcamp">
+            <form class="panel booking-form" data-kind="bandcamp-release" novalidate>
+              <h2>Bandcamp release</h2>
+              <p class="intro">Released through the RRR Bandcamp catalogue, shown on your page and the RRR page. You keep 100% of royalties.</p>
+              <div class="feerow"><span>Single<b data-fee="single">€1.00</b></span><span>EP<b data-fee="ep">€2.00</b></span><span>Album<b data-fee="album">€2.50</b></span></div>
+              <div class="status" role="status"></div>
+              <fieldset>
+                <div class="fields">
+                  <label for="bc-artist">Artist name<input id="bc-artist" name="artist" type="text" required></label>
+                  <label for="bc-email">Email<input id="bc-email" name="email" type="email" required></label>
+                  <label for="bc-title">Release title<input id="bc-title" name="title" type="text" required></label>
+                  <label for="bc-format">Format<select id="bc-format" name="format" required><option value="single">Single – €1.00</option><option value="ep">EP – €2.00</option><option value="album">Album – €2.50</option></select></label>
+                  <label for="bc-date">Release date<input id="bc-date" name="release_date" type="date" required></label>
+                  <label for="bc-page">Your Bandcamp page<input id="bc-page" name="bandcamp" type="url" placeholder="https://yourname.bandcamp.com"></label>
+                  <label for="bc-notes" class="wide">Notes<textarea id="bc-notes" name="notes" placeholder="Genre, pre-order plans, anything we should know"></textarea></label>
+                </div>
+                <div class="checks">
+                  <label><input type="checkbox" id="bc-editorial" name="editorial"> I want editorial playlist consideration</label>
+                  <label><input type="checkbox" id="bc-also-stream" name="also_streaming"> Also release on streaming</label>
+                </div>
+                <label class="agree"><input type="checkbox" id="bc-agree" name="agree" required> I'll supply assets at least 3 weeks before release, and RRR may include this release in discount codes, giveaways and offers.</label>
+                <button class="btn primary" type="submit">Book Bandcamp release</button>
+              </fieldset>
+            </form>
+          </div>
+
+          <!-- Streaming -->
+          <div class="tabpanel" id="panel-streaming" role="tabpanel" aria-labelledby="tab-streaming" hidden>
+            <form class="panel booking-form" data-kind="streaming-release" novalidate>
+              <h2>Streaming release</h2>
+              <p class="intro">Uploaded and managed through the RRR RouteNote account. You keep 100% of streaming royalties.</p>
+              <div class="feerow"><span>Single<b data-fee="single">€1.00</b></span><span>EP<b data-fee="ep">€2.00</b></span><span>Album<b data-fee="album">€2.50</b></span></div>
+              <div class="status" role="status"></div>
+              <fieldset>
+                <div class="fields">
+                  <label for="st-artist">Artist name<input id="st-artist" name="artist" type="text" required></label>
+                  <label for="st-email">Email<input id="st-email" name="email" type="email" required></label>
+                  <label for="st-title">Release title<input id="st-title" name="title" type="text" required></label>
+                  <label for="st-format">Format<select id="st-format" name="format" required><option value="single">Single – €1.00</option><option value="ep">EP – €2.00</option><option value="album">Album – €2.50</option></select></label>
+                  <label for="st-date">Release date<input id="st-date" name="release_date" type="date" required></label>
+                  <label for="st-isrc">ISRC codes (if you have them)<input id="st-isrc" name="isrc" type="text"></label>
+                  <label for="st-notes" class="wide">Notes<textarea id="st-notes" name="notes"></textarea></label>
+                </div>
+                <label class="agree"><input type="checkbox" id="st-agree" name="agree" required> I'll supply assets at least 2 weeks before release.</label>
+                <button class="btn primary" type="submit">Book streaming release</button>
+              </fieldset>
+            </form>
+          </div>
+
+          <!-- Social -->
+          <div class="tabpanel" id="panel-social" role="tabpanel" aria-labelledby="tab-social" hidden>
+            <form class="panel booking-form" data-kind="social-post" novalidate>
+              <h2>Social media post</h2>
+              <p class="intro">Book a promotional post on RRR community social media. Included with Artist Membership. We slot it into the RRR calendar and confirm the date by email.</p>
+              <div class="status" role="status"></div>
+              <fieldset>
+                <div class="fields">
+                  <label for="so-artist">Artist name<input id="so-artist" name="artist" type="text" required></label>
+                  <label for="so-email">Email<input id="so-email" name="email" type="email" required></label>
+                  <label for="so-date">Preferred date<input id="so-date" name="preferred_date" type="date" required></label>
+                  <label for="so-alt">Backup date<input id="so-alt" name="backup_date" type="date"></label>
+                  <label for="so-link" class="wide">Link to promote<input id="so-link" name="link" type="url" placeholder="Bandcamp, Spotify or YouTube link" required></label>
+                  <label for="so-assets" class="wide">Image or video (Google Drive link)<input id="so-assets" name="assets" type="url"></label>
+                  <label for="so-caption" class="wide">Caption idea and tags<textarea id="so-caption" name="caption"></textarea></label>
+                </div>
+                <div class="checks">
+                  <span class="label">Platforms</span>
+                  <label><input type="checkbox" name="platform" value="instagram" id="so-ig"> Instagram</label>
+                  <label><input type="checkbox" name="platform" value="facebook" id="so-fb"> Facebook</label>
+                  <label><input type="checkbox" name="platform" value="tiktok" id="so-tt"> TikTok</label>
+                  <label><input type="checkbox" name="platform" value="x" id="so-x"> X</label>
+                  <label><input type="checkbox" name="platform" value="bluesky" id="so-bs"> Bluesky</label>
+                </div>
+                <button class="btn primary" type="submit">Book social post</button>
+              </fieldset>
+            </form>
+          </div>
+
+          <!-- YouTube -->
+          <div class="tabpanel" id="panel-youtube" role="tabpanel" aria-labelledby="tab-youtube" hidden>
+            <form class="panel booking-form" data-kind="youtube-upload" novalidate>
+              <h2>YouTube upload</h2>
+              <p class="intro">Free video uploads to the RRR Community Channel for artist members.</p>
+              <div class="status" role="status"></div>
+              <fieldset>
+                <div class="fields">
+                  <label for="yt-artist">Artist name<input id="yt-artist" name="artist" type="text" required></label>
+                  <label for="yt-email">Email<input id="yt-email" name="email" type="email" required></label>
+                  <label for="yt-title">Video title<input id="yt-title" name="title" type="text" required></label>
+                  <label for="yt-date">Premiere date<input id="yt-date" name="premiere_date" type="date" required></label>
+                  <label for="yt-file" class="wide">Video file (Google Drive link)<input id="yt-file" name="video" type="url" required></label>
+                  <label for="yt-desc" class="wide">Description and links<textarea id="yt-desc" name="description"></textarea></label>
+                </div>
+                <label class="agree"><input type="checkbox" id="yt-agree" name="agree" required> I own or have cleared the rights to everything in this video.</label>
+                <button class="btn primary" type="submit">Book YouTube upload</button>
+              </fieldset>
+            </form>
+          </div>
+
+          <!-- Bandcamp Hour -->
+          <div class="tabpanel" id="panel-bandcamphour" role="tabpanel" aria-labelledby="tab-bandcamphour" hidden>
+            <div class="panel groover">
+              <p class="label">Radio show</p>
+              <h2>Submit to The Bandcamp Hour</h2>
+              <p>Get your music considered for The Bandcamp Hour with Cybertronix. Submissions go through the RetroReverbRecords curator page on Groover, where you pay Groover per submission and get written feedback.</p>
+              <a class="btn primary" id="groover-link" href="https://groover.co/band/signup/referral/influencer/16806/" target="_blank" rel="noopener">Submit on Groover</a>
+              <p class="small">Groover sets its own price, which it shows before you pay.</p>
+            </div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="panel facts">
+            <h3>Before you book</h3>
+            <ul>
+              <li>You need an active Artist Membership. Supporter Status pauses booking.</li>
+              <li>Bandcamp assets: at least 3 weeks before release.</li>
+              <li>Streaming assets: at least 2 weeks before release.</li>
+              <li>Editorial playlist consideration: allow at least 2 weeks.</li>
+              <li>Assets go in your designated Google Drive folder.</li>
+            </ul>
+          </div>
+          <div class="panel planner" id="planner">
+            <h3>Deadline planner</h3>
+            <label for="pl-date" class="small">Release date<input id="pl-date" type="date"></label>
+            <div class="checks">
+              <label><input type="checkbox" id="pl-bandcamp" checked> Bandcamp</label>
+              <label><input type="checkbox" id="pl-streaming" checked> Streaming</label>
+              <label><input type="checkbox" id="pl-editorial"> Editorial pitch</label>
+            </div>
+            <ul class="plan-out" id="pl-out" aria-live="polite"></ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="wrap">
+    <span>© Retro Reverb Records · <a href="how-it-works.html">How it works</a> · <a href="book.html">Book</a></span>
+    <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
+  </div>
+</footer>
+<script src="assets/config.js"></script>
+<script src="assets/releases.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

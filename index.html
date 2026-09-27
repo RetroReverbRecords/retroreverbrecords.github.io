@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Retro Reverb Records</title>
+<meta name="description" content="RRR Community: membership for independent artists and fans, plus Bandcamp and streaming releases where artists keep 100% of their royalties.">
+<meta name="theme-color" content="#07061A">
+<link rel="icon" href="assets/rrr-logo-stack.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Single deliberate neon world: dark in every theme */
+:root{
+  color-scheme: dark;
+  --void:#07061A; --panel:#110E2B; --panel-2:#171338; --grid:#3A2A7C;
+  --pink:#FF2FA8; --pink-deep:#E0068A; --violet:#9B5CFF; --cyan:#3FD0FF;
+  --text:#F3EEFF; --muted:#A99FCB; --line:rgba(155,92,255,.28);
+  --head:"Orbitron", "Arial Black", system-ui, sans-serif;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --glow-pink:0 0 6px rgba(255,47,168,.9), 0 0 22px rgba(255,47,168,.55);
+  --glow-cyan:0 0 6px rgba(63,208,255,.8), 0 0 20px rgba(63,208,255,.45);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--void);color:var(--text);font:400 16px/1.6 var(--body);}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px}
+a{color:var(--cyan)}
+a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+h1,h2,h3{font-family:var(--head);text-wrap:balance;margin:0;line-height:1.15;font-weight:700}
+p{margin:0}
+.label{font:500 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)}
+.num{font-variant-numeric:tabular-nums}
+.small{font-size:14px;color:var(--muted)}
+
+/* header */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:rgba(7,6,26,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:12px}
+.brand img{height:34px;width:auto;display:block}
+nav{display:flex;gap:22px;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;font:500 12px var(--head);letter-spacing:.12em;text-transform:uppercase}
+nav a:hover{color:var(--pink);text-shadow:var(--glow-pink)}
+
+/* hero */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.hero .wrap{position:relative;z-index:2;padding-block:40px 190px;display:grid;gap:30px;justify-items:center;text-align:center}
+.screen{width:100%;max-width:860px;aspect-ratio:16/9;border-radius:14px;overflow:hidden;border:1px solid var(--line);box-shadow:0 0 0 1px rgba(255,47,168,.15),0 0 60px rgba(155,92,255,.25);background:#0b0b0e}
+.screen video{width:100%;height:100%;object-fit:cover;display:block}
+.hero h1{font-size:clamp(26px,4.6vw,48px);font-weight:800;letter-spacing:.01em;max-width:22ch;text-transform:uppercase}
+.hero h1 em{font-style:normal;color:var(--pink);text-shadow:var(--glow-pink)}
+.hero .lede{font-size:18px;color:var(--muted);max-width:56ch}
+.ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.btn{display:inline-block;padding:13px 22px;border-radius:4px;font:700 13px var(--head);letter-spacing:.12em;text-transform:uppercase;text-decoration:none}
+.btn.primary{background:var(--pink);color:#fff;box-shadow:0 0 18px rgba(255,47,168,.6)}
+.btn.primary:hover{box-shadow:0 0 28px rgba(255,47,168,.9)}
+.btn.ghost{color:var(--cyan);border:1px solid var(--cyan);box-shadow:inset 0 0 12px rgba(63,208,255,.25)}
+/* Tron floor */
+.floor{position:absolute;left:-50%;right:-50%;bottom:0;height:160px;z-index:1;perspective:320px;pointer-events:none;
+  -webkit-mask-image:linear-gradient(to top,#000 20%,transparent 100%);mask-image:linear-gradient(to top,#000 20%,transparent 100%)}
+.floor::before{content:"";position:absolute;inset:0 0 -60px 0;transform:rotateX(62deg);transform-origin:bottom;
+  background-image:linear-gradient(var(--violet) 1px,transparent 1px),linear-gradient(90deg,var(--violet) 1px,transparent 1px);
+  background-size:60px 60px;opacity:.55;animation:floor 3.5s linear infinite}
+.horizon{position:absolute;left:0;right:0;bottom:158px;height:2px;z-index:1;background:linear-gradient(90deg,transparent,var(--pink),var(--cyan),var(--pink),transparent);box-shadow:0 0 18px var(--pink)}
+@keyframes floor{to{background-position:0 60px}}
+@media (prefers-reduced-motion:reduce){.floor::before{animation:none}}
+
+/* sections */
+section.side{padding-block:64px;border-bottom:1px solid var(--line)}
+.side-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:30px}
+.side-head .tag{font:800 14px/1 var(--head);color:var(--void);background:var(--cyan);padding:7px 9px;border-radius:3px;box-shadow:var(--glow-cyan)}
+.side-head h2{font-size:clamp(24px,3.6vw,36px);text-transform:uppercase;letter-spacing:.04em}
+.side-head p{flex-basis:100%;color:var(--muted);max-width:62ch}
+
+.panel{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:10px}
+
+.plans{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+.plan{padding:28px;display:flex;flex-direction:column;gap:18px}
+.plan.feature{border-color:var(--pink);box-shadow:0 0 0 1px rgba(255,47,168,.4),0 0 32px rgba(255,47,168,.22)}
+.plan h3{font-size:19px;text-transform:uppercase;letter-spacing:.05em;margin-top:8px}
+.plan .price{display:flex;align-items:baseline;gap:10px}
+.plan .price b{font:500 46px/1 var(--mono);letter-spacing:-.02em;color:var(--text)}
+.plan.feature .price b{color:var(--pink);text-shadow:var(--glow-pink)}
+.plan:not(.feature) .price b{color:var(--cyan);text-shadow:var(--glow-cyan)}
+.plan .price span{color:var(--muted)}
+ul.ticks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.ticks li{padding-left:24px;position:relative}
+ul.ticks li::before{content:"";position:absolute;left:2px;top:.55em;width:10px;height:10px;transform:rotate(45deg);border:2px solid var(--violet)}
+
+.pause{margin-top:22px;padding:26px 28px;display:grid;grid-template-columns:1fr 1.4fr;gap:28px}
+.pause h3{font-size:16px;text-transform:uppercase;letter-spacing:.05em;margin-top:8px}
+.rates{display:flex;gap:28px;margin-top:14px;flex-wrap:wrap}
+.rates div{display:grid;gap:4px}
+.rates b{font:500 24px/1 var(--mono);color:var(--violet)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;font-size:15px}
+.cols ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;color:var(--muted)}
+
+/* releases */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:15px 20px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td,tr:last-child th{border-bottom:0}
+thead th{font:700 12px/1.2 var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}
+thead th small{display:block;text-transform:none;letter-spacing:0;font:400 13px var(--body);margin-top:5px;color:var(--muted)}
+td.price{font:500 19px var(--mono);color:var(--pink)}
+tbody th{font:600 15px var(--body)}
+td{color:var(--muted)}
+
+.leadtime{margin-top:24px;padding:26px 28px}
+.leadtime h3{font-size:16px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.leadtime > p{color:var(--muted);font-size:15px}
+.track{margin-top:26px;display:grid;gap:14px}
+.row,.scale{display:grid;grid-template-columns:180px 1fr;gap:14px;align-items:center;font-size:14px}
+.bar{position:relative;height:28px;background:rgba(155,92,255,.1);border:1px solid var(--line);border-radius:3px}
+.bar i{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(90deg,var(--violet),var(--pink));border-radius:2px;display:flex;align-items:center;padding-left:10px;color:#fff;font:500 12px var(--mono);font-style:normal;white-space:nowrap;box-shadow:0 0 14px rgba(255,47,168,.45)}
+.scale div{display:flex;justify-content:space-between;font:400 12px var(--mono);color:var(--muted)}
+
+.vip{margin-top:22px;display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start;padding:22px 26px;border-radius:10px;border:1px dashed var(--cyan);background:rgba(63,208,255,.05)}
+.vip .badge{font:800 12px/1 var(--head);letter-spacing:.14em;background:var(--cyan);color:var(--void);padding:8px 10px;border-radius:3px;box-shadow:var(--glow-cyan)}
+
+/* community */
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+.box{padding:26px;display:grid;gap:12px;align-content:start}
+.box h3{font-size:17px;text-transform:uppercase;letter-spacing:.05em}
+.box > p{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font:500 13px var(--body);border:1px solid var(--line);color:var(--text);padding:6px 12px;border-radius:999px;background:rgba(155,92,255,.1)}
+
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px}
+.notes p{border-top:2px solid var(--violet);padding-top:14px;font-size:15px;color:var(--muted)}
+
+.join{padding-block:72px;border-bottom:1px solid var(--line)}
+footer{padding-block:26px 40px;color:var(--muted);font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:760px){
+  .hero .wrap{padding-block:24px 140px}
+  .floor{height:110px}.horizon{bottom:108px}
+  .plans,.grid2,.pause,.cols{grid-template-columns:1fr}
+  .row,.scale{grid-template-columns:1fr;gap:6px}
+  nav{gap:14px}
+}
+/* join + contact */
+.joingrid{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;align-items:start}
+.signup{padding:28px;display:grid;gap:22px}
+.status{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:6px;border:1px solid var(--pink);background:rgba(255,47,168,.08);font-size:15px}
+.status .dot{flex:none;width:10px;height:10px;margin-top:7px;border-radius:50%;background:var(--pink);box-shadow:var(--glow-pink)}
+.status.open{border-color:var(--cyan);background:rgba(63,208,255,.08)}
+.status.open .dot{background:var(--cyan);box-shadow:var(--glow-cyan)}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:20px;min-width:0}
+fieldset:disabled{opacity:.55}
+legend{padding:0;margin-bottom:10px}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.choice label{cursor:pointer}
+.choice input{position:absolute;opacity:0}
+.choice span{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:14px 16px;border:1px solid var(--line);border-radius:6px;background:rgba(155,92,255,.08)}
+.choice b{font:700 13px var(--head);letter-spacing:.1em;text-transform:uppercase}
+.choice em{font:500 14px var(--mono);font-style:normal;color:var(--muted)}
+.choice input:checked + span{border-color:var(--pink);box-shadow:0 0 14px rgba(255,47,168,.35)}
+.choice input:checked + span em{color:var(--pink)}
+.choice input:focus-visible + span{outline:2px solid var(--cyan);outline-offset:3px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fields label{display:grid;gap:6px;font-size:14px;color:var(--muted)}
+.fields .wide{grid-column:1/-1}
+input[type=text],input[type=email],input[type=url]{font:400 15px var(--body);color:var(--text);background:var(--void);border:1px solid var(--line);border-radius:4px;padding:11px 12px;width:100%}
+input:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+.interests{display:grid;gap:10px}
+.checks{display:flex;flex-wrap:wrap;gap:10px 20px;font-size:15px}
+.checks label,.agree{display:flex;gap:8px;align-items:center}
+.agree{font-size:14px;color:var(--muted)}
+input[type=checkbox],input[type=radio]{accent-color:var(--pink)}
+.signup .btn{justify-self:start;border:0;cursor:pointer}
+fieldset:disabled .btn{cursor:not-allowed;box-shadow:none}
+.signup.fan .artist-only{display:none}
+.contact{padding:28px;display:grid;gap:20px;justify-items:start}
+.contact img{width:150px;height:auto}
+.email{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px;font:500 15px var(--mono);word-break:break-all}
+.copy{font:700 11px var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);background:transparent;border:1px solid var(--cyan);border-radius:3px;padding:6px 10px;cursor:pointer}
+.socials{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;width:100%}
+.socials a{color:var(--text);text-decoration:none;font-size:15px;display:block;padding:6px 0;border-bottom:1px solid var(--line)}
+.socials a:hover{color:var(--pink);text-shadow:var(--glow-pink)}
+@media (max-width:760px){.joingrid,.fields{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records"></a>
+    <nav aria-label="Sections">
+      <a href="#membership">Membership</a>
+      <a href="#releases">Releases</a>
+      <a href="#community">Community</a>
+      <a href="#join">Join</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="horizon" aria-hidden="true"></div>
+    <div class="floor" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="screen">
+        <video src="assets/rrr-spin.mp4" poster="assets/rrr-spin-poster.jpg" autoplay muted playsinline preload="auto" aria-label="Retro Reverb Records logo animation"></video>
+      </div>
+      <h1>Release your music. <em>Keep 100%</em> of your royalties.</h1>
+      <p class="lede">A community-first label for independent artists, fans and creators. Membership from €0.50 a month, with Bandcamp and streaming releases from €1.</p>
+      <div class="ctas">
+        <a class="btn primary" href="#membership">See membership</a>
+        <a class="btn ghost" href="#releases">Release prices</a>
+      </div>
+    </div>
+  </div>
+
+  <section class="side" id="membership">
+    <div class="wrap">
+      <div class="side-head">
+        <span class="tag">A</span>
+        <h2>Membership</h2>
+        <p>Two ways in, both monthly. Every member gets a free personalised RRR Community Card.</p>
+      </div>
+
+      <div class="plans">
+        <article class="panel plan feature">
+          <div>
+            <p class="label">For artists</p>
+            <h3>Artist Membership</h3>
+          </div>
+          <div class="price"><b class="num">€1.00</b><span>per month</span></div>
+          <ul class="ticks">
+            <li>Membership of the RRR Community, a unique artist-focused community</li>
+            <li>Book promotional posts on community social media</li>
+            <li>Community-supported promotion through missions and engagement</li>
+            <li>Free YouTube video uploads to the RRR Community Channel</li>
+            <li>Community rewards, achievements, levels and recognition</li>
+            <li>Collaborate with artists, creators, labels and promoters</li>
+            <li>One free Community Card with your artist profile and stats; extra cards at cost price</li>
+          </ul>
+        </article>
+        <article class="panel plan">
+          <div>
+            <p class="label">For fans</p>
+            <h3>Fan Membership</h3>
+          </div>
+          <div class="price"><b class="num">€0.50</b><span>per month</span></div>
+          <ul class="ticks">
+            <li>Direct interaction with artists</li>
+            <li>Access to community events and activities</li>
+            <li>Eligible for Fan of the Month rewards</li>
+            <li>Community rewards and recognition programmes</li>
+            <li>Support artists and earn community points</li>
+            <li>One free personalised Community Card; extra cards at cost price</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="panel pause">
+        <div>
+          <p class="label">Taking a break?</p>
+          <h3>Community Supporter Status</h3>
+          <div class="rates">
+            <div><span class="small">Artists</span><b class="num">€0.50/mo</b></div>
+            <div><span class="small">Fans</span><b class="num">€0.25/mo</b></div>
+          </div>
+        </div>
+        <div class="cols">
+          <div><strong>You keep</strong>
+            <ul><li>Your membership</li><li>Rank, points and achievements</li><li>Access to community channels</li><li>Eligibility for future promotions</li></ul>
+          </div>
+          <div><strong>Paused while on break</strong>
+            <ul><li>Release bookings</li><li>Social media promotion requests</li><li>Active artist services</li><li>New release submissions</li></ul>
+          </div>
+          <p class="small" style="grid-column:1/-1">Reactivate your full membership at any time.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="side" id="releases">
+    <div class="wrap">
+      <div class="side-head">
+        <span class="tag">B</span>
+        <h2>Releases</h2>
+        <p>A label-backed release on Bandcamp, streaming platforms, or both. You pay a one-off upload fee and keep every cent of your royalties.</p>
+      </div>
+
+      <div class="panel tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Format</th>
+              <th scope="col">Bandcamp<small>via the RRR catalogue</small></th>
+              <th scope="col">Streaming<small>via RouteNote</small></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Single</th><td class="price num">€1.00</td><td class="price num">€1.00</td></tr>
+            <tr><th scope="row">EP</th><td class="price num">€2.00</td><td class="price num">€2.00</td></tr>
+            <tr><th scope="row">Album</th><td class="price num">€2.50</td><td class="price num">€2.50</td></tr>
+            <tr><th scope="row">Royalties</th><td>100% to you, paid straight into your own Bandcamp account</td><td>100% to you</td></tr>
+            <tr><th scope="row">Included</th><td>Listed on your Bandcamp page and the RRR page, artist page edits, community promotion</td><td>Upload and management through the RRR RouteNote account, community support where applicable</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel leadtime">
+        <h3>Deadlines before release day</h3>
+        <p>Every release is booked through the RRR release calendar. Assets go into your designated Google Drive folder.</p>
+        <div class="track">
+          <div class="scale"><span></span><div><span>4 wks</span><span>3 wks</span><span>2 wks</span><span>1 wk</span><span>Release</span></div></div>
+          <div class="row"><span>Bandcamp assets</span><div class="bar"><i style="width:75%">at least 3 weeks</i></div></div>
+          <div class="row"><span>Streaming assets</span><div class="bar"><i style="width:50%">at least 2 weeks</i></div></div>
+          <div class="row"><span>Editorial playlist pitch</span><div class="bar"><i style="width:50%">at least 2 weeks</i></div></div>
+        </div>
+      </div>
+
+      <div class="vip">
+        <span class="badge">VIP</span>
+        <div>
+          <p><strong>Free RRR VIP Membership</strong> once you link your Bandcamp account to the RRR catalogue, for as long as your releases stay active in it.</p>
+          <p class="small" style="margin-top:6px">Releases in the catalogue can be included in RRR discount codes, giveaways and promotional offers.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="side" id="community">
+    <div class="wrap">
+      <div class="side-head">
+        <span class="tag">C</span>
+        <h2>Community</h2>
+      </div>
+      <div class="grid2">
+        <div class="panel box">
+          <p class="label">Collect and trade</p>
+          <h3>Community Cards</h3>
+          <p>Every member gets one free personalised card when they join. Extra cards cost what they cost us to make.</p>
+          <div class="chips"><span>Name</span><span>Profile image</span><span>Rank</span><span>Releases</span><span>Achievements</span><span>Stats</span><span>Special attributes</span></div>
+        </div>
+        <div class="panel box">
+          <p class="label">Earn points</p>
+          <h3>Community Rewards</h3>
+          <p>Points build your rank and unlock rewards and recognition.</p>
+          <div class="chips"><span>Supporting artists</span><span>Sharing releases</span><span>Referring members</span><span>Referring artists</span><span>Buying music</span><span>Missions</span><span>Helping members</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="side">
+    <div class="wrap">
+      <div class="side-head"><h2>The fine print</h2></div>
+      <div class="notes">
+        <p>You keep ownership of your music and intellectual property.</p>
+        <p>You keep 100% of royalties from Bandcamp and streaming platforms.</p>
+        <p>Membership fees pay for running and growing the community and its services.</p>
+        <p>Prices and services may be reviewed as the community grows. All prices in euros.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="join" id="join">
+    <div class="wrap">
+      <div class="side-head">
+        <span class="tag">D</span>
+        <h2>Join RRR</h2>
+        <p>Choose how you want to join. Sign-up opens when we launch; until then this form is switched off.</p>
+      </div>
+      <div class="joingrid">
+        <form class="panel signup" id="signup" novalidate>
+          <div class="status" id="signup-status" role="status">
+            <span class="dot"></span><span><strong>Coming soon.</strong> Sign-up isn't open yet. Follow us below to hear when it opens.</span>
+          </div>
+          <fieldset id="signup-fields">
+            <legend class="label">Join as</legend>
+            <div class="choice">
+              <label><input type="radio" name="type" id="type-artist" value="artist" checked><span><b>Artist</b><em>€1.00/mo</em></span></label>
+              <label><input type="radio" name="type" id="type-fan" value="fan"><span><b>Fan</b><em>€0.50/mo</em></span></label>
+            </div>
+            <div class="fields">
+              <label for="f-name">Name<input id="f-name" name="name" type="text" autocomplete="name" required></label>
+              <label for="f-artist" class="artist-only">Artist or project name<input id="f-artist" name="artist" type="text"></label>
+              <label for="f-email">Email<input id="f-email" name="email" type="email" autocomplete="email" required></label>
+              <label for="f-country">Country<input id="f-country" name="country" type="text" autocomplete="country-name"></label>
+              <label for="f-bandcamp" class="artist-only wide">Bandcamp page (optional)<input id="f-bandcamp" name="bandcamp" type="url" placeholder="https://yourname.bandcamp.com"></label>
+            </div>
+            <div class="artist-only interests">
+              <span class="label">Interested in</span>
+              <div class="checks">
+                <label><input type="checkbox" id="i-bandcamp" name="interest" value="bandcamp"> Bandcamp releases</label>
+                <label><input type="checkbox" id="i-stream" name="interest" value="streaming"> Streaming releases</label>
+                <label><input type="checkbox" id="i-promo" name="interest" value="promotion"> Promotion</label>
+                <label><input type="checkbox" id="i-youtube" name="interest" value="youtube"> YouTube uploads</label>
+              </div>
+            </div>
+            <label class="agree"><input type="checkbox" id="f-agree" name="agree" required> I've read the membership terms and prices above.</label>
+            <button class="btn primary" type="submit" id="signup-submit">Join RRR</button>
+          </fieldset>
+        </form>
+
+        <aside class="panel contact" id="contact">
+          <img src="assets/rrr-logo-stack.png" alt="Retro Reverb Records">
+          <div>
+            <p class="label">Contact</p>
+            <div class="email">
+              <span id="rrr-email">retroreverbrecords@gmail.com</span>
+              <button type="button" class="copy" id="copy-email">Copy</button>
+            </div>
+          </div>
+          <ul class="socials">
+            <li><a href="https://retroreverbrecords.bandcamp.com/" target="_blank" rel="noopener">Bandcamp</a></li>
+            <li><a href="https://youtube.com/@RetroReverbRecords" target="_blank" rel="noopener">YouTube</a></li>
+            <li><a href="https://www.instagram.com/retro_reverb_records" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://www.facebook.com/retroreverbrecords/" target="_blank" rel="noopener">Facebook</a></li>
+            <li><a href="https://www.tiktok.com/@reverb85" target="_blank" rel="noopener">TikTok</a></li>
+            <li><a href="https://twitter.com/Reverb_Record" target="_blank" rel="noopener">X</a></li>
+            <li><a href="https://bsky.app/profile/retroreverbrecords.bsky.social" target="_blank" rel="noopener">Bluesky</a></li>
+            <li><a href="https://www.twitch.tv/retroreverbrecords" target="_blank" rel="noopener">Twitch</a></li>
+          </ul>
+        </aside>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© Retro Reverb Records</span>
+    <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
+  </div>
+</footer>
+
+<script>
+// Flip to true when RRR is ready to take members, and connect the form to a real destination.
+const SIGNUP_OPEN = false;
+(function(){
+  const form=document.getElementById('signup'), fields=document.getElementById('signup-fields'), status=document.getElementById('signup-status');
+  fields.disabled=!SIGNUP_OPEN;
+  if(SIGNUP_OPEN){status.classList.add('open');status.innerHTML='<span class="dot"></span><span><strong>Sign-up is open.</strong> Fill in the form to join.</span>';}
+  form.querySelectorAll('input[name=type]').forEach(r=>r.addEventListener('change',()=>form.classList.toggle('fan',form.querySelector('#type-fan').checked)));
+  form.addEventListener('submit',e=>{e.preventDefault(); if(!SIGNUP_OPEN) return;});
+  const btn=document.getElementById('copy-email'), mail=document.getElementById('rrr-email');
+  btn.addEventListener('click',()=>{
+    const done=()=>{btn.textContent='Copied';setTimeout(()=>btn.textContent='Copy',1600)};
+    const fallback=()=>{const r=document.createRange();r.selectNodeContents(mail);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);btn.textContent='Selected'};
+    try{navigator.clipboard.writeText(mail.textContent).then(done,fallback)}catch(e){fallback()}
+  });
+})();
+</script>
+</body>
+</html>

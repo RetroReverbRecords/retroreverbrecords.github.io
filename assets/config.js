@@ -31,8 +31,9 @@ window.RRR_CONFIG = {
   uploadFees: { single: 1.00, ep: 2.00, album: 2.50 },
 
   // Asset deadlines in days before release day (from the price list).
-  // editorialDays is under review: see Open Questions Q1.
-  deadlines: { bandcampAssetsDays: 21, streamingAssetsDays: 14, editorialDays: 14 },
+  // Bandcamp editorial is NOT an RRR service; shown as a guideline only.
+  // Owner guidance: artists submit themselves at least 8–9 weeks before release.
+  deadlines: { bandcampAssetsDays: 21, streamingAssetsDays: 14, editorialEarliestDays: 63, editorialLatestDays: 56 },
 
   // Groover link for The Bandcamp Hour submissions.
   grooverUrl: "https://groover.co/band/signup/referral/influencer/16806/",

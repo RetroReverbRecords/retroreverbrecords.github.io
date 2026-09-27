@@ -267,3 +267,13 @@ input[type=date],input[type=time]{font:400 15px var(--body);color:var(--text);ba
   .steps li{grid-template-columns:44px 1fr;gap:14px}
   .steps li::before{font-size:22px}
 }
+
+/* editorial guideline + cards */
+.guide{margin-top:22px;padding:22px 26px;display:grid;gap:8px;border-style:dashed}
+.guide h3{font-size:16px;text-transform:uppercase;letter-spacing:.05em}
+.guide p:not(.label){color:var(--muted);max-width:66ch}
+.guide strong{color:var(--text)}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-block:6px}
+.cards img{width:100%;height:auto;border-radius:10px;border:1px solid var(--line);box-shadow:0 0 22px rgba(155,92,255,.25);transition:transform .25s}
+.cards img:hover{transform:rotate(-1.5deg) scale(1.02)}
+@media (prefers-reduced-motion:reduce){.cards img{transition:none}.cards img:hover{transform:none}}

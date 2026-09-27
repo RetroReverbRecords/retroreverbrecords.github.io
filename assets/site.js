@@ -152,7 +152,7 @@
   if (plan) {
     const D = C.deadlines || {};
     const dateIn = $('#pl-date'), out = $('#pl-out');
-    const d0 = new Date(); d0.setDate(d0.getDate() + 42);
+    const d0 = new Date(); d0.setDate(d0.getDate() + 70);
     dateIn.value = d0.toISOString().slice(0,10);
     const minus = (iso, days) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - days); return d; };
     const fmt = d => d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
@@ -163,7 +163,7 @@
       const rows = [];
       if (bc) rows.push(['Bandcamp assets in the Drive folder', minus(iso, D.bandcampAssetsDays ?? 21)]);
       if (st) rows.push(['Streaming (RouteNote) assets in', minus(iso, D.streamingAssetsDays ?? 14)]);
-      if (bc && ed) rows.push(['Editorial playlist pitch ready', minus(iso, D.editorialDays ?? 14)]);
+      if (ed) { rows.push(['Bandcamp editorial, 9 weeks (your own submission)', minus(iso, D.editorialEarliestDays ?? 63)]); rows.push(['Bandcamp editorial, 8 weeks at the latest', minus(iso, D.editorialLatestDays ?? 56)]); }
       rows.sort((a,b) => a[1] - b[1]);
       rows.push(['Release day', new Date(iso + 'T12:00:00')]);
       out.innerHTML = rows.length > 1 ? rows.map(([label, d]) => {

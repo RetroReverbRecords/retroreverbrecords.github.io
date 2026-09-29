@@ -22,7 +22,7 @@ window.RRR_CONFIG = {
   automationUrl: "",
 
   // Public address of this site (used for PayPal "return to site" links).
-  siteUrl: "https://londonlanguageschool.github.io/rrr/",
+  siteUrl: "https://retroreverbrecords.github.io/",
 
   // HOW PEOPLE PAY
   // membershipVia: "paypal"   = monthly PayPal subscription to paypalEmail (automated)

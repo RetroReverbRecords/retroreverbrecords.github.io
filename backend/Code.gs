@@ -1,0 +1,317 @@
+/**
+ * RRR AUTOMATION — Google Apps Script
+ * ------------------------------------------------------------
+ * One small program in your Google account that:
+ *  1. Receives sign-ups and bookings from the website  → Google Sheet
+ *  2. Receives PayPal payment notifications (IPN)      → Google Sheet + email to you
+ *  3. Adds bookings (releases, social posts, YouTube)  → Google Calendar "RRR Releases"
+ *  4. Serves each member's dashboard data               → member.html on the website
+ *  5. Pulls stats from Songstats (optional, needs API key) and emails you a daily digest
+ *
+ * Setup: see backend/SETUP.md. Nothing here spends money or messages members.
+ * Only the owner gets emails.
+ */
+
+// ---------- SETTINGS (edit these) ----------
+const SETTINGS = {
+  ownerEmail: 'retroreverbrecords@gmail.com',       // where alerts go
+  paypalEmail: 'retroreverbrecords@gmail.com',      // PayPal account that receives money
+  calendarName: 'RRR Releases',
+  siteUrl: 'https://londonlanguageschool.github.io/Retro-Reverb-Records-membership-platform/',
+  songstatsBase: 'https://api.songstats.com/enterprise/v1', // confirm in Songstats docs
+  songstatsLabelId: 'ywz70gl4',                      // from songstats.com/label/ywz70gl4
+  // Deadlines (days before release) — keep in step with assets/config.js
+  bandcampAssetsDays: 21,
+  streamingAssetsDays: 14
+};
+
+// Sheet tabs and their columns. Created automatically on first run.
+const TABS = {
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public'],
+  Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
+  Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id'],
+  Achievements: ['member_id','achievement','earned_on','points','note'],
+  Posts:        ['member_id','platform','date','link','status'],
+  Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
+  Log:          ['time','what','detail']
+};
+
+// Point values from the RRR Points System Proposal (edit freely)
+const RANKS = [
+  { name: 'Signal', min: 0 }, { name: 'Echo', min: 50 }, { name: 'Reverb', min: 150 },
+  { name: 'Resonance', min: 400 }, { name: 'Legend', min: 1000 }
+];
+const AUTO_ACHIEVEMENTS = {
+  joined:        { title: 'Joined the community', points: 5 },
+  firstRelease:  { title: 'First release booked', points: 20 },
+  firstPost:     { title: 'First social post booked', points: 5 },
+  firstVideo:    { title: 'First YouTube upload', points: 5 },
+  loyal3:        { title: '3 months a member', points: 15 },
+  loyal12:       { title: '1 year a member', points: 50 }
+};
+
+// ============================================================
+// WEB ENDPOINTS
+// ============================================================
+function doPost(e) {
+  try {
+    const p = (e && e.parameter) || {};
+    if (p.txn_type || p.payment_status || p.ipn_track_id) return handlePayPal_(e);
+    const kind = p.form || 'unknown';
+    if (kind === 'signup') return handleSignup_(p);
+    if (/release|social-post|youtube-upload/.test(kind)) return handleBooking_(kind, p);
+    log_('unknown form', JSON.stringify(p).slice(0, 500));
+    return text_('ok');
+  } catch (err) {
+    log_('error doPost', String(err && err.stack || err));
+    return text_('error');
+  }
+}
+
+// member.html calls: ?member=RRR-XXXX  → public JSON for that member
+function doGet(e) {
+  const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
+  if (!id) return json_({ ok: false, error: 'missing member id' });
+  const m = findRow_('Members', 'member_id', id);
+  if (!m || String(m.public).toLowerCase() === 'no') return json_({ ok: false, error: 'not found' });
+  return json_({ ok: true, member: publicProfile_(m) });
+}
+
+// ============================================================
+// SIGN-UPS
+// ============================================================
+function handleSignup_(p) {
+  // The website makes the member ID so it can go straight to PayPal with it
+  let id = String(p.member_id || '').toUpperCase();
+  if (!/^RRR-[A-Z0-9]{5}$/.test(id) || findRow_('Members', 'member_id', id)) id = newMemberId_();
+  append_('Members', {
+    member_id: id, created: new Date(), type: p.type || 'fan', name: p.name, artist: p.artist,
+    email: p.email, country: p.country, address_line1: p.address_line1, address_line2: p.address_line2,
+    city: p.city, postcode: p.postcode, bandcamp: p.bandcamp, status: 'pending payment',
+    plan: p.type === 'artist' ? 'Artist' : 'Fan', points: 0, rank: 'Signal', public: 'yes'
+  });
+  award_(id, 'joined');
+  notify_('New RRR sign-up: ' + (p.artist || p.name) + ' (' + (p.type || 'fan') + ')',
+    'Member ID: ' + id + '\nEmail: ' + p.email + '\nWaiting for PayPal payment.\n\nMembers sheet: ' + sheetUrl_());
+  return text_('ok');
+}
+
+// ============================================================
+// BOOKINGS → sheet + calendar
+// ============================================================
+function handleBooking_(kind, p) {
+  const date = p.release_date || p.preferred_date || p.premiere_date || '';
+  const member = p.email ? findRow_('Members', 'email', p.email) : null;
+  const memberId = member ? member.member_id : '';
+  const title = p.title || p.link || '';
+  let eventId = '';
+  if (date) eventId = addToCalendar_(kind, p, date);
+  append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
+    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: 'requested', calendar_event_id: eventId });
+  if (memberId) {
+    if (/release/.test(kind)) award_(memberId, 'firstRelease');
+    if (kind === 'social-post') { award_(memberId, 'firstPost'); append_('Posts', { member_id: memberId, platform: [].concat(p.platform || []).join(', '), date: date, link: p.link, status: 'booked' }); }
+    if (kind === 'youtube-upload') award_(memberId, 'firstVideo');
+  }
+  notify_('New RRR booking: ' + kind + ' – ' + (p.artist || '') + ' – ' + title,
+    'Date: ' + date + '\nMember: ' + (memberId || 'not matched to a member – check email') + '\n\nBookings sheet: ' + sheetUrl_());
+  return text_('ok');
+}
+
+function addToCalendar_(kind, p, isoDate) {
+  const cal = getCalendar_();
+  const d = new Date(isoDate + 'T12:00:00');
+  const label = { 'bandcamp-release': 'Bandcamp release', 'streaming-release': 'Streaming release', 'social-post': 'Social post', 'youtube-upload': 'YouTube premiere' }[kind] || kind;
+  const main = cal.createAllDayEvent('RRR ' + label + ': ' + (p.artist || '') + ' – ' + (p.title || ''), d, { description: 'Booked via website. Email: ' + (p.email || '') });
+  // Asset deadlines as their own reminders
+  const addDeadline = (days, what) => {
+    const dd = new Date(d); dd.setDate(dd.getDate() - days);
+    cal.createAllDayEvent('DEADLINE ' + what + ': ' + (p.artist || '') + ' – ' + (p.title || ''), dd);
+  };
+  if (kind === 'bandcamp-release') addDeadline(SETTINGS.bandcampAssetsDays, 'Bandcamp assets');
+  if (kind === 'streaming-release' || p.also_streaming) addDeadline(SETTINGS.streamingAssetsDays, 'Streaming assets');
+  return main.getId();
+}
+
+// ============================================================
+// PAYPAL (Instant Payment Notification)
+// The website sends people to PayPal with notify_url = this script's URL.
+// PayPal then tells us about every payment and subscription change.
+// ============================================================
+function handlePayPal_(e) {
+  const raw = e.postData ? e.postData.contents : '';
+  // 1. Ask PayPal to confirm this message is genuine
+  const check = UrlFetchApp.fetch('https://ipnpb.paypal.com/cgi-bin/webscr', {
+    method: 'post', payload: 'cmd=_notify-validate&' + raw,
+    contentType: 'application/x-www-form-urlencoded', muteHttpExceptions: true
+  }).getContentText();
+  const p = e.parameter;
+  if (check !== 'VERIFIED') { log_('PayPal not verified', raw.slice(0, 500)); return text_('ok'); }
+  if (String(p.receiver_email || p.business || '').toLowerCase() !== SETTINGS.paypalEmail.toLowerCase()) {
+    log_('PayPal wrong receiver', p.receiver_email); return text_('ok');
+  }
+  // 2. Ignore repeats
+  if (p.txn_id && findRow_('Payments', 'txn_id', p.txn_id)) return text_('ok');
+  // custom = member ID (subscriptions) or the member's email (one-off fees)
+  let memberId = String(p.custom || '').trim();
+  if (memberId.indexOf('@') > 0) { const m = findRow_('Members', 'email', memberId); memberId = m ? m.member_id : ''; }
+  memberId = memberId.toUpperCase();
+  append_('Payments', { received: new Date(), txn_type: p.txn_type, payment_status: p.payment_status, amount: p.mc_gross || p.mc_amount3 || '',
+    currency: p.mc_currency, item_name: p.item_name, payer_email: p.payer_email, member_id: memberId, txn_id: p.txn_id || '', subscr_id: p.subscr_id || '', raw: raw.slice(0, 2000) });
+
+  // 3. Update the member
+  const t = p.txn_type;
+  const setStatus = (status) => { if (memberId) updateRow_('Members', 'member_id', memberId, { status: status, paypal_subscr_id: p.subscr_id || '' }); };
+  if (t === 'subscr_signup' || t === 'subscr_payment') setStatus('active');
+  if (t === 'subscr_cancel') setStatus('cancelled (active until period ends)');
+  if (t === 'subscr_eot' || t === 'subscr_failed') setStatus('lapsed');
+
+  // 4. Tell the owner straight away
+  const who = memberId || p.payer_email;
+  const nice = {
+    subscr_signup: 'NEW SUBSCRIPTION', subscr_payment: 'Subscription payment', subscr_cancel: 'Subscription cancelled',
+    subscr_eot: 'Subscription ended', subscr_failed: 'Subscription payment failed', web_accept: 'One-off payment'
+  }[t] || ('PayPal: ' + t);
+  notify_('RRR ' + nice + ' – ' + who + ' – ' + (p.mc_gross || p.mc_amount3 || '') + ' ' + (p.mc_currency || ''),
+    'Item: ' + (p.item_name || '') + '\nPayer: ' + (p.payer_email || '') + '\nMember ID: ' + (memberId || 'none') + '\n\nPayments sheet: ' + sheetUrl_());
+  return text_('ok');
+}
+
+// ============================================================
+// ACHIEVEMENTS, POINTS, RANKS
+// ============================================================
+function award_(memberId, key, note) {
+  const a = AUTO_ACHIEVEMENTS[key]; if (!a) return;
+  const existing = rows_('Achievements').some(r => r.member_id === memberId && r.achievement === a.title);
+  if (existing) return;
+  append_('Achievements', { member_id: memberId, achievement: a.title, earned_on: new Date(), points: a.points, note: note || '' });
+  recalcPoints_(memberId);
+}
+function recalcPoints_(memberId) {
+  const pts = rows_('Achievements').filter(r => r.member_id === memberId).reduce((s, r) => s + (Number(r.points) || 0), 0);
+  updateRow_('Members', 'member_id', memberId, { points: pts, rank: rankFor_(pts).name });
+}
+function rankFor_(pts) { let r = RANKS[0]; RANKS.forEach(x => { if (pts >= x.min) r = x; }); return r; }
+
+function publicProfile_(m) {
+  const id = m.member_id;
+  const pts = Number(m.points) || 0;
+  const rank = rankFor_(pts), next = RANKS.find(r => r.min > pts) || null;
+  const stats = rows_('Stats').filter(r => r.member_id === id).pop() || null;
+  return {
+    id: id, name: m.artist || m.name, type: m.type, since: m.created, status: m.status,
+    points: pts, rank: rank.name, nextRank: next ? next.name : null, nextAt: next ? next.min : null, rankFrom: rank.min,
+    achievements: rows_('Achievements').filter(r => r.member_id === id).map(r => ({ title: r.achievement, on: r.earned_on, points: r.points })),
+    releases: rows_('Bookings').filter(r => r.member_id === id && /release/.test(r.kind)).map(r => ({ title: r.title, kind: r.kind, format: r.format, date: r.date, status: r.status })),
+    posts: rows_('Posts').filter(r => r.member_id === id).map(r => ({ platform: r.platform, date: r.date, link: r.link, status: r.status })),
+    stats: stats ? { updated: stats.updated, spotifyListeners: stats.spotify_monthly_listeners, spotifyStreams: stats.spotify_streams, playlists: stats.playlists, youtubeViews: stats.youtube_views, tiktokViews: stats.tiktok_views, source: stats.source } : null
+    // Note: email, address and payment details are never included.
+  };
+}
+
+// ============================================================
+// SONGSTATS (optional — needs an Enterprise API key)
+// Put the key in Project Settings → Script properties as SONGSTATS_API_KEY
+// ============================================================
+function updateSongstats() {
+  const key = PropertiesService.getScriptProperties().getProperty('SONGSTATS_API_KEY');
+  if (!key) { log_('songstats', 'no API key set – skipped'); return; }
+  rows_('Members').filter(m => m.songstats_artist_id && /active/.test(m.status)).forEach(m => {
+    const get = (source) => {
+      const res = UrlFetchApp.fetch(SETTINGS.songstatsBase + '/artists/stats?songstats_artist_id=' + encodeURIComponent(m.songstats_artist_id) + '&source=' + source,
+        { headers: { apikey: key, Accept: 'application/json' }, muteHttpExceptions: true });
+      if (res.getResponseCode() !== 200) { log_('songstats ' + source, m.member_id + ' ' + res.getResponseCode()); return {}; }
+      const body = JSON.parse(res.getContentText());
+      const s = (body.stats && body.stats[0] && body.stats[0].data) || {};
+      return s;
+    };
+    const sp = get('spotify'), yt = get('youtube'), tt = get('tiktok');
+    append_('Stats', { member_id: m.member_id, updated: new Date(),
+      spotify_monthly_listeners: sp.monthly_listeners_current || '', spotify_streams: sp.streams_total || '',
+      playlists: sp.playlists_current || '', youtube_views: yt.video_views_total || '', tiktok_views: tt.views_total || '', source: 'Songstats' });
+    Utilities.sleep(500);
+  });
+}
+
+// ============================================================
+// DAILY JOBS
+// ============================================================
+function daily() {
+  // Loyalty achievements
+  const now = new Date();
+  rows_('Members').filter(m => /active/.test(m.status) && m.created).forEach(m => {
+    const months = (now - new Date(m.created)) / (1000 * 60 * 60 * 24 * 30.4);
+    if (months >= 3) award_(m.member_id, 'loyal3');
+    if (months >= 12) award_(m.member_id, 'loyal12');
+  });
+  updateSongstats();
+  digest_();
+}
+
+function digest_() {
+  const since = new Date(Date.now() - 24 * 3600 * 1000);
+  const newM = rows_('Members').filter(r => new Date(r.created) >= since);
+  const pays = rows_('Payments').filter(r => new Date(r.received) >= since);
+  const books = rows_('Bookings').filter(r => new Date(r.created) >= since);
+  const soon = new Date(Date.now() + 7 * 24 * 3600 * 1000);
+  const deadlines = getCalendar_().getEvents(new Date(), soon).filter(ev => /^DEADLINE/.test(ev.getTitle())).map(ev => '• ' + ev.getAllDayStartDate().toDateString() + ' – ' + ev.getTitle());
+  const active = rows_('Members').filter(r => /active/.test(r.status)).length;
+  if (!newM.length && !pays.length && !books.length && !deadlines.length) return;
+  notify_('RRR daily digest – ' + newM.length + ' new members, ' + pays.length + ' payments, ' + books.length + ' bookings',
+    'Active members: ' + active +
+    '\n\nNew members:\n' + (newM.map(r => '• ' + (r.artist || r.name) + ' (' + r.type + ', ' + r.status + ')').join('\n') || '–') +
+    '\n\nPayments:\n' + (pays.map(r => '• ' + r.txn_type + ' ' + r.amount + ' ' + r.currency + ' – ' + (r.member_id || r.payer_email)).join('\n') || '–') +
+    '\n\nBookings:\n' + (books.map(r => '• ' + r.kind + ' – ' + r.artist + ' – ' + r.title + ' – ' + r.date).join('\n') || '–') +
+    '\n\nDeadlines in the next 7 days:\n' + (deadlines.join('\n') || '–') +
+    '\n\nSheet: ' + sheetUrl_());
+}
+
+// Run once from the editor: creates tabs, calendar and the daily trigger.
+function setup() {
+  Object.keys(TABS).forEach(sheet_);
+  getCalendar_();
+  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'daily') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('daily').timeBased().everyDays(1).atHour(8).create();
+  log_('setup', 'done');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function ss_() { return SpreadsheetApp.getActiveSpreadsheet(); }
+function sheetUrl_() { return ss_().getUrl(); }
+function sheet_(name) {
+  let sh = ss_().getSheetByName(name);
+  if (!sh) { sh = ss_().insertSheet(name); sh.appendRow(TABS[name]); sh.setFrozenRows(1); sh.getRange(1, 1, 1, TABS[name].length).setFontWeight('bold'); }
+  return sh;
+}
+function rows_(name) {
+  const v = sheet_(name).getDataRange().getValues(); const h = v.shift() || [];
+  return v.map(r => Object.fromEntries(h.map((k, i) => [k, r[i]])));
+}
+function findRow_(name, col, val) {
+  const want = String(val).toLowerCase();
+  return rows_(name).find(r => String(r[col]).toLowerCase() === want) || null;
+}
+function append_(name, obj) { sheet_(name).appendRow(TABS[name].map(k => obj[k] !== undefined ? obj[k] : '')); }
+function updateRow_(name, keyCol, keyVal, patch) {
+  const sh = sheet_(name), v = sh.getDataRange().getValues(), h = v[0];
+  const ki = h.indexOf(keyCol);
+  for (let i = 1; i < v.length; i++) {
+    if (String(v[i][ki]).toLowerCase() === String(keyVal).toLowerCase()) {
+      Object.keys(patch).forEach(k => { const ci = h.indexOf(k); if (ci >= 0 && patch[k] !== '') sh.getRange(i + 1, ci + 1).setValue(patch[k]); });
+      return true;
+    }
+  }
+  return false;
+}
+function newMemberId_() {
+  const alph = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let id;
+  do { id = 'RRR-' + Array.from({ length: 5 }, () => alph[Math.floor(Math.random() * alph.length)]).join(''); } while (findRow_('Members', 'member_id', id));
+  return id;
+}
+function getCalendar_() { const c = CalendarApp.getCalendarsByName(SETTINGS.calendarName); return c.length ? c[0] : CalendarApp.createCalendar(SETTINGS.calendarName); }
+function notify_(subject, body) { MailApp.sendEmail(SETTINGS.ownerEmail, subject, body); }
+function log_(what, detail) { try { sheet_('Log').appendRow([new Date(), what, detail]); } catch (e) {} }
+function text_(s) { return ContentService.createTextOutput(s); }
+function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }

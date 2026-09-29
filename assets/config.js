@@ -10,21 +10,27 @@ window.RRR_CONFIG = {
   // Booking forms on book.html. Keep false until launch.
   bookingOpen: false,
 
-  // Where submitted forms are sent once open.
-  // Paste a form endpoint here (e.g. a Formspree or Google Apps Script URL).
-  // Leave empty and forms stay in "coming soon" mode even if opened above.
+  // Older setting, kept for compatibility. Use automationUrl instead.
   formEndpoint: "",
 
+  // AUTOMATION: paste the Google Apps Script web app URL here (see backend/SETUP.md).
+  // Sign-ups, bookings and PayPal notifications all go to it.
+  automationUrl: "",
+
+  // Public address of this site (used for PayPal "return to site" links).
+  siteUrl: "https://londonlanguageschool.github.io/Retro-Reverb-Records-membership-platform/",
+
   // HOW PEOPLE PAY
-  // membershipVia: "bandcamp" = monthly membership is the RRR Bandcamp subscription
-  //                "paypal"   = PayPal subscription plans below
-  // paypalMe: your PayPal.Me name (e.g. "retroreverbrecords") for one-off fees
-  //           (release uploads, YouTube uploads). Leave empty to hide pay buttons.
+  // membershipVia: "paypal"   = monthly PayPal subscription to paypalEmail (automated)
+  //                "bandcamp" = RRR Bandcamp subscription (not automated: Bandcamp has no notifications for us)
   payments: {
-    membershipVia: "bandcamp",
-    bandcampSubscribeUrl: "https://retroreverbrecords.bandcamp.com/subscribe",
-    paypalMe: ""
+    membershipVia: "paypal",
+    paypalEmail: "retroreverbrecords@gmail.com",
+    bandcampSubscribeUrl: "https://retroreverbrecords.bandcamp.com/subscribe"
   },
+
+  // Monthly membership prices (placeholder, 27 Sep 2026)
+  membershipPrices: { artist: 3.00, fan: 0.50 },
 
   // RRR's Bandcamp label ID. Release links carry it so they open through the RRR label.
   bandcampLabelId: "2880365093",

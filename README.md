@@ -8,6 +8,8 @@ Website for the RRR Community. Static site, no build step, hosted with GitHub Pa
 - `how-it-works.html` – step-by-step for artists and fans, FAQ
 - `cards.html` – Synth Stars: check a card (serial + check code), swapping rules, Season 1 roster
 - `card-maker.html` – owner tool (not linked): makes serials and secret check codes for a print run
+- `member.html` – member dashboard (rank, points, achievements, releases, posts, stats). Open with `?id=RRR-XXXXX`
+- `backend/` – Google Apps Script automation + **SETUP.md** (sheet, PayPal notifications, calendar, emails, Songstats)
 - `history.html` – RRR history timeline since 2016, with sources
 - `book.html` – booking forms: Bandcamp release, streaming release, social media post, YouTube upload, The Bandcamp Hour (Groover); deadline planner
 

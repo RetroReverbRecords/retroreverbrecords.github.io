@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RRR Member Dashboard</title>
+<meta name="theme-color" content="#07061A">
+<link rel="icon" href="assets/rrr-logo-stack.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records home"></a>
+    <nav aria-label="Sections">
+      <a href="index.html#membership">Membership</a>
+      <a href="index.html#releases">Releases</a>
+      <a href="index.html#catalogue">Catalogue</a>
+      <a href="index.html#merch">Merch</a>
+      <a href="cards.html">Cards</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="history.html">History</a>
+      <a href="book.html">Book</a>
+      <a href="index.html#contact">Contact</a>
+      <a href="member.html">My dashboard</a>
+      <a class="btn primary small-btn" href="index.html#join">Create account</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <div class="pagehead">
+    <div class="wrap">
+      <p class="label">Member dashboard</p>
+      <h1>Your <em>progress</em></h1>
+      <p class="lede">Achievements, rank, releases, social posts and stats, all in one place.</p>
+      <form class="lookup" id="lookup" novalidate>
+        <label for="lk-id" class="small">Member ID</label>
+        <input id="lk-id" type="text" placeholder="RRR-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <button class="btn primary" type="submit">Open</button>
+      </form>
+    </div>
+  </div>
+
+  <section class="side">
+    <div class="wrap" id="dash">
+      <div class="panel empty"><b>Loading…</b></div>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="wrap">
+    <span>© Retro Reverb Records · Since 2016 · <a href="history.html">History</a> · <a href="how-it-works.html">How it works</a> · <a href="book.html">Book</a></span>
+    <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
+  </div>
+</footer>
+<script src="assets/config.js"></script>
+<script src="assets/releases.js"></script>
+<script src="assets/site.js"></script>
+<script src="assets/member-page.js"></script>
+</body>
+</html>

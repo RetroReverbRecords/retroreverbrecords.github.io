@@ -135,7 +135,7 @@ function handleSignup_(p) {
       htmlBody: '<p>Hi ' + (p.name || '') + ',</p><p>Welcome to the RRR Community. This is your copy of what you agreed to when you signed up.</p>' +
         '<ul><li><b>Signed by:</b> ' + (p.signature || '') + '</li><li><b>Date and time:</b> ' + new Date().toUTCString() + '</li><li><b>Member ID:</b> ' + id + '</li><li><b>Terms version:</b> ' + version + '</li>' +
         '<li>Agreed to the Membership Terms, Code of Conduct and Privacy Policy: ' + (p.agree_terms === 'yes' ? 'yes' : 'no') + '</li>' +
-        (isArtist ? '<li>Agreed to the AI-Generated Music Policy and Release Policy: ' + (p.agree_ai === 'yes' ? 'yes' : 'no') + '</li><li>Understands Bandcamp linking is needed to keep 100% of Bandcamp royalties: ' + (p.agree_link === 'yes' ? 'yes' : 'no') + '</li>' : '') +
+        (isArtist ? '<li>Agreed to the AI-Generated Music Policy and Release Policy: ' + (p.agree_ai === 'yes' ? 'yes' : 'no') + '</li><li>Understands Bandcamp linking is needed for Bandcamp sales to be paid straight to them: ' + (p.agree_link === 'yes' ? 'yes' : 'no') + '</li>' : '') +
         '</ul><p>Read the terms any time: <a href="' + SETTINGS.siteUrl + SETTINGS.termsUrl + '">' + SETTINGS.siteUrl + SETTINGS.termsUrl + '</a></p><p>Your dashboard: <a href="' + SETTINGS.siteUrl + 'member.html?id=' + id + '">' + SETTINGS.siteUrl + 'member.html?id=' + id + '</a></p><p>Retro Reverb Records</p>' });
     emailed = 'yes';
   } catch (err) { log_('agreement email failed', String(err)); }

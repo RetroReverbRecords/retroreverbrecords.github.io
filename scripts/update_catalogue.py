@@ -53,7 +53,7 @@ TYPES = [("minidisc", "MiniDisc"), ("vinyl", "Vinyl"), ("lp", "Vinyl"), ("casset
 def guess_type(t):
     low = " " + t.lower() + " "
     for key, name in TYPES:
-        if re.search(r"[^a-z]" + re.escape(key) + r"[^a-z]", low):
+        if re.search(r"[^a-z]" + re.escape(key) + r"s?[^a-z]", low):
             return name
     return "Merch"
 

@@ -83,7 +83,7 @@
       ${artist && !active ? `<div class="panel empty"><b>Your membership isn't active.</b><span>Set up or restart your monthly membership, then check again.</span></div>` : ''}
       ${artist && active && !linked ? `<div class="panel linkbox"><b>Link your Bandcamp first</b>
         <p>To release through RetroReverbRecords while receiving your Bandcamp payments directly, your Bandcamp artist account must first be linked to the RRR Bandcamp label account.</p>
-        <ol><li>Send us your Bandcamp page: <a class="btn ghost small-btn" href="${mail}">Email RRR</a></li><li>RRR sends a label invite from Bandcamp to your email.</li><li>Accept it. We mark you as linked, usually within a few days.</li></ol>
+        <ol><li>Choose <a href="#linking">password linking (recommended) or a Bandcamp invite</a>.</li><li>Send us your Bandcamp page and your choice: <a class="btn ghost small-btn" href="${mail}">Email RRR</a> (never put a password in an email).</li><li>We link your page and mark you as linked, usually within a few days.</li></ol>
         <p class="small">Linking is non-exclusive: you can still release independently and with other labels. Linked artists also get free Bandcamp VIP membership.</p></div>` : ''}`;
     // Anyone who is an artist member can add independent / other-label releases to their profile; RRR submissions need eligibility
     form.hidden = !artist;

@@ -41,7 +41,7 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id'],
@@ -667,6 +667,7 @@ function applyValidations_() {
   set('Members', 'artist_type', list(['Member', 'Signed']));
   set('Members', 'bandcamp_linked', list(['yes', 'no']));
   set('Members', 'bandcamp_pro', list(['yes', 'no', 'eligible']));
+  set('Members', 'link_method', list(['password', 'invite']));
 }
 
 // Sheet menu so you don't have to wait for the daily run

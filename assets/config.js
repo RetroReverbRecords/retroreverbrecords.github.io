@@ -63,7 +63,7 @@ window.RRR_CONFIG = {
 
   // Current version of the Terms. Change the date when the Terms change;
   // new sign-ups then sign the new version.
-  termsVersion: "2026-09-29-beta2",
+  termsVersion: "2026-09-29-beta3",
 
   // YouTube community
   youtube: {

@@ -605,3 +605,7 @@ input[type=number]{font:400 15px var(--body);color:var(--text);background:var(--
 #sel-form{margin-top:18px}
 @media (max-width:640px){.affex li{grid-template-columns:1fr auto}.affex li span{grid-column:1/-1;order:3}}
 [hidden]{display:none!important}
+.linkcmp{margin:22px 0}
+.linkcmp h3{margin:6px 0 8px}
+.linkcmp .tablewrap{margin-top:12px}
+ol.safe{margin:10px 0 0;padding-left:22px;display:grid;gap:8px}

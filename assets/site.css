@@ -560,3 +560,5 @@ input[type=number]{font:400 15px var(--body);color:var(--text);background:var(--
 .yearcalc b{font:600 26px var(--mono);color:var(--pink)}
 .yearcalc p{grid-column:1/-1}
 @media (max-width:640px){.compare{padding:16px}.cmp,.cmp tbody{display:block;width:100%;min-width:0}.cmp thead{display:none}.cmp tr{display:grid;grid-template-columns:minmax(0,1fr);padding:10px 0;border-bottom:1px solid var(--line)}.cmp th,.cmp td{border:0;padding:4px 6px;max-width:none;overflow-wrap:anywhere}.cmp td.us::before{content:"RRR: ";color:var(--muted)}.cmp td:not(.us)::before{content:"Elsewhere: "}}
+.cmp-intro{margin:-6px 0 14px}
+.compare h3 em{color:var(--pink);font-style:normal}

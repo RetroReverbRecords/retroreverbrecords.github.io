@@ -26,15 +26,14 @@
     <nav aria-label="Sections">
       <a href="#membership">Membership</a>
       <a href="#catalogue">Catalogue</a>
-      <a href="#playlist">Playlist</a>
       <a href="#merch">Merch</a>
       <a href="cards.html">Cards</a>
-      <a href="press.html">Press</a>
-      <a href="history.html">History</a>
-      <a href="how-it-works.html">How it works</a>
+      <a href="levels.html">Levels</a>
+      <a href="together.html">Together</a>
       <a href="book.html">Book</a>
       <a href="member.html">My dashboard</a>
       <a class="btn primary small-btn" href="#join">Create account</a>
+      <label class="lang" title="Translate this site"><span aria-hidden="true">🌐</span><span class="sr">Language</span><select id="lang-select" aria-label="Language"><option value="en">English</option><option value="it">Italiano</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="sv">Svenska</option><option value="el">Ελληνικά</option><option value="tr">Türkçe</option><option value="ru">Русский</option><option value="uk">Українська</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></label>
     </nav>
   </div>
 </header>
@@ -48,7 +47,7 @@
         <video src="assets/rrr-spin.mp4" poster="assets/rrr-spin-poster.jpg" autoplay muted playsinline preload="auto" aria-label="Retro Reverb Records logo animation"></video>
       </div>
       <h1>Release your music. <em>Keep 100%</em> of your royalties.</h1>
-      <p class="lede">A community-first label for independent artists, fans and creators. Membership from €0.50 a month, with Bandcamp and streaming releases from €2.</p>
+      <p class="lede">A community-first label for independent artists, fans and creators. Membership from <span data-price="fan">€0.50</span> a month, with Bandcamp and streaming releases from <span data-price="single">€2.00</span>.</p>
       <div class="ctas">
         <a class="btn primary" href="#membership">See membership</a>
         <a class="btn ghost" href="how-it-works.html">How it works</a>
@@ -71,12 +70,12 @@
             <p class="label">For artists</p>
             <h3>Artist Membership</h3>
           </div>
-          <div class="price"><b class="num">€3.00</b><span>per month</span></div>
+          <div class="price"><b class="num" data-price="artist">€3.00</b><span>per month</span></div>
           <ul class="ticks">
             <li>Membership of the RRR Community, a unique artist-focused community</li>
             <li>Book promotional posts on community social media</li>
             <li>Community-supported promotion through missions and engagement</li>
-            <li>YouTube video uploads to the RRR Community Channel, €2.00 per video</li>
+            <li>YouTube video uploads to the RRR Community Channel, <span data-price="youtube">€2.00</span> per video</li>
             <li>Community rewards, achievements, levels and recognition</li>
             <li>Collaborate with artists, creators, labels and promoters</li>
             <li>One free Community Card with your artist profile and stats; extra cards at cost price</li>
@@ -87,7 +86,7 @@
             <p class="label">For fans</p>
             <h3>Fan Membership</h3>
           </div>
-          <div class="price"><b class="num">€0.50</b><span>per month</span></div>
+          <div class="price"><b class="num" data-price="fan">€0.50</b><span>per month</span></div>
           <ul class="ticks">
             <li>Direct interaction with artists</li>
             <li>Access to community events and activities</li>
@@ -104,8 +103,8 @@
           <p class="label">Taking a break?</p>
           <h3>Community Supporter Status</h3>
           <div class="rates">
-            <div><span class="small">Artists</span><b class="num">€0.50/mo</b></div>
-            <div><span class="small">Fans</span><b class="num">€0.25/mo</b></div>
+            <div><span class="small">Artists</span><b class="num"><span data-price="supporterArtist">€0.50</span>/mo</b></div>
+            <div><span class="small">Fans</span><b class="num"><span data-price="supporterFan">€0.25</span>/mo</b></div>
           </div>
         </div>
         <div class="cols">
@@ -140,10 +139,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr><th scope="row">Single</th><td class="price num">€2.00</td><td class="price num">€2.00</td></tr>
-            <tr><th scope="row">EP <small class="tracks">2–5 tracks</small></th><td class="price num">€3.00</td><td class="price num">€3.00</td></tr>
-            <tr><th scope="row">Album</th><td class="price num">€3.50</td><td class="price num">€3.50</td></tr>
-            <tr><th scope="row">Royalties</th><td>100% to you, paid straight into your own Bandcamp account</td><td>100% to you</td></tr>
+            <tr><th scope="row">Single</th><td class="price num" data-price="single">€2.00</td><td class="price num" data-price="single">€2.00</td></tr>
+            <tr><th scope="row">EP <small class="tracks">2–5 tracks</small></th><td class="price num" data-price="ep">€3.00</td><td class="price num" data-price="ep">€3.00</td></tr>
+            <tr><th scope="row">Album</th><td class="price num" data-price="album">€3.50</td><td class="price num" data-price="album">€3.50</td></tr>
+            <tr><th scope="row">Royalties</th><td>100% to you</td><td>100% to you</td></tr>
             <tr><th scope="row">Included</th><td>Listed on your Bandcamp page and the RRR page, artist page edits, community promotion</td><td>Upload and management through the RRR RouteNote account, community support where applicable</td></tr>
           </tbody>
         </table>
@@ -154,15 +153,15 @@
         <p>Every release is booked through the RRR release calendar. Assets go into your designated Google Drive folder.</p>
         <div class="track">
           <div class="scale"><span></span><div><span>4 wks</span><span>3 wks</span><span>2 wks</span><span>1 wk</span><span>Release</span></div></div>
-          <div class="row"><span>Bandcamp assets</span><div class="bar"><i style="width:75%">at least 3 weeks</i></div></div>
-          <div class="row"><span>Streaming assets</span><div class="bar"><i style="width:50%">at least 2 weeks</i></div></div>
+          <div class="row"><span>Streaming assets</span><div class="bar"><i style="width:75%">at least 3 weeks</i></div></div>
+          <div class="row"><span>Bandcamp assets</span><div class="bar"><i style="width:50%">at least 2 weeks</i></div></div>
         </div>
       </div>
 
       <div class="panel guide">
         <p class="label">Guideline · not an RRR service</p>
-        <h3>Bandcamp editorial</h3>
-        <p>Bandcamp's editorial team is independent of RRR, and RRR does not submit releases to it. If you want your release considered, send it yourself <strong>at least 8–9 weeks before release day</strong>. That is the minimum, so plan it before you book your RRR release.</p>
+        <h3>Editorial pitching is up to you</h3>
+        <p>Bandcamp and Spotify editors are independent of RRR and we don\'t pitch for you. Bandcamp: pitch at least <strong>8–9 weeks</strong> ahead. Spotify: at least <strong>7 days</strong> ahead, in Spotify for Artists. Our <a href="editorial.html">editorial guides</a> show you exactly how.</p>
       </div>
 
       <div class="vip">
@@ -226,7 +225,37 @@
         <p>Cassettes, CDs, vinyl, MiniDiscs and shirts from RRR and its artists. Stock and prices are live on Bandcamp and change as runs sell out.</p>
       </div>
       <div class="mgrid" id="merch-list"></div>
+      <div class="panel sellmerch" id="sell-merch">
+        <div>
+          <p class="label">For artists</p>
+          <h3>Sell your merch with us</h3>
+          <p>List your shirts, cassettes, CDs, vinyl and prints in the RRR store and in front of the whole community. RRR takes the payment and sends you your share. RRR keeps <b><span data-merch-pct>a percentage</span></b> of each sale.</p>
+          <p class="small">RRR doesn't handle shipping: you post the items yourself or use a print-on-demand or fulfilment company that makes and ships them for you.</p>
+          <a class="btn primary" href="book.html#merch">List your merch</a>
+        </div>
+        <div>
+          <p class="label">Companies that make and ship for you</p>
+          <ul class="partners" id="fulfilment-list"></ul>
+          <p class="small">Suggestions only. RRR has no deal with these companies. Compare prices and shipping to your fans' countries.</p>
+        </div>
+      </div>
+
       <p class="more"><a href="https://retroreverbrecords.bandcamp.com/merch" target="_blank" rel="noopener">All merch on Bandcamp →</a></p>
+    </div>
+  </section>
+
+  <section class="side" id="together-teaser">
+    <div class="wrap">
+      <div class="side-head">
+        <span class="tag">★</span>
+        <h2>Stronger together</h2>
+        <p>The algorithms reward real listeners who turn up early. Fifty members backing every release gives each one a real start. <a href="together.html">The facts</a> · <a href="levels.html">Earn your belt</a></p>
+      </div>
+      <div class="ytgrid">
+        <a class="panel yt" data-yt="live" href="https://www.youtube.com/@RetroReverbRecords/streams" target="_blank" rel="noopener"><span class="mtype">YouTube · Live</span><b>The Bandcamp Hour</b><span class="small">Sundays 16:00–18:00 CET. Join the chat.</span></a>
+        <a class="panel yt" data-yt="community" href="https://www.youtube.com/@RetroReverbRecords/posts" target="_blank" rel="noopener"><span class="mtype">YouTube · Community</span><b>Polls and news</b><span class="small">Vote, comment, share.</span></a>
+        <a class="panel yt" data-yt="subscribe" href="https://www.youtube.com/@RetroReverbRecords?sub_confirmation=1" target="_blank" rel="noopener"><span class="mtype">YouTube</span><b>Subscribe and tap the bell</b><span class="small">Be there for premieres.</span></a>
+      </div>
     </div>
   </section>
 
@@ -285,8 +314,8 @@
           <fieldset id="signup-fields">
             <legend class="label">Join as</legend>
             <div class="choice">
-              <label><input type="radio" name="type" id="type-artist" value="artist" checked><span><b>Artist</b><em>€3.00/mo</em></span></label>
-              <label><input type="radio" name="type" id="type-fan" value="fan"><span><b>Fan</b><em>€0.50/mo</em></span></label>
+              <label><input type="radio" name="type" id="type-artist" value="artist" checked><span><b>Artist</b><em><span data-price="artist">€3.00</span>/mo</em></span></label>
+              <label><input type="radio" name="type" id="type-fan" value="fan"><span><b>Fan</b><em><span data-price="fan">€0.50</span>/mo</em></span></label>
             </div>
             <div class="fields">
               <label for="f-name">Name<input id="f-name" name="name" type="text" autocomplete="name" required></label>
@@ -314,7 +343,16 @@
                 <label><input type="checkbox" id="i-youtube" name="interest" value="youtube"> YouTube uploads</label>
               </div>
             </div>
-            <label class="agree"><input type="checkbox" id="f-agree" name="agree" required> I've read the membership terms and prices above.</label>
+            <label for="f-ref" class="small ref">Who invited you? (optional, they earn points)<input id="f-ref" name="referred_by" type="text" placeholder="Artist name or member ID"></label>
+            <div class="sign">
+              <span class="label">Agreement · required</span>
+              <p class="small">Before you create an account, read and agree to these. Your typed name is your electronic signature. We store it with the date and the version you agreed to, and email you a copy.</p>
+              <label class="agree"><input type="checkbox" id="f-terms" name="agree_terms" value="yes" required> I have read and agree to the <a href="terms.html" target="_blank">Membership Terms</a>, the <a href="code-of-conduct.html" target="_blank">Code of Conduct</a> and the <a href="privacy.html" target="_blank">Privacy Policy</a>.</label>
+              <label class="agree artist-only"><input type="checkbox" id="f-ai" name="agree_ai" value="yes"> I agree to the <a href="terms.html#ai" target="_blank">AI-Generated Music Policy</a> and the <a href="release-policy.html" target="_blank">Release Policy</a>, and will declare any AI use with each release.</label>
+              <label class="agree artist-only"><input type="checkbox" id="f-link" name="agree_link" value="yes"> I understand that to keep 100% of my Bandcamp royalties my Bandcamp account must be linked to the RRR label.</label>
+              <label for="f-sign">Type your full legal name to sign<input id="f-sign" name="signature" type="text" autocomplete="name" required placeholder="Full legal name"></label>
+              <p class="small">Signed on <b id="f-sign-date" class="num"></b> · Terms version <b id="f-terms-v" class="num"></b></p>
+            </div>
             <button class="btn primary" type="submit" id="signup-submit">Create account</button>
             <div class="pay">
               <span class="label">Payment</span>
@@ -371,13 +409,15 @@
 </section>
 <footer>
   <div class="wrap">
-    <span>© Retro Reverb Records · Since 2016 · <a href="history.html">History</a> · <a href="how-it-works.html">How it works</a> · <a href="book.html">Book</a></span>
+    <span>© Retro Reverb Records · Since 2016 · A label for the people</span>
     <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
+    <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a></span>
   </div>
 </footer>
 
 <script src="assets/config.js"></script>
 <script src="assets/releases.js"></script>
+<script src="assets/levels.js"></script>
 <script src="assets/site.js"></script>
 </body>
 </html>

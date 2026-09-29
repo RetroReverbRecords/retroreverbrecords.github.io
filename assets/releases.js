@@ -10,7 +10,7 @@ window.RRR_RELEASES = {
   ],
   latest: [
     { title: "LLUVA (Álbum)", artist: "LLUVA", format: "Album", url: "https://lluva.bandcamp.com/album/lluva-lbum" },
-    { title: "Tears", artist: "Ettore Bandel", url: "https://ettorebandel.bandcamp.com/album/tears" },
+    { title: "Tears", artist: "Ettore Bandel", url: "https://ettorebandel.bandcamp.com/album/tears", image: "https://f4.bcbits.com/img/a3407361273_16.jpg" },
     { title: "Maldigo tu nombre", artist: "LLUVA", url: "https://lluva.bandcamp.com/album/maldigo-tu-nombre" },
     { title: "Angel Code", artist: "Eden Future", url: "https://edenfuture.bandcamp.com/album/angel-code" },
     { title: "No Me Prometas El Cielo", artist: "LLUVA", url: "https://lluva.bandcamp.com/album/no-me-prometas-el-cielo" },

@@ -24,26 +24,46 @@
     <nav aria-label="Sections">
       <a href="index.html#membership">Membership</a>
       <a href="index.html#catalogue">Catalogue</a>
-      <a href="index.html#playlist">Playlist</a>
       <a href="index.html#merch">Merch</a>
       <a href="cards.html">Cards</a>
-      <a href="press.html">Press</a>
-      <a href="history.html">History</a>
-      <a href="how-it-works.html">How it works</a>
+      <a href="levels.html">Levels</a>
+      <a href="together.html">Together</a>
       <a href="book.html">Book</a>
       <a href="member.html">My dashboard</a>
       <a class="btn primary small-btn" href="index.html#join">Create account</a>
+      <label class="lang" title="Translate this site"><span aria-hidden="true">🌐</span><span class="sr">Language</span><select id="lang-select" aria-label="Language"><option value="en">English</option><option value="it">Italiano</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="sv">Svenska</option><option value="el">Ελληνικά</option><option value="tr">Türkçe</option><option value="ru">Русский</option><option value="uk">Українська</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></label>
     </nav>
   </div>
 </header>
 <main>
-  <div class="pagehead">
+  <div class="pagehead hero-history">
     <div class="wrap">
-      <p class="label">Since 2016</p>
-      <h1>RRR <em>history</em></h1>
-      <p class="lede">Retro Reverb Records is an independent label for synthwave, electronic and alternative music, founded in 2016 by Colin Bouchard and musician Alex Vecchietti. Charity compilations, physical releases, live and online events, radio and podcasts, with artists from around the world.</p>
+      <p class="label">Since 2016 · synthwave · electro · alternative</p>
+      <h1>A label <em>for the people</em></h1>
+      <p class="lede">Retro Reverb Records started as two musicians who wanted to do labels differently. Today it's a community where artists keep 100% of their royalties, fans have a real say, and everyone climbs together.</p>
+      <div class="bignums">
+        <div><b class="num">300+</b><span>songs, EPs and albums released</span></div>
+        <div><b class="num">5</b><span>physical formats: CD, vinyl, cassette, MiniDisc, cards</span></div>
+        <div><b class="num">3</b><span>charity compilations</span></div>
+        <div><b class="num">100%</b><span>royalties to artists, now</span></div>
+      </div>
     </div>
+    <div class="marquee" aria-hidden="true"><div class="marquee-track" id="marquee"></div></div>
   </div>
+
+  <section class="side">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">▶</span><h2>Out now</h2><p>The latest from the roster, straight from Bandcamp.</p></div>
+      <div class="rgrid" id="history-releases"></div>
+    </div>
+  </section>
+
+  <section class="side">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">★</span><h2>The roster</h2><p>Artists who have released with RRR, past and present.</p></div>
+      <div class="chips roster-cloud" id="history-artists"></div>
+    </div>
+  </section>
 
   <section class="side">
     <div class="wrap">
@@ -79,15 +99,20 @@
           <p class="src"><a href="https://retroreverbrecords.bandcamp.com/album/retroreverbrythms-vol-2" target="_blank" rel="noopener">Bandcamp</a> · <a href="https://nightride.fm/blog/podcast/tsos/s7e11-retro-reverb-rhythms-album-launch-party/" target="_blank" rel="noopener">Nightride FM launch party</a></p></div>
         </li>
         <li>
+          <span class="year num">2024–25</span>
+          <div><h3>A release every week</h3>
+          <p>A steady weekly schedule with artists including O.a.G., Future Analog, MTTM, Le Groupe Fantastique, Dream Invaders, Tenodi Boris, Arkavoid, Inner Terror, Lonely Loop, Of What Remains, Kal White, LLUVA and nuvolino, plus cassettes, CDs, vinyl and MiniDisc runs.</p></div>
+        </li>
+        <li>
           <span class="year">On air</span>
           <div><h3>Radio, podcasts and The Bandcamp Hour</h3>
           <p>Nightride FM's <em>Kaarin's Podcast</em> dedicates an episode to RRR with Bouchard, Vecchietti and Lloyd. The label runs <em>The Bandcamp Hour</em> on Spectrum On Air.</p>
           <p class="src"><a href="https://nightride.fm/blog/podcast/kaarin/kaarins-ep94-with-guests-retro-reverb-records/" target="_blank" rel="noopener">Kaarin's EP94</a> · <a href="https://www.spectrumonair.com/retroreverbrecords" target="_blank" rel="noopener">Spectrum On Air</a></p></div>
         </li>
         <li class="now">
-          <span class="year">Now</span>
+          <span class="year num">2026</span>
           <div><h3>The RRR Community</h3>
-          <p>RRR becomes a community-first label: membership for artists and fans, releases where artists keep 100% of their royalties, and Synth Stars collectable cards. <a href="index.html#membership">See membership</a></p></div>
+          <p>RRR turns the label model upside down: a membership community where artists keep 100% of their royalties, fans and artists level up from white belt to 10th Dan by backing each other, Synth Stars collectable cards, live shows on YouTube and a phone app. <a href="index.html#membership">Join the community</a></p></div>
         </li>
       </ol>
     </div>
@@ -124,12 +149,14 @@
 </section>
 <footer>
   <div class="wrap">
-    <span>© Retro Reverb Records · Since 2016 · <a href="history.html">History</a> · <a href="how-it-works.html">How it works</a> · <a href="book.html">Book</a></span>
+    <span>© Retro Reverb Records · Since 2016 · A label for the people</span>
     <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
+    <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a></span>
   </div>
 </footer>
 <script src="assets/config.js"></script>
 <script src="assets/releases.js"></script>
+<script src="assets/levels.js"></script>
 <script src="assets/site.js"></script>
 </body>
 </html>

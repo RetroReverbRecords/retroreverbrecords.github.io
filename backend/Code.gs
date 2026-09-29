@@ -24,8 +24,9 @@ const SETTINGS = {
   songstatsBase: 'https://api.songstats.com/enterprise/v1', // confirm in Songstats docs
   songstatsLabelId: 'ywz70gl4',                      // from songstats.com/label/ywz70gl4
   // Deadlines (days before release) — keep in step with assets/config.js
-  bandcampAssetsDays: 21,
-  streamingAssetsDays: 14,
+  bandcampAssetsDays: 14,   // owner decision 29 Sep 2026: Bandcamp 2 weeks
+  streamingAssetsDays: 21,  // streaming 3 weeks
+  termsUrl: 'terms.html',
   spotifyPlaylist: 'https://open.spotify.com/playlist/6NOScmeECIxFvRz9jcinjm',
   // Newsletter: 'auto' = preview to you on the 28th, sent on the 1st.
   //             'preview' = only ever sent to you (you forward it yourself).
@@ -36,7 +37,8 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by'],
+  Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id'],
   Achievements: ['member_id','achievement','earned_on','points','note'],
@@ -50,19 +52,27 @@ const TABS = {
   Log:          ['time','what','detail']
 };
 
-// Point values from the RRR Points System Proposal (edit freely)
+// Karate belts, then Dans. Keep in step with assets/levels.js on the website.
 const RANKS = [
-  { name: 'Signal', min: 0 }, { name: 'Echo', min: 50 }, { name: 'Reverb', min: 150 },
-  { name: 'Resonance', min: 400 }, { name: 'Legend', min: 1000 }
+  { name: 'White belt', min: 0 }, { name: 'Yellow belt', min: 100 }, { name: 'Orange belt', min: 250 },
+  { name: 'Green belt', min: 450 }, { name: 'Blue belt', min: 700 }, { name: 'Purple belt', min: 1000 },
+  { name: 'Brown belt', min: 1400 }, { name: 'Black belt · 1st Dan', min: 2000 }, { name: '2nd Dan', min: 3000 },
+  { name: '3rd Dan', min: 4200 }, { name: '4th Dan', min: 5600 }, { name: '5th Dan', min: 7200 },
+  { name: '6th Dan', min: 9000 }, { name: '7th Dan', min: 11000 }, { name: '8th Dan', min: 13500 },
+  { name: '9th Dan', min: 16500 }, { name: '10th Dan', min: 20000 }
 ];
+// One-off badges (awarded once). Repeatable points use addPoints_().
 const AUTO_ACHIEVEMENTS = {
-  joined:        { title: 'Joined the community', points: 5 },
-  firstRelease:  { title: 'First release booked', points: 20 },
+  joined:        { title: 'Joined the community', points: 10 },
+  firstRelease:  { title: 'First release booked', points: 15 },
   firstPost:     { title: 'First social post booked', points: 5 },
   firstVideo:    { title: 'First YouTube upload', points: 5 },
-  loyal3:        { title: '3 months a member', points: 15 },
-  loyal12:       { title: '1 year a member', points: 50 }
+  newsletter:    { title: 'Newsletter subscriber', points: 5 },
+  loyal3:        { title: '3 months a member', points: 30 },
+  loyal12:       { title: '1 year a member', points: 120 }
 };
+// Repeatable point values (see the Levels page)
+const POINTS = { releaseBooked: 15, postBooked: 5, videoBooked: 5, activeMonth: 10, fanReferral: 20, artistReferral: 40, pressApproved: 20 };
 
 // ============================================================
 // WEB ENDPOINTS
@@ -73,8 +83,9 @@ function doPost(e) {
     if (p.txn_type || p.payment_status || p.ipn_track_id) return handlePayPal_(e);
     const kind = p.form || 'unknown';
     if (kind === 'signup') return handleSignup_(p);
-    if (/release|social-post|youtube-upload/.test(kind)) return handleBooking_(kind, p);
+    if (/release|social-post|youtube-upload|merch-listing/.test(kind)) return handleBooking_(kind, p);
     if (kind === 'newsletter') return handleSubscribe_(p);
+    if (kind === 'unsubscribe') { const r = findRow_('Subscribers', 'email', String(p.email || '').trim().toLowerCase()); if (r) updateRow_('Subscribers', 'email', r.email, { status: 'unsubscribed' }); return text_('ok'); }
     if (kind === 'press') return handlePress_(p);
     if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
@@ -88,7 +99,7 @@ function doPost(e) {
 // member.html calls: ?member=RRR-XXXX  → public JSON for that member
 function doGet(e) {
   const q = (e && e.parameter) || {};
-  if (q.press) return json_({ ok: true, press: rows_('Press').filter(r => String(r.approved).toLowerCase() === 'yes').reverse().slice(0, 60)
+  if (q.press) return json_({ ok: true, press: rows_('Press').filter(r => /^yes/i.test(String(r.approved))).reverse().slice(0, 60)
     .map(r => ({ artist: r.artist, outlet: r.outlet, title: r.title, url: r.url, quote: r.quote, date: r.created })) });
   if (q.unsubscribe) return unsubscribe_(q.unsubscribe);
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
@@ -112,6 +123,34 @@ function handleSignup_(p) {
     plan: p.type === 'artist' ? 'Artist' : 'Fan', points: 0, rank: 'Signal', public: 'yes'
   });
   award_(id, 'joined');
+
+  // Signed agreement: stored, and a copy emailed to the member
+  const isArtist = p.type === 'artist';
+  const version = p.terms_version || '';
+  let emailed = 'no';
+  try {
+    MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Your RRR membership agreement (' + version + ')',
+      htmlBody: '<p>Hi ' + (p.name || '') + ',</p><p>Welcome to the RRR Community. This is your copy of what you agreed to when you signed up.</p>' +
+        '<ul><li><b>Signed by:</b> ' + (p.signature || '') + '</li><li><b>Date and time:</b> ' + new Date().toUTCString() + '</li><li><b>Member ID:</b> ' + id + '</li><li><b>Terms version:</b> ' + version + '</li>' +
+        '<li>Agreed to the Membership Terms, Code of Conduct and Privacy Policy: ' + (p.agree_terms === 'yes' ? 'yes' : 'no') + '</li>' +
+        (isArtist ? '<li>Agreed to the AI-Generated Music Policy and Release Policy: ' + (p.agree_ai === 'yes' ? 'yes' : 'no') + '</li><li>Understands Bandcamp linking is needed to keep 100% of Bandcamp royalties: ' + (p.agree_link === 'yes' ? 'yes' : 'no') + '</li>' : '') +
+        '</ul><p>Read the terms any time: <a href="' + SETTINGS.siteUrl + SETTINGS.termsUrl + '">' + SETTINGS.siteUrl + SETTINGS.termsUrl + '</a></p><p>Your dashboard: <a href="' + SETTINGS.siteUrl + 'member.html?id=' + id + '">' + SETTINGS.siteUrl + 'member.html?id=' + id + '</a></p><p>Retro Reverb Records</p>' });
+    emailed = 'yes';
+  } catch (err) { log_('agreement email failed', String(err)); }
+  append_('Agreements', { member_id: id, signed_at_server: new Date(), signed_at_client: p.signed_at || '', signature_name: p.signature || '', email: p.email, type: p.type,
+    terms_version: version, agreed_terms_conduct_privacy: p.agree_terms === 'yes' ? 'yes' : 'NO', agreed_ai_release_policy: isArtist ? (p.agree_ai === 'yes' ? 'yes' : 'NO') : 'n/a',
+    agreed_bandcamp_link: isArtist ? (p.agree_link === 'yes' ? 'yes' : 'NO') : 'n/a', user_agent: p.user_agent || '', page: p.signed_on_page || '', copy_emailed: emailed });
+
+  // Referral points for whoever invited them
+  if (p.referred_by) {
+    const ref = String(p.referred_by).trim();
+    const inviter = findRow_('Members', 'member_id', ref) || findRow_('Members', 'artist', ref) || findRow_('Members', 'name', ref);
+    if (inviter && inviter.member_id !== id) {
+      addPoints_(inviter.member_id, isArtist ? POINTS.artistReferral : POINTS.fanReferral, 'Invited ' + (p.artist || p.name) + ' (' + (isArtist ? 'artist' : 'fan') + ')');
+      if (!rows_('Achievements').some(r => r.member_id === inviter.member_id && r.achievement === 'Brought a friend')) append_('Achievements', { member_id: inviter.member_id, achievement: 'Brought a friend', earned_on: new Date(), points: 0, note: 'badge' });
+    }
+    updateRow_('Members', 'member_id', id, { referred_by: ref });
+  }
   notify_('New RRR sign-up: ' + (p.artist || p.name) + ' (' + (p.type || 'fan') + ')',
     'Member ID: ' + id + '\nEmail: ' + p.email + '\nWaiting for PayPal payment.\n\nMembers sheet: ' + sheetUrl_());
   return text_('ok');
@@ -130,8 +169,9 @@ function handleBooking_(kind, p) {
   append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
     title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: 'requested', calendar_event_id: eventId });
   if (memberId) {
-    if (/release/.test(kind)) award_(memberId, 'firstRelease');
-    if (kind === 'social-post') { award_(memberId, 'firstPost'); append_('Posts', { member_id: memberId, platform: [].concat(p.platform || []).join(', '), date: date, link: p.link, status: 'booked' }); }
+    if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title); }
+    if (kind === 'youtube-upload') addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title);
+    if (kind === 'social-post') { award_(memberId, 'firstPost'); addPoints_(memberId, POINTS.postBooked, 'Social post booked'); append_('Posts', { member_id: memberId, platform: [].concat(p.platform || []).join(', '), date: date, link: p.link, status: 'booked' }); }
     if (kind === 'youtube-upload') award_(memberId, 'firstVideo');
   }
   notify_('New RRR booking: ' + kind + ' – ' + (p.artist || '') + ' – ' + title,
@@ -208,6 +248,11 @@ function award_(memberId, key, note) {
   append_('Achievements', { member_id: memberId, achievement: a.title, earned_on: new Date(), points: a.points, note: note || '' });
   recalcPoints_(memberId);
 }
+function addPoints_(memberId, pts, note) {
+  if (!memberId || !pts) return;
+  append_('Achievements', { member_id: memberId, achievement: 'Points', earned_on: new Date(), points: pts, note: note || '' });
+  recalcPoints_(memberId);
+}
 function recalcPoints_(memberId) {
   const pts = rows_('Achievements').filter(r => r.member_id === memberId).reduce((s, r) => s + (Number(r.points) || 0), 0);
   updateRow_('Members', 'member_id', memberId, { points: pts, rank: rankFor_(pts).name });
@@ -222,7 +267,9 @@ function publicProfile_(m) {
   return {
     id: id, name: m.artist || m.name, type: m.type, since: m.created, status: m.status,
     points: pts, rank: rank.name, nextRank: next ? next.name : null, nextAt: next ? next.min : null, rankFrom: rank.min,
-    achievements: rows_('Achievements').filter(r => r.member_id === id).map(r => ({ title: r.achievement, on: r.earned_on, points: r.points })),
+    belt: rank.name,
+    achievements: rows_('Achievements').filter(r => r.member_id === id && r.achievement !== 'Points').map(r => ({ title: r.achievement, on: r.earned_on, points: r.points })),
+    recentPoints: rows_('Achievements').filter(r => r.member_id === id && r.achievement === 'Points').slice(-10).reverse().map(r => ({ note: r.note, on: r.earned_on, points: r.points })),
     releases: rows_('Bookings').filter(r => r.member_id === id && /release/.test(r.kind)).map(r => ({ title: r.title, kind: r.kind, format: r.format, date: r.date, status: r.status })),
     posts: rows_('Posts').filter(r => r.member_id === id).map(r => ({ platform: r.platform, date: r.date, link: r.link, status: r.status })),
     stats: stats ? { updated: stats.updated, spotifyListeners: stats.spotify_monthly_listeners, spotifyStreams: stats.spotify_streams, playlists: stats.playlists, youtubeViews: stats.youtube_views, tiktokViews: stats.tiktok_views, source: stats.source } : null
@@ -264,7 +311,19 @@ function daily() {
     const months = (now - new Date(m.created)) / (1000 * 60 * 60 * 24 * 30.4);
     if (months >= 3) award_(m.member_id, 'loyal3');
     if (months >= 12) award_(m.member_id, 'loyal12');
+    // 10 points for every month as an active member (once per month)
+    const tag = 'Active month ' + Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM');
+    if (!rows_('Achievements').some(r => r.member_id === m.member_id && r.note === tag)) addPoints_(m.member_id, POINTS.activeMonth, tag);
   });
+  // Press links you approved (type yes in "approved") earn the artist points once
+  const sh = sheet_('Press'), pv = sh.getDataRange().getValues(), ph = pv[0];
+  const ai = ph.indexOf('approved'), ei = ph.indexOf('email'), ti = ph.indexOf('title'), oi = ph.indexOf('outlet');
+  for (let i = 1; i < pv.length; i++) {
+    if (String(pv[i][ai]).toLowerCase() !== 'yes') continue;
+    const m = findRow_('Members', 'email', pv[i][ei]);
+    if (m) { addPoints_(m.member_id, POINTS.pressApproved, 'Press: ' + (pv[i][ti] || pv[i][oi])); if (!rows_('Achievements').some(r => r.member_id === m.member_id && r.achievement === 'In the press')) append_('Achievements', { member_id: m.member_id, achievement: 'In the press', earned_on: new Date(), points: 0, note: 'badge' }); }
+    sh.getRange(i + 1, ai + 1).setValue('yes – points given');
+  }
   updateSongstats();
   newsletterTick_();
   digest_();
@@ -357,6 +416,7 @@ function handleSubscribe_(p) {
   if (existing) { updateRow_('Subscribers', 'email', email, { status: 'subscribed' }); return text_('ok'); }
   append_('Subscribers', { email: email, created: new Date(), source: p.source || 'website', consent: 'yes ' + new Date().toISOString(),
     status: 'subscribed', token: Utilities.getUuid(), member_id: p.member_id || '' });
+  const mem = findRow_('Members', 'email', email); if (mem) award_(mem.member_id, 'newsletter');
   return text_('ok');
 }
 function unsubscribe_(token) {

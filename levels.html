@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>RRR Press</title>
+<title>RRR Levels</title>
 <meta name="theme-color" content="#07061A">
 <link rel="icon" href="assets/rrr-logo-stack.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -38,33 +38,33 @@
 <main>
   <div class="pagehead">
     <div class="wrap">
-      <p class="label">Press &amp; reviews</p>
-      <h1>RRR <em>in the press</em></h1>
-      <p class="lede">Reviews, interviews and features about RRR artists. Got one? Share it and we'll add it to the wall.</p>
+      <p class="label">Levels</p>
+      <h1>Earn your <em>belt</em></h1>
+      <p class="lede">From white belt to 10th Dan. You climb by showing up for the community. Most points come from supporting other artists, because that's how everyone grows (<a href="together.html">here's why</a>).</p>
+      <div class="ctas-left"><a class="btn primary" href="member.html">See my belt</a><a class="btn ghost" href="index.html#join">Join and start at white</a></div>
     </div>
   </div>
   <section class="side">
     <div class="wrap">
-      <div class="presswall" id="press-wall"></div>
+      <div class="side-head"><span class="tag">A</span><h2>The belts</h2><p>Points never expire. Your belt shows on your dashboard and on your Synth Stars card.</p></div>
+      <div class="belts" id="belt-ladder"></div>
     </div>
   </section>
-  <section class="side" id="share-review">
+  <section class="side">
     <div class="wrap">
-      <div class="side-head"><span class="tag">+</span><h2>Share your review</h2><p>Artists: send us a link to any review, interview, feature or radio play. Approved links go on this wall and into the monthly newsletter.</p></div>
-      <form class="panel booking-form" id="press-form" novalidate>
-        <div class="status" role="status"></div>
-        <fieldset>
-          <div class="fields">
-            <label for="pr-artist">Artist name<input id="pr-artist" name="artist" type="text" required></label>
-            <label for="pr-email">Email<input id="pr-email" name="email" type="email" required></label>
-            <label for="pr-outlet">Publication, blog or station<input id="pr-outlet" name="outlet" type="text" required></label>
-            <label for="pr-title">Headline<input id="pr-title" name="title" type="text"></label>
-            <label for="pr-url" class="wide">Link<input id="pr-url" name="url" type="url" required placeholder="https://"></label>
-            <label for="pr-quote" class="wide">Best quote (optional, max 300 characters)<textarea id="pr-quote" name="quote" maxlength="300"></textarea></label>
-          </div>
-          <button class="btn primary" type="submit">Share review</button>
-        </fieldset>
-      </form>
+      <div class="side-head"><span class="tag">B</span><h2>How you earn points</h2><p><b class="tagauto">Auto</b> means the system adds them. <b class="tagcheck">Checked</b> means send proof (a screenshot or link) to RRR and we add them.</p></div>
+      <div id="points-table"></div>
+    </div>
+  </section>
+  <section class="side">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">C</span><h2>Fair play</h2></div>
+      <div class="notes">
+        <p>Points have no cash value and can't be transferred.</p>
+        <p>Fake engagement (bots, loops, fake accounts) earns nothing and breaks the <a href="code-of-conduct.html">Code of Conduct</a>.</p>
+        <p>Points earned unfairly may be removed.</p>
+        <p>Values may be tuned as the community grows. Changes are announced in the newsletter.</p>
+      </div>
     </div>
   </section>
 </main>
@@ -96,5 +96,6 @@
 <script src="assets/releases.js"></script>
 <script src="assets/levels.js"></script>
 <script src="assets/site.js"></script>
+<script src="assets/levels-page.js"></script>
 </body>
 </html>

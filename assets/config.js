@@ -33,8 +33,45 @@ window.RRR_CONFIG = {
     bandcampSubscribeUrl: "https://retroreverbrecords.bandcamp.com/subscribe"
   },
 
-  // Monthly membership prices (placeholder, 27 Sep 2026)
-  membershipPrices: { artist: 3.00, fan: 0.50 },
+  // ============================================================
+  // PRICES — THE ONLY PLACE PRICES ARE SET. Every page reads them from here.
+  // Placeholder prices, 27 Sep 2026.
+  // ============================================================
+  prices: {
+    artist: 3.00,            // Artist membership, per month
+    fan: 0.50,               // Fan membership, per month
+    supporterArtist: 0.50,   // Community Supporter Status (artist), per month
+    supporterFan: 0.25,      // Community Supporter Status (fan), per month
+    single: 2.00,            // Upload fee: single (Bandcamp or streaming, each)
+    ep: 3.00,                // Upload fee: EP, 2–5 tracks
+    album: 3.50,             // Upload fee: album
+    youtube: 2.00            // YouTube upload, per video
+  },
+
+  // SELL YOUR MERCH WITH US
+  // commissionPercent: RRR's share of each merch sale. null = not decided yet (site says "a percentage").
+  merch: {
+    commissionPercent: null,
+    fulfilment: [
+      { name: "Printful", what: "Print-on-demand shirts, hoodies, posters; ships worldwide", url: "https://www.printful.com/" },
+      { name: "Printify", what: "Print-on-demand apparel and accessories, many print partners", url: "https://printify.com/" },
+      { name: "Gelato", what: "Print-on-demand, prints locally in many countries", url: "https://www.gelato.com/" },
+      { name: "elasticStage", what: "Vinyl on demand: pressed and shipped per order", url: "https://elasticstage.com/" },
+      { name: "Qrates", what: "Vinyl crowdfunding, pressing and fulfilment", url: "https://qrates.com/" }
+    ]
+  },
+
+  // Current version of the Terms. Change the date when the Terms change;
+  // new sign-ups then sign the new version.
+  termsVersion: "2026-09-29-beta",
+
+  // YouTube community
+  youtube: {
+    channel: "https://www.youtube.com/@RetroReverbRecords",
+    live: "https://www.youtube.com/@RetroReverbRecords/streams",
+    community: "https://www.youtube.com/@RetroReverbRecords/posts",
+    subscribe: "https://www.youtube.com/@RetroReverbRecords?sub_confirmation=1"
+  },
 
   // MARKETING PIXELS. Paste IDs to switch on. They only load after a visitor
   // clicks "Accept" on the cookie banner (required in the EU).
@@ -60,23 +97,25 @@ window.RRR_CONFIG = {
     clientId: "",            // Live client ID from developer.paypal.com
     currency: "EUR",
     plans: {                 // Subscription plan IDs, one per monthly tier
-      artist: "",            // €3.00 / month (placeholder)
-      fan: "",               // €0.50 / month
-      supporterArtist: "",   // €0.50 / month
-      supporterFan: ""       // €0.25 / month
+      artist: "",            // plan for prices.artist
+      fan: "",               // plan for prices.fan
+      supporterArtist: "",   // plan for prices.supporterArtist
+      supporterFan: ""       // plan for prices.supporterFan
     }
   },
 
-  // Release upload fees (one-off). Used by the booking page.
-  uploadFees: { single: 2.00, ep: 3.00, album: 3.50, youtube: 2.00 },  // PLACEHOLDER prices, 27 Sep 2026
-
-  // Asset deadlines in days before release day (from the price list).
-  // Bandcamp editorial is NOT an RRR service; shown as a guideline only.
-  // Owner guidance: artists submit themselves at least 8–9 weeks before release.
-  deadlines: { bandcampAssetsDays: 21, streamingAssetsDays: 14, editorialEarliestDays: 63, editorialLatestDays: 56 },
+  // Asset deadlines in days before release day (owner decision, 29 Sep 2026):
+  // streaming 3 weeks, Bandcamp 2 weeks.
+  // Editorial pitching is NOT an RRR service; shown as guidelines only:
+  // Bandcamp editorial 8–9 weeks (Bandcamp says 8 weeks is ideal), Spotify at least 7 days (official minimum).
+  deadlines: { bandcampAssetsDays: 14, streamingAssetsDays: 21, editorialEarliestDays: 63, editorialLatestDays: 56, spotifyPitchDays: 7 },
 
   // Groover link for The Bandcamp Hour submissions.
   grooverUrl: "https://groover.co/band/signup/referral/influencer/16806/",
 
   email: "retroreverbrecords@gmail.com"
 };
+
+// Older names some code still reads — kept in step automatically. Don't edit these.
+window.RRR_CONFIG.membershipPrices = { artist: window.RRR_CONFIG.prices.artist, fan: window.RRR_CONFIG.prices.fan };
+window.RRR_CONFIG.uploadFees = { single: window.RRR_CONFIG.prices.single, ep: window.RRR_CONFIG.prices.ep, album: window.RRR_CONFIG.prices.album, youtube: window.RRR_CONFIG.prices.youtube };

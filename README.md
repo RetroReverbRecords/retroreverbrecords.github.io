@@ -12,6 +12,11 @@ Website for the RRR Community. Static site, no build step, hosted with GitHub Pa
 - `backend/` – Google Apps Script automation + **SETUP.md** (sheet, PayPal notifications, calendar, emails, Songstats)
 - `press.html` – press & reviews wall + "share your review" form
 - `manifest.webmanifest`, `sw.js` – makes the site an installable phone app
+- `levels.html` – karate-belt levels (white → 10th Dan) and how points are earned (`assets/levels.js`)
+- `together.html` – facts on how the community genuinely helps releases, plus YouTube community links
+- `terms.html`, `privacy.html`, `code-of-conduct.html` – legal pages (DRAFT, review before launch); sign-up requires agreeing + typed signature
+- `release-policy.html`, `editorial.html` – what artists send and when; Bandcamp + Spotify editorial guides
+- `scripts/update_catalogue.py` + `.github/workflows/catalogue.yml` – reads the RRR Bandcamp page daily and updates `assets/catalogue.json` (releases with cover art, merch with photos). Run it now from the **Actions** tab → "Update catalogue from Bandcamp" → Run workflow
 - `history.html` – RRR history timeline since 2016, with sources
 - `book.html` – booking forms: Bandcamp release, streaming release, social media post, YouTube upload, The Bandcamp Hour (Groover); deadline planner
 
@@ -26,7 +31,10 @@ Everything that switches something on lives here. Nothing is live until changed 
 | `payments.membershipVia` | `"bandcamp"` (default): membership is the RRR Bandcamp subscription. `"paypal"`: use the PayPal plans below. |
 | `payments.paypalMe` | Your PayPal.Me name. Turns on "Pay €X with PayPal" buttons for release and YouTube upload fees. |
 | `paypal.clientId`, `paypal.plans.*` | Only if membership moves to PayPal subscriptions. |
-| `deadlines` | Asset deadlines used by the planner (days before release). |
+| `prices` | **The only place prices are set.** Every page reads them. |
+| `deadlines` | Asset deadlines (streaming 21 days, Bandcamp 14) and editorial guideline days. |
+| `merch.commissionPercent` | RRR's share of merch sales (empty = not decided). |
+| `termsVersion` | Change when the Terms change; stored with each signature. |
 
 ## Adding releases – `assets/releases.js`
 Add booked releases to `upcoming` (date as `YYYY-MM-DD`). Past dates hide automatically.

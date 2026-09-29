@@ -15,53 +15,73 @@
     try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
   }));
 
-  /* ---------- generated neon sleeve art ---------- */
+  /* ---------- sleeve art: real cover when we have it, neon placeholder otherwise ---------- */
   const hues = [['#FF2FA8','#9B5CFF'],['#9B5CFF','#3FD0FF'],['#3FD0FF','#FF2FA8'],['#E0068A','#3A2A7C'],['#7C5CFF','#FF6FD0']];
-  function sleeve(title){
-    let h = 0; for (const ch of title) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  function sleeve(title, img){
+    let h = 0; for (const ch of String(title)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     const [a, b] = hues[h % hues.length];
-    const angle = h % 360;
-    const initials = title.replace(/[^\p{L}\p{N} ]/gu,'').split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0]).join('').toUpperCase();
-    return `<div class="sleeve" style="--a:${a};--b:${b};--ang:${angle}deg" aria-hidden="true"><span>${esc(initials)}</span></div>`;
+    const initials = String(title).replace(/[^\p{L}\p{N} ]/gu,'').split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0]).join('').toUpperCase();
+    return `<div class="sleeve${img ? ' has-img' : ''}" style="--a:${a};--b:${b};--ang:${h % 360}deg" aria-hidden="true"><span>${esc(initials)}</span>${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove();this.parentNode&&this.parentNode.classList.remove('has-img')">` : ''}</div>`;
   }
 
-  /* ---------- upcoming + latest releases ---------- */
+  /* ---------- catalogue: live data from Bandcamp (assets/catalogue.json, refreshed daily
+     by the GitHub updater), falling back to releases.js ---------- */
   const fmtDate = d => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-  const up = $('#upcoming-list');
-  if (up) {
-    const today = new Date().toISOString().slice(0,10);
-    const list = (R.upcoming || []).filter(r => r.date >= today).sort((a,b) => a.date.localeCompare(b.date));
-    up.innerHTML = list.length ? list.map(r => `
-      <a class="rcard" ${r.url ? `href="${esc(r.url)}" target="_blank" rel="noopener"` : ''}>
-        ${sleeve(r.title)}
-        <div class="rmeta"><span class="rdate">${esc(fmtDate(r.date))}</span><b>${esc(r.title)}</b><span>${esc(r.artist)}</span><small>${esc([r.format, r.where].filter(Boolean).join(' · '))}</small></div>
-      </a>`).join('')
-      : `<div class="empty panel"><b>No releases announced yet.</b><span>Booked releases appear here with their release date. Artists can <a href="book.html#bandcamp">book a release</a> once booking opens.</span></div>`;
-  }
   const viaLabel = u => {
     if (!u || !C.bandcampLabelId || !/bandcamp\.com\/(album|track)\//.test(u) || u.includes('label=')) return u;
     return u + (u.includes('?') ? '&' : '?') + 'label=' + C.bandcampLabelId + '&tab=music';
   };
-  const bcp = $('#bc-pages');
-  if (bcp) bcp.innerHTML = (R.bandcampPages || []).map(b => `
-    <a class="mcard panel" href="${esc(b.url)}" target="_blank" rel="noopener">
-      <span class="mtype">Bandcamp</span><b>${esc(b.name)}</b><span class="small">${esc(b.genre || '')}</span>
-    </a>`).join('') + `<div class="mcard panel ghost-card"><span class="mtype">Coming soon</span><b>Genre pages</b><span class="small">Dedicated Bandcamp pages for specific styles and release types.</span></div>`;
-  const lat = $('#latest-list');
-  if (lat) lat.innerHTML = (R.latest || []).map(r => `
-    <a class="rcard" href="${esc(viaLabel(r.url))}" target="_blank" rel="noopener">
-      ${sleeve(r.title)}
-      <div class="rmeta"><b>${esc(r.title)}</b><span>${esc(r.artist)}</span></div>
-    </a>`).join('');
+  function drawCatalogue(latest, merch){
+    const up = $('#upcoming-list');
+    if (up) {
+      const today = new Date().toISOString().slice(0,10);
+      const list = (R.upcoming || []).filter(r => r.date >= today).sort((a,b) => a.date.localeCompare(b.date));
+      up.innerHTML = list.length ? list.map(r => `
+        <a class="rcard" ${r.url ? `href="${esc(r.url)}" target="_blank" rel="noopener"` : ''}>
+          ${sleeve(r.title, r.image)}
+          <div class="rmeta"><span class="rdate">${esc(fmtDate(r.date))}</span><b>${esc(r.title)}</b><span>${esc(r.artist)}</span><small>${esc([r.format, r.where].filter(Boolean).join(' · '))}</small></div>
+        </a>`).join('')
+        : `<div class="empty panel"><b>No releases announced yet.</b><span>Booked releases appear here with their release date. Artists can <a href="book.html#bandcamp">book a release</a> once booking opens.</span></div>`;
+    }
+    const bcp = $('#bc-pages');
+    if (bcp) bcp.innerHTML = (R.bandcampPages || []).map(b => `
+      <a class="mcard panel" href="${esc(b.url)}" target="_blank" rel="noopener">
+        <span class="mtype">Bandcamp</span><b>${esc(b.name)}</b><span class="small">${esc(b.genre || '')}</span>
+      </a>`).join('') + `<div class="mcard panel ghost-card"><span class="mtype">Coming soon</span><b>Genre pages</b><span class="small">Dedicated Bandcamp pages for specific styles and release types.</span></div>`;
+    const lat = $('#latest-list');
+    if (lat) lat.innerHTML = latest.slice(0, 8).map(r => `
+      <a class="rcard" href="${esc(viaLabel(r.url))}" target="_blank" rel="noopener" title="Open ${esc(r.title)} on Bandcamp">
+        ${sleeve(r.title, r.image)}
+        <div class="rmeta"><b>${esc(r.title)}</b><span>${esc(r.artist)}</span><small class="bc-go">Listen on Bandcamp ↗</small></div>
+      </a>`).join('');
+    const hist = $('#history-releases');
+    if (hist) hist.innerHTML = latest.slice(0, 12).map(r => `<a class="rcard" href="${esc(viaLabel(r.url))}" target="_blank" rel="noopener">${sleeve(r.title, r.image)}<div class="rmeta"><b>${esc(r.title)}</b><span>${esc(r.artist)}</span></div></a>`).join('');
+    const legacy = ['Alex Vecchietti','The Subtheory','Honey Beard','Dark Smoke Signal','Eden Future','Alenis','Soapnote','Cybertronix','O.a.G.','Future Analog','MTTM','Le Groupe Fantastique','Dream Invaders','Tenodi Boris','Arkavoid','Ness Daniels','Inner Terror','Lonely Loop','Of What Remains','Kal White','Ashpool','Rain','FM Stranger','nuvolino','LLUVA','Ettore Bandel','KMX VII','Vihana','Tin Gun','Prince Alucard','Delta Wave 82','Daniel Hugh','Le Groupe Fantastique','Your Friend Esteves'];
+    const names = [...new Set(latest.map(r => String(r.artist).normalize('NFKC')).concat(legacy).filter(Boolean))];
+    const roster = $('#history-artists');
+    if (roster) roster.innerHTML = names.map(n => `<span>${esc(n)}</span>`).join('');
+    const mq = $('#marquee');
+    if (mq) { const row = names.map(n => `<span>${esc(n)}</span>`).join('<i>✦</i>'); mq.innerHTML = row + '<i>✦</i>' + row; }
+    const mer = $('#merch-list');
+    if (mer) mer.innerHTML = merch.slice(0, 12).map(m => `
+      <a class="mcard panel${m.image ? ' has-photo' : ''}" href="${esc(m.url)}" target="_blank" rel="noopener" title="Buy ${esc(m.title)} on Bandcamp">
+        ${m.image ? `<div class="mphoto"><img src="${esc(m.image)}" alt="" loading="lazy" onerror="this.parentNode.remove()"></div>` : ''}
+        <span class="mtype">${esc(m.type || 'Merch')}</span>
+        <b>${esc(m.title)}</b>
+        <span class="mprice num">${m.price ? esc(m.price) : 'See Bandcamp'}</span>
+        <small class="bc-go">Buy on Bandcamp ↗</small>
+      </a>`).join('');
+  }
+  drawCatalogue(R.latest || [], R.merch || []);
+  fetch('assets/catalogue.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(d => {
+    if (d && ((d.releases || []).length || (d.merch || []).length)) drawCatalogue((d.releases || []).length ? d.releases : (R.latest || []), (d.merch || []).length ? d.merch : (R.merch || []));
+  }).catch(() => {});
 
-  /* ---------- merch ---------- */
-  const mer = $('#merch-list');
-  if (mer) mer.innerHTML = (R.merch || []).map(m => `
-    <a class="mcard panel" href="${esc(m.url)}" target="_blank" rel="noopener">
-      <span class="mtype">${esc(m.type)}</span>
-      <b>${esc(m.title)}</b>
-      <span class="mprice num">${m.price ? esc(m.price) : 'See Bandcamp'}</span>
-    </a>`).join('');
+  /* ---------- prices: every [data-price] reads from config.prices ---------- */
+  const PR = C.prices || {};
+  const euro = v => '€' + Number(v).toFixed(2);
+  $$('[data-price]').forEach(el => { const v = PR[el.dataset.price]; if (v != null) el.textContent = euro(v); });
+  $$('option[data-price-label]').forEach(o => { const v = PR[o.dataset.priceLabel]; if (v != null) o.textContent = o.textContent.replace(/€[\d.,]+/, euro(v)); });
 
   /* ---------- beta mode: ?beta=rrr-beta turns forms on for the tester only ---------- */
   const betaStore = { get(){ try { return localStorage.getItem('rrr-beta'); } catch (e) { return null; } }, set(v){ try { v ? localStorage.setItem('rrr-beta', v) : localStorage.removeItem('rrr-beta'); } catch (e) {} } };
@@ -160,13 +180,18 @@
     $('#signup-fields').disabled = !open;
     setStatus($('#signup-status'), open, '<strong>Sign-up is open.</strong> Fill in the form, then set up your monthly payment.',
       '<strong>Coming soon.</strong> Sign-up isn\'t open yet. Follow us below to hear when it opens.');
-    $$('input[name=type]', signup).forEach(r => r.addEventListener('change', () => { signup.classList.toggle('fan', isFan()); renderPay(); }));
+    const setArtistReq = () => { ['#f-ai', '#f-link'].forEach(q => { const el = $(q); if (el) el.required = !isFan(); }); };
+    $$('input[name=type]', signup).forEach(r => r.addEventListener('change', () => { signup.classList.toggle('fan', isFan()); setArtistReq(); renderPay(); }));
+    setArtistReq();
+    const sd = $('#f-sign-date'); if (sd) sd.textContent = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+    const tv = $('#f-terms-v'); if (tv) tv.textContent = C.termsVersion || '';
     signup.addEventListener('submit', async e => {
       e.preventDefault();
       if (!open) return;
       if (!signup.checkValidity()) { signup.reportValidity(); return; }
       const id = newMemberId(), fan = isFan(), amt = price();
-      const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist' });
+      const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist',
+        terms_version: C.termsVersion || '', signed_at: new Date().toISOString(), user_agent: navigator.userAgent.slice(0, 250), signed_on_page: location.href.split('?')[0] });
       if (ok) { renderPay(id, fan, amt); track('CompleteRegistration', { content_name: fan ? 'fan' : 'artist' }); }
     });
   }
@@ -225,7 +250,7 @@
 
     // Fee display from config
     const fees = C.uploadFees || {};
-    $$('b[data-fee]').forEach(el => { const v = fees[el.dataset.fee]; if (v != null) el.textContent = '€' + v.toFixed(2); });
+
   }
 
   /* ---------- deadline planner (always active) ---------- */
@@ -244,7 +269,8 @@
       const rows = [];
       if (bc) rows.push(['Bandcamp assets in the Drive folder', minus(iso, D.bandcampAssetsDays ?? 21)]);
       if (st) rows.push(['Streaming (RouteNote) assets in', minus(iso, D.streamingAssetsDays ?? 14)]);
-      if (ed) { rows.push(['Bandcamp editorial, 9 weeks (your own submission)', minus(iso, D.editorialEarliestDays ?? 63)]); rows.push(['Bandcamp editorial, 8 weeks at the latest', minus(iso, D.editorialLatestDays ?? 56)]); }
+      if (ed && bc) { rows.push(['Bandcamp editorial pitch, aim for 9 weeks (you do this)', minus(iso, D.editorialEarliestDays ?? 63)]); rows.push(['Bandcamp editorial pitch, 8 weeks at the latest', minus(iso, D.editorialLatestDays ?? 56)]); }
+      if (ed && st) rows.push(['Spotify editorial pitch, 7 days at the latest (you do this)', minus(iso, D.spotifyPitchDays ?? 7)]);
       rows.sort((a,b) => a[1] - b[1]);
       rows.push(['Release day', new Date(iso + 'T12:00:00')]);
       out.innerHTML = rows.length > 1 ? rows.map(([label, d]) => {
@@ -321,11 +347,22 @@
     b.addEventListener('click', () => { try { navigator.clipboard.writeText(url).then(() => { b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy link', 1500); }, () => { b.textContent = url; }); } catch (e) { b.textContent = url; } });
   });
 
-  /* ---------- Spotify / Groover embeds (link fallback where embeds are blocked) ---------- */
+  /* ---------- Spotify / Groover players: tap to load (faster, no third-party cookies until
+     the visitor chooses, and no broken box where players are blocked) ---------- */
+  function clickToLoad(box, label, iframeHtml, openUrl){
+    box.innerHTML = `<div class="c2l"><button type="button" class="btn primary">${label}</button>${openUrl ? `<a class="sp-open" href="${esc(openUrl)}" target="_blank" rel="noopener">Or open it in a new tab ↗</a>` : ''}<p class="small">Loading this player lets the service set its own cookies.</p></div>`;
+    box.querySelector('button').addEventListener('click', () => { box.innerHTML = iframeHtml + (openUrl ? `<a class="sp-open" href="${esc(openUrl)}" target="_blank" rel="noopener">Not playing? Open it in a new tab ↗</a>` : ''); });
+  }
   const sp = $('#spotify-embed');
-  if (sp && C.spotifyPlaylistId) sp.innerHTML = `<a class="sp-open" href="https://open.spotify.com/playlist/${esc(C.spotifyPlaylistId)}" target="_blank" rel="noopener">Open in Spotify ↗</a><iframe title="RRR playlist on Spotify" src="https://open.spotify.com/embed/playlist/${esc(C.spotifyPlaylistId)}?utm_source=generator&theme=0" width="100%" height="380" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+  if (sp && C.spotifyPlaylistId) clickToLoad(sp, '▶ Play the RRR playlist here',
+    `<iframe title="RRR playlist on Spotify" src="https://open.spotify.com/embed/playlist/${esc(C.spotifyPlaylistId)}?utm_source=generator&theme=0" width="100%" height="380" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`,
+    'https://open.spotify.com/playlist/' + C.spotifyPlaylistId);
   const gw = $('#groover-embed');
-  if (gw && C.grooverWidgetUrl) gw.innerHTML = `<iframe title="Send your track to RRR on Groover" src="${esc(C.grooverWidgetUrl)}" width="100%" height="130" frameborder="0" loading="lazy" credentialless></iframe>`;
+  if (gw && C.grooverWidgetUrl) clickToLoad(gw, 'Show the Groover submission box',
+    `<iframe title="Send your track to RRR on Groover" src="${esc(C.grooverWidgetUrl)}" width="100%" height="130" frameborder="0" credentialless></iframe>`,
+    C.grooverUrl);
+  // YouTube links from config
+  $$('[data-yt]').forEach(a => { const u = (C.youtube || {})[a.dataset.yt]; if (u) a.href = u; });
   $$('[data-playlistpanda]').forEach(a => { if (C.playlistPandaUrl) a.href = C.playlistPandaUrl; });
 
   /* ---------- press wall + submit ---------- */
@@ -366,5 +403,46 @@
         b.onclick = () => { e.prompt(); e.userChoice.finally(() => { inst.hidden = true; }); };
       });
     }
+  }
+
+  /* ---------- sell your merch ---------- */
+  const MC = C.merch || {};
+  $$('[data-merch-pct]').forEach(el => { if (MC.commissionPercent != null) el.textContent = MC.commissionPercent + '%'; });
+  const fl = $('#fulfilment-list');
+  if (fl) fl.innerHTML = (MC.fulfilment || []).map(f => `<li><a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)} ↗</a><span>${esc(f.what)}</span></li>`).join('');
+
+  /* ---------- terms version on pages ---------- */
+  $$('[data-terms-version]').forEach(el => { if (C.termsVersion) el.textContent = C.termsVersion; });
+
+  /* ---------- unsubscribe ---------- */
+  const uf = $('#unsub-form');
+  if (uf) uf.addEventListener('submit', async e => {
+    e.preventDefault();
+    const st = $('#unsub-status');
+    if (!uf.checkValidity()) { uf.reportValidity(); return; }
+    if (!endpoint) { st.textContent = 'Unsubscribing opens with the newsletter. For now, email ' + (C.email || '') + '.'; return; }
+    try { await fetch(endpoint, { method: 'POST', mode: 'no-cors', body: new URLSearchParams({ form: 'unsubscribe', email: $('#u-email').value }) }); st.textContent = 'Done. You won\'t get the newsletter any more.'; uf.reset(); }
+    catch (err) { st.textContent = 'That didn\'t work. Try again, or email ' + (C.email || '') + '.'; }
+  });
+
+  function toast(msg){ const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
+  /* ---------- language switcher (Google Translate's free page translation) ---------- */
+  const ls = $('#lang-select');
+  if (ls) {
+    const onTg = /\.translate\.goog$/.test(location.hostname);
+    const cur = new URLSearchParams(location.search).get('_x_tr_tl') || 'en';
+    ls.value = [...ls.options].some(o => o.value === cur) ? cur : 'en';
+    ls.addEventListener('change', () => {
+      const lang = ls.value;
+      if (onTg) {
+        const orig = location.hostname.replace(/\.translate\.goog$/, '').replace(/-/g, '.').replace(/\.\./g, '-');
+        location.href = lang === 'en' ? `https://${orig}${location.pathname}` : `${location.origin}${location.pathname}?_x_tr_sl=en&_x_tr_tl=${lang}&_x_tr_hl=${lang}`;
+        return;
+      }
+      if (lang === 'en') return;
+      if (!/\./.test(location.hostname) || /claude|localhost/.test(location.hostname)) { ls.value = 'en'; toast('Translation works on the live site, not in this preview.'); return; }
+      const host = location.hostname.replace(/-/g, '--').replace(/\./g, '-') + '.translate.goog';
+      location.href = `https://${host}${location.pathname}?_x_tr_sl=en&_x_tr_tl=${lang}&_x_tr_hl=${lang}`;
+    });
   }
 })();

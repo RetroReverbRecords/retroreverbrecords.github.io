@@ -24,15 +24,14 @@
     <nav aria-label="Sections">
       <a href="index.html#membership">Membership</a>
       <a href="index.html#catalogue">Catalogue</a>
-      <a href="index.html#playlist">Playlist</a>
       <a href="index.html#merch">Merch</a>
       <a href="cards.html">Cards</a>
-      <a href="press.html">Press</a>
-      <a href="history.html">History</a>
-      <a href="how-it-works.html">How it works</a>
+      <a href="levels.html">Levels</a>
+      <a href="together.html">Together</a>
       <a href="book.html">Book</a>
       <a href="member.html">My dashboard</a>
       <a class="btn primary small-btn" href="index.html#join">Create account</a>
+      <label class="lang" title="Translate this site"><span aria-hidden="true">🌐</span><span class="sr">Language</span><select id="lang-select" aria-label="Language"><option value="en">English</option><option value="it">Italiano</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="sv">Svenska</option><option value="el">Ελληνικά</option><option value="tr">Türkçe</option><option value="ru">Русский</option><option value="uk">Українська</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></label>
     </nav>
   </div>
 </header>
@@ -52,6 +51,7 @@
         <button role="tab" id="tab-streaming" data-panel="streaming" aria-controls="panel-streaming">Streaming release</button>
         <button role="tab" id="tab-social" data-panel="social" aria-controls="panel-social">Social media post</button>
         <button role="tab" id="tab-youtube" data-panel="youtube" aria-controls="panel-youtube">YouTube upload</button>
+        <button role="tab" id="tab-merch" data-panel="merch" aria-controls="panel-merch">Sell merch</button>
         <button role="tab" id="tab-radio" data-panel="radio" aria-controls="panel-radio">Radio</button>
         <button role="tab" id="tab-playlist" data-panel="playlist" aria-controls="panel-playlist">Playlists</button>
       </div>
@@ -63,14 +63,14 @@
             <form class="panel booking-form" data-kind="bandcamp-release" novalidate>
               <h2>Bandcamp release</h2>
               <p class="intro">Released through the RRR Bandcamp catalogue, shown on your page and the RRR page. You keep 100% of royalties.</p>
-              <div class="feerow"><span>Single<b data-fee="single">€1.00</b></span><span>EP<b data-fee="ep">€2.00</b></span><span>Album<b data-fee="album">€2.50</b></span></div>
+              <div class="feerow"><span>Single<b data-price="single">€2.00</b></span><span>EP (2–5 tracks)<b data-price="ep">€3.00</b></span><span>Album<b data-price="album">€3.50</b></span></div>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
                   <label for="bc-artist">Artist name<input id="bc-artist" name="artist" type="text" required></label>
                   <label for="bc-email">Email<input id="bc-email" name="email" type="email" required></label>
                   <label for="bc-title">Release title<input id="bc-title" name="title" type="text" required></label>
-                  <label for="bc-format">Format<select id="bc-format" name="format" required><option value="single">Single – €1.00</option><option value="ep">EP – €2.00</option><option value="album">Album – €2.50</option></select></label>
+                  <label for="bc-format">Format<select id="bc-format" name="format" required><option value="single" data-price-label="single">Single – €2.00</option><option value="ep" data-price-label="ep">EP, 2–5 tracks – €3.00</option><option value="album" data-price-label="album">Album – €3.50</option></select></label>
                   <label for="bc-date">Release date<input id="bc-date" name="release_date" type="date" required></label>
                   <label for="bc-page">Your Bandcamp page<input id="bc-page" name="bandcamp" type="url" placeholder="https://yourname.bandcamp.com"></label>
                   <label for="bc-notes" class="wide">Notes<textarea id="bc-notes" name="notes" placeholder="Genre, pre-order plans, anything we should know"></textarea></label>
@@ -78,7 +78,15 @@
                 <div class="checks">
                   <label><input type="checkbox" id="bc-also-stream" name="also_streaming"> Also release on streaming</label>
                 </div>
-                <label class="agree"><input type="checkbox" id="bc-agree" name="agree" required> I'll supply assets at least 3 weeks before release, and RRR may include this release in discount codes, giveaways and offers.</label>
+                <label class="agree"><input type="checkbox" id="bc-agree" name="agree" required> I'll supply assets at least 2 weeks before release, and RRR may include this release in discount codes, giveaways and offers.</label>
+                                <fieldset class="aidecl"><legend class="label">AI use in this release · required</legend>
+                  <label><input type="radio" name="ai_use" value="none" required> No AI usage</label>
+                  <label><input type="radio" name="ai_use" value="partial"> Partial AI assistance</label>
+                  <label><input type="radio" name="ai_use" value="heavy"> Heavily AI-generated</label>
+                  <a class="small" href="terms.html#ai" target="_blank">What counts?</a>
+                </fieldset>
+                <label for="bc-collab" class="wide collab">Featured artists, producers, remixers (if any)<input id="bc-collab" name="collaborators" type="text" placeholder="Names, or leave empty"></label>
+                <label class="agree"><input type="checkbox" id="bc-collab-ok" name="collaborators_agreed" value="yes" required> Everyone who worked on this release has agreed to it being released.</label>
                 <p class="paylink" hidden></p>
                 <button class="btn primary" type="submit">Book Bandcamp release</button>
               </fieldset>
@@ -90,19 +98,27 @@
             <form class="panel booking-form" data-kind="streaming-release" novalidate>
               <h2>Streaming release</h2>
               <p class="intro">Uploaded and managed through the RRR RouteNote account. You keep 100% of streaming royalties.</p>
-              <div class="feerow"><span>Single<b data-fee="single">€1.00</b></span><span>EP<b data-fee="ep">€2.00</b></span><span>Album<b data-fee="album">€2.50</b></span></div>
+              <div class="feerow"><span>Single<b data-price="single">€2.00</b></span><span>EP (2–5 tracks)<b data-price="ep">€3.00</b></span><span>Album<b data-price="album">€3.50</b></span></div>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
                   <label for="st-artist">Artist name<input id="st-artist" name="artist" type="text" required></label>
                   <label for="st-email">Email<input id="st-email" name="email" type="email" required></label>
                   <label for="st-title">Release title<input id="st-title" name="title" type="text" required></label>
-                  <label for="st-format">Format<select id="st-format" name="format" required><option value="single">Single – €1.00</option><option value="ep">EP – €2.00</option><option value="album">Album – €2.50</option></select></label>
+                  <label for="st-format">Format<select id="st-format" name="format" required><option value="single" data-price-label="single">Single – €2.00</option><option value="ep" data-price-label="ep">EP, 2–5 tracks – €3.00</option><option value="album" data-price-label="album">Album – €3.50</option></select></label>
                   <label for="st-date">Release date<input id="st-date" name="release_date" type="date" required></label>
                   <label for="st-isrc">ISRC codes (if you have them)<input id="st-isrc" name="isrc" type="text"></label>
                   <label for="st-notes" class="wide">Notes<textarea id="st-notes" name="notes"></textarea></label>
                 </div>
-                <label class="agree"><input type="checkbox" id="st-agree" name="agree" required> I'll supply assets at least 2 weeks before release.</label>
+                <label class="agree"><input type="checkbox" id="st-agree" name="agree" required> I'll supply assets at least 3 weeks before release.</label>
+                                <fieldset class="aidecl"><legend class="label">AI use in this release · required</legend>
+                  <label><input type="radio" name="ai_use" value="none" required> No AI usage</label>
+                  <label><input type="radio" name="ai_use" value="partial"> Partial AI assistance</label>
+                  <label><input type="radio" name="ai_use" value="heavy"> Heavily AI-generated</label>
+                  <a class="small" href="terms.html#ai" target="_blank">What counts?</a>
+                </fieldset>
+                <label for="st-collab" class="wide collab">Featured artists, producers, remixers (if any)<input id="st-collab" name="collaborators" type="text" placeholder="Names, or leave empty"></label>
+                <label class="agree"><input type="checkbox" id="st-collab-ok" name="collaborators_agreed" value="yes" required> Everyone who worked on this release has agreed to it being released.</label>
                 <p class="paylink" hidden></p>
                 <button class="btn primary" type="submit">Book streaming release</button>
               </fieldset>
@@ -160,6 +176,30 @@
             </form>
           </div>
 
+          <!-- Sell merch -->
+          <div class="tabpanel" id="panel-merch" role="tabpanel" aria-labelledby="tab-merch" hidden>
+            <form class="panel booking-form" data-kind="merch-listing" novalidate>
+              <h2>Sell your merch with us</h2>
+              <p class="intro">We list it in the RRR store and in front of the community. RRR takes payment and pays you your share; RRR keeps <b><span data-merch-pct>a percentage</span></b> of each sale. RRR doesn't ship: you post it, or use a print-on-demand or fulfilment company (<a href="index.html#sell-merch">suggestions</a>).</p>
+              <div class="status" role="status"></div>
+              <fieldset>
+                <div class="fields">
+                  <label for="mc-artist">Artist name<input id="mc-artist" name="artist" type="text" required></label>
+                  <label for="mc-email">Email<input id="mc-email" name="email" type="email" required></label>
+                  <label for="mc-title">Item<input id="mc-title" name="title" type="text" required placeholder="e.g. Neon Born cassette"></label>
+                  <label for="mc-type">Type<select id="mc-type" name="format" required><option>T-shirt / hoodie</option><option>Cassette</option><option>CD</option><option>Vinyl</option><option>MiniDisc</option><option>Poster / print</option><option>Stickers / pins</option><option>Other</option></select></label>
+                  <label for="mc-price">Your price (€)<input id="mc-price" name="price" type="number" min="1" step="0.5" required></label>
+                  <label for="mc-stock">How many can you sell?<input id="mc-stock" name="stock" type="text" placeholder="e.g. 50, or print on demand"></label>
+                  <label for="mc-ship" class="wide">Who ships it?<select id="mc-ship" name="shipping" required><option value="">Choose…</option><option>I post it myself</option><option>A print-on-demand / fulfilment company</option></select></label>
+                  <label for="mc-photos" class="wide">Photos (Google Drive link)<input id="mc-photos" name="photos" type="url" required placeholder="https://drive.google.com/…"></label>
+                  <label for="mc-notes" class="wide">Sizes, colours, shipping countries, anything else<textarea id="mc-notes" name="notes"></textarea></label>
+                </div>
+                <label class="agree"><input type="checkbox" id="mc-agree" name="agree" value="yes" required> I'll ship every order within 7 days (or my fulfilment company will), and I agree to RRR's share of each sale.</label>
+                <button class="btn primary" type="submit">Send merch listing</button>
+              </fieldset>
+            </form>
+          </div>
+
           <!-- Radio -->
           <div class="tabpanel" id="panel-radio" role="tabpanel" aria-labelledby="tab-radio" hidden>
             <div class="panel groover">
@@ -188,9 +228,9 @@
             <h3>Before you book</h3>
             <ul>
               <li>You need an active Artist Membership. Supporter Status pauses booking.</li>
-              <li>Bandcamp assets: at least 3 weeks before release.</li>
-              <li>Streaming assets: at least 2 weeks before release.</li>
-              <li>Bandcamp editorial is not an RRR service. If you want to try for it, submit yourself at least 8–9 weeks before release.</li>
+              <li>Streaming assets: at least 3 weeks before release.</li>
+              <li>Bandcamp assets: at least 2 weeks before release.</li>
+              <li>Editorial pitching is done by you: Bandcamp 8–9 weeks ahead, Spotify at least 7 days ahead. See the <a href="editorial.html">editorial guides</a>.</li>
               <li>Assets go in your designated Google Drive folder.</li>
             </ul>
           </div>
@@ -228,12 +268,14 @@
 </section>
 <footer>
   <div class="wrap">
-    <span>© Retro Reverb Records · Since 2016 · <a href="history.html">History</a> · <a href="how-it-works.html">How it works</a> · <a href="book.html">Book</a></span>
+    <span>© Retro Reverb Records · Since 2016 · A label for the people</span>
     <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
+    <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a></span>
   </div>
 </footer>
 <script src="assets/config.js"></script>
 <script src="assets/releases.js"></script>
+<script src="assets/levels.js"></script>
 <script src="assets/site.js"></script>
 </body>
 </html>

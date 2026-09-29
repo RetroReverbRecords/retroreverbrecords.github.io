@@ -7,25 +7,31 @@
   const fmt = d => { if (!d) return ''; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}); };
   const num = n => (n === '' || n == null) ? '–' : Number(n).toLocaleString('en-GB');
 
-  // Every achievement members can earn. Keep in step with backend/Code.gs.
+  // Badges shown on the dashboard. Keep in step with backend/Code.gs.
   const CATALOGUE = [
-    { title: 'Joined the community', points: 5, how: 'Sign up' },
-    { title: 'First release booked', points: 20, how: 'Book a Bandcamp or streaming release' },
+    { title: 'Joined the community', points: 10, how: 'Sign up' },
+    { title: 'First release booked', points: 15, how: 'Book a Bandcamp or streaming release' },
     { title: 'First social post booked', points: 5, how: 'Book a social media post' },
     { title: 'First YouTube upload', points: 5, how: 'Book a YouTube upload' },
-    { title: '3 months a member', points: 15, how: 'Stay active for 3 months' },
-    { title: '1 year a member', points: 50, how: 'Stay active for a year' }
+    { title: 'Newsletter subscriber', points: 5, how: 'Sign up to the newsletter' },
+    { title: 'Brought a friend', points: 20, how: 'Someone you invited joins' },
+    { title: 'In the press', points: 20, how: 'Get a review approved on the Press wall' },
+    { title: '3 months a member', points: 30, how: 'Stay active for 3 months' },
+    { title: '1 year a member', points: 120, how: 'Stay active for a year' }
   ];
-  const RANKS = [['Signal',0],['Echo',50],['Reverb',150],['Resonance',400],['Legend',1000]];
+  const BELTS = (window.RRR_LEVELS && window.RRR_LEVELS.belts) || [{ name: 'White belt', min: 0, color: '#F2F2F2' }];
+  const beltFor = p => { let b = BELTS[0]; BELTS.forEach(x => { if (p >= x.min) b = x; }); return b; };
+  const nextBelt = p => BELTS.find(x => x.min > p) || null;
 
   const DEMO = {
     id: 'DEMO', name: 'Demo Artist', type: 'artist', since: '2026-06-01', status: 'active',
-    points: 50, rank: 'Echo', rankFrom: 50, nextRank: 'Reverb', nextAt: 150,
+    points: 385,
     achievements: [
-      { title: 'Joined the community', on: '2026-06-01', points: 5 },
-      { title: 'First release booked', on: '2026-06-10', points: 20 },
+      { title: 'Joined the community', on: '2026-06-01', points: 10 },
+      { title: 'First release booked', on: '2026-06-10', points: 15 },
       { title: 'First social post booked', on: '2026-06-12', points: 5 },
-      { title: '3 months a member', on: '2026-09-01', points: 15 },
+      { title: 'Brought a friend', on: '2026-07-02', points: 20 },
+      { title: '3 months a member', on: '2026-09-01', points: 30 },
       { title: 'First YouTube upload', on: '2026-09-05', points: 5 }
     ],
     releases: [
@@ -64,9 +70,37 @@
   function notFound(){ $('#dash').innerHTML = `<div class="panel empty"><b>We can't find that member ID.</b><span>Check it matches the ID you got when you signed up, e.g. RRR-7KX2P. Still stuck? Email ${esc(C.email)}.</span></div>`; }
   function problem(){ $('#dash').innerHTML = `<div class="panel empty"><b>The dashboard couldn't load.</b><span>Check your connection and refresh. If it keeps happening, email ${esc(C.email)}.</span></div>`; }
 
+  /* ---------- level-up celebration: sound + emoji burst when your belt goes up ---------- */
+  function celebrate(title){
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'square'; o.frequency.value = f;
+        const t = ctx.currentTime + i * 0.11; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+        o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.3);
+      });
+    } catch (e) {}
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const box = document.createElement('div'); box.className = 'lvlup'; box.setAttribute('role', 'status');
+    box.innerHTML = `<div class="lvlcard"><p class="label">Level up</p><b>${esc(title)}</b><p class="small">Keep backing the community. 🥋</p></div>`;
+    if (!reduce) { const em = ['🎉','🥋','⭐','🔥','🎶','💿','🎸','✨']; for (let i = 0; i < 28; i++) { const s = document.createElement('i'); s.textContent = em[i % em.length]; s.style.left = Math.random() * 100 + '%'; s.style.animationDelay = (Math.random() * .6) + 's'; s.style.fontSize = (18 + Math.random() * 20) + 'px'; box.appendChild(s); } }
+    box.addEventListener('click', () => box.remove());
+    document.body.appendChild(box); setTimeout(() => box.remove(), 4200);
+  }
+  function checkLevelUp(m, demo){
+    if (demo) return;
+    const key = 'rrr-pts-' + m.id; let prev = null;
+    try { prev = localStorage.getItem(key); localStorage.setItem(key, String(m.points || 0)); } catch (e) {}
+    if (prev == null) return;
+    const before = beltFor(Number(prev) || 0), now = beltFor(Number(m.points) || 0);
+    if (now.min > before.min) celebrate(now.name);
+    else if ((Number(m.points) || 0) > (Number(prev) || 0)) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = `+${(Number(m.points) || 0) - (Number(prev) || 0)} points since your last visit ⭐`; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
+  }
+
   function render(m, demo, notLive){
     const pts = Number(m.points) || 0;
-    const from = Number(m.rankFrom) || 0, to = Number(m.nextAt) || null;
+    const belt = beltFor(pts), nb = nextBelt(pts);
+    const from = belt.min, to = nb ? nb.min : null;
     const pct = to ? Math.max(0, Math.min(100, Math.round((pts - from) / (to - from) * 100))) : 100;
     const earned = new Set((m.achievements || []).map(a => a.title));
     const statusLabel = s => ({ 'live': 'Live', 'posted': 'Posted', 'booked': 'Booked', 'requested': 'Requested', 'assets received': 'Assets in' }[String(s).toLowerCase()] || s || '–');
@@ -81,11 +115,12 @@
           <p class="small">Member since ${esc(fmt(m.since))} · ${esc(m.status || '')}</p>
         </div>
         <div class="panel rankbox">
-          <p class="label">Rank</p>
-          <div class="rankline"><b class="rankname">${esc(m.rank)}</b><span class="num pts">${num(pts)} pts</span></div>
-          <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Progress to next rank"><i style="width:${pct}%"></i></div>
-          <p class="small">${to ? `${num(to - pts)} points to <b>${esc(m.nextRank)}</b>` : 'Top rank reached'}</p>
-          <ol class="ranks">${RANKS.map(([n, min]) => `<li class="${pts >= min ? 'on' : ''}"><span>${n}</span><em class="num">${min}</em></li>`).join('')}</ol>
+          <p class="label">Belt · <a href="levels.html">how to level up</a></p>
+          <div class="rankline"><b class="rankname beltchip" style="--belt:${belt.color}"><i></i>${esc(belt.name)}</b><span class="num pts">${num(pts)} pts</span></div>
+          <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Progress to next belt"><i style="width:${pct}%"></i></div>
+          <p class="small">${to ? `${num(to - pts)} points to <b>${esc(nb.name)}</b>` : 'Highest Dan reached. Legend.'}</p>
+          <div class="beltstrip">${BELTS.slice(0, 8).map(b => `<span title="${esc(b.name)} · ${b.min} pts" class="${pts >= b.min ? 'on' : ''}" style="--belt:${b.color}"></span>`).join('')}<em>${pts >= 2000 ? esc(belt.name) : 'then 10 Dans'}</em></div>
+          ${demo ? '<button type="button" class="copy" id="try-levelup">Preview a level-up 🎉</button>' : ''}
         </div>
       </div>
 
@@ -116,5 +151,7 @@
             : `<div class="panel empty"><b>No posts yet.</b><span><a href="book.html#social">Book a social post</a></span></div>`}
         </div>
       </div>`;
+    const tl = document.getElementById('try-levelup'); if (tl) tl.addEventListener('click', () => celebrate('Orange belt'));
+    checkLevelUp(m, demo);
   }
 })();

@@ -81,6 +81,44 @@
     if (endpoint) q.set('notify_url', endpoint);
     return 'https://www.paypal.com/cgi-bin/webscr?' + q.toString();
   }
+  // PayPal checkout with extra ways to pay when a client ID is set, simple link otherwise.
+  const PP = C.paypal || {};
+  let sdkPromise = null;
+  function loadSdk(subscription){
+    if (sdkPromise) return sdkPromise;
+    const q = new URLSearchParams({ 'client-id': PP.clientId, currency: 'EUR', components: 'buttons' });
+    if (subscription) { q.set('vault', 'true'); q.set('intent', 'subscription'); }
+    else q.set('enable-funding', 'card,paylater,mybank,sepa,bancontact,ideal,giropay,eps,blik,p24');
+    sdkPromise = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://www.paypal.com/sdk/js?' + q; sc.onload = () => res(window.paypal); sc.onerror = rej; document.head.appendChild(sc); });
+    return sdkPromise;
+  }
+  // o: { kind: 'one-off' | 'sub', amount, item, custom, plan, linkParams, note }
+  function payButtons(box, o){
+    const fallback = () => {
+      const params = o.kind === 'sub'
+        ? { cmd: '_xclick-subscriptions', item_name: o.item, a3: o.amount.toFixed(2), p3: '1', t3: 'M', src: '1', custom: o.custom, return: o.returnUrl || '' }
+        : { cmd: '_xclick', item_name: o.item.slice(0, 120), amount: o.amount.toFixed(2), custom: o.custom };
+      box.innerHTML = `<a class="btn primary" href="${esc(paypalUrl(params))}" target="_blank" rel="noopener">Pay €${o.amount.toFixed(2)}${o.kind === 'sub' ? '/month' : ''} with PayPal or card</a> ${o.note ? `<span class="small">${o.note}</span>` : ''}`;
+    };
+    const useSdk = PP.clientId && (o.kind === 'one-off' || o.plan);
+    if (!useSdk) { if (P.paypalEmail) fallback(); return; }
+    box.innerHTML = `<div class="pp-sdk"></div>${o.note ? `<p class="small">${o.note}</p>` : ''}`;
+    loadSdk(o.kind === 'sub').then(paypal => {
+      const cfg = o.kind === 'sub'
+        ? { style: { layout: 'vertical', color: 'blue', label: 'subscribe' },
+            createSubscription: (d, a) => a.subscription.create({ plan_id: o.plan, custom_id: o.custom }),
+            onApprove: d => { box.innerHTML = `<p class="paid"><strong>Membership payment set up.</strong> Welcome to RRR.</p>`; } }
+        : { style: { layout: 'vertical', color: 'blue' },
+            createOrder: (d, a) => a.order.create({ purchase_units: [{ amount: { value: o.amount.toFixed(2), currency_code: 'EUR' }, description: o.item.slice(0, 120), custom_id: String(o.custom || '').slice(0, 120) }] }),
+            onApprove: (d, a) => a.order.capture().then(det => {
+              box.innerHTML = `<p class="paid"><strong>Paid, thank you.</strong> We'll confirm by email.</p>`;
+              if (endpoint) fetch(endpoint, { method: 'POST', mode: 'no-cors', body: new URLSearchParams({ form: 'payment', order_id: det.id, status: det.status, amount: o.amount.toFixed(2), item: o.item, custom: o.custom || '', payer_email: (det.payer && det.payer.email_address) || '' }) }).catch(() => {});
+              track('Purchase', { value: o.amount, currency: 'EUR' });
+            }) };
+      paypal.Buttons(cfg).render(box.querySelector('.pp-sdk'));
+    }).catch(fallback);
+  }
+
   async function send(form, statusEl, kind, extra){
     const data = new URLSearchParams();
     new FormData(form).forEach((v, k) => data.append(k, v));
@@ -121,7 +159,7 @@
       if (!signup.checkValidity()) { signup.reportValidity(); return; }
       const id = newMemberId(), fan = isFan(), amt = price();
       const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist' });
-      if (ok) renderPay(id, fan, amt);
+      if (ok) { renderPay(id, fan, amt); track('CompleteRegistration', { content_name: fan ? 'fan' : 'artist' }); }
     });
   }
   function renderPay(memberId, fan, amt){
@@ -132,12 +170,11 @@
     let btn = '';
     if (P.membershipVia === 'bandcamp' && P.bandcampSubscribeUrl) {
       btn = `<a class="btn primary" href="${esc(P.bandcampSubscribeUrl)}" target="_blank" rel="noopener">Subscribe on Bandcamp</a>`;
-    } else if (P.paypalEmail && amt) {
-      const back = (C.siteUrl || '') + dash;
-      btn = `<a class="btn primary" href="${esc(paypalUrl({ cmd: '_xclick-subscriptions', item_name: `RRR ${fan ? 'Fan' : 'Artist'} Membership`, a3: amt.toFixed(2), p3: '1', t3: 'M', src: '1', custom: memberId, return: back }))}" target="_blank" rel="noopener">Pay €${amt.toFixed(2)}/month with PayPal</a>`;
     }
-    box.innerHTML = `<div class="welcome"><p><strong>Step 2: set up your monthly payment.</strong></p>${btn}
+    box.innerHTML = `<div class="welcome"><p><strong>Step 2: set up your monthly payment.</strong></p><div class="paybox">${btn}</div>
       <p class="small">Your member ID is <b class="num">${esc(memberId)}</b>. Keep it: it opens your <a href="${esc(dash)}">member dashboard</a>.</p></div>`;
+    if (!btn && amt) payButtons(box.querySelector('.paybox'), { kind: 'sub', amount: amt, item: `RRR ${fan ? 'Fan' : 'Artist'} Membership`, custom: memberId,
+      plan: ((PP.plans || {})[fan ? 'fan' : 'artist']) || '', returnUrl: (C.siteUrl || '') + dash });
   }
   renderPay();
 
@@ -170,9 +207,10 @@
         const amt = amount();
         const ok = await send(f, st, f.dataset.kind);
         // One-off fee: PayPal button appears after booking, tagged with the member's email
-        if (ok && pl && amt && P.paypalEmail) {
+        if (ok) track('Schedule', { content_name: f.dataset.kind });
+        if (ok && pl && amt) {
           pl.hidden = false;
-          pl.innerHTML = `<a class="btn primary" href="${esc(paypalUrl({ cmd: '_xclick', item_name: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title}`.slice(0, 120), amount: amt.toFixed(2), custom: email }))}" target="_blank" rel="noopener">Pay €${amt.toFixed(2)} with PayPal</a> <span class="small">Your booking is confirmed once the fee is paid.</span>`;
+          payButtons(pl, { kind: 'one-off', amount: amt, item: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title}`, custom: email, note: 'Your booking is confirmed once the fee is paid.' });
         }
       });
     });
@@ -208,5 +246,117 @@
     }
     $$('input', plan).forEach(i => i.addEventListener('input', calc));
     calc();
+  }
+
+  /* ---------- cookie consent + marketing pixels ---------- */
+  const PX = C.pixels || {};
+  const anyPixel = PX.metaPixelId || PX.googleTagId || PX.tiktokPixelId;
+  const store = { get(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch (e) {} } };
+  let pixelsOn = false;
+  function track(evt, data){
+    if (!pixelsOn) return;
+    try { if (window.fbq) fbq('track', evt, data || {}); } catch (e) {}
+    try { if (window.gtag) gtag('event', evt === 'Lead' ? 'generate_lead' : evt === 'CompleteRegistration' ? 'sign_up' : evt === 'Purchase' ? 'purchase' : evt, data || {}); } catch (e) {}
+    try { if (window.ttq) ttq.track(evt === 'Lead' ? 'SubmitForm' : evt === 'Purchase' ? 'CompletePayment' : evt, data || {}); } catch (e) {}
+  }
+  function loadPixels(){
+    if (pixelsOn) return; pixelsOn = true;
+    if (PX.metaPixelId) {
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', PX.metaPixelId); fbq('track', 'PageView');
+    }
+    if (PX.googleTagId) {
+      const g = document.createElement('script'); g.async = true; g.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(PX.googleTagId); document.head.appendChild(g);
+      window.dataLayer = window.dataLayer || []; window.gtag = function(){ dataLayer.push(arguments); }; gtag('js', new Date()); gtag('config', PX.googleTagId);
+    }
+    if (PX.tiktokPixelId) {
+      !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.load=function(e){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._u=i;var o=d.createElement("script");o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=d.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load(PX.tiktokPixelId);ttq.page();}(window,document,'ttq');
+    }
+  }
+  if (anyPixel) {
+    const choice = store.get('rrr-consent');
+    if (choice === 'yes') loadPixels();
+    else if (choice !== 'no') {
+      const bar = document.createElement('div');
+      bar.className = 'consent'; bar.setAttribute('role', 'dialog'); bar.setAttribute('aria-label', 'Cookies');
+      bar.innerHTML = `<p>We use cookies to measure our ads and show RRR to more music fans. OK?</p><div><button type="button" class="btn primary" data-c="yes">Accept</button><button type="button" class="btn ghost" data-c="no">No thanks</button></div>`;
+      document.body.appendChild(bar);
+      bar.addEventListener('click', e => { const c = e.target.dataset && e.target.dataset.c; if (!c) return; store.set('rrr-consent', c); if (c === 'yes') loadPixels(); bar.remove(); });
+    }
+  }
+
+  /* ---------- newsletter sign-up ---------- */
+  $$('.newsletter-form').forEach(f => {
+    const st = $('.nl-status', f);
+    const open = !!endpoint;
+    f.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (!f.checkValidity()) { f.reportValidity(); return; }
+      if (!open) { st.textContent = 'Newsletter sign-up opens soon.'; return; }
+      const data = new URLSearchParams({ form: 'newsletter', email: $('input[type=email]', f).value, consent: $('input[type=checkbox]', f).checked ? 'yes' : 'no', source: location.pathname.split('/').pop() || 'index' });
+      try { await fetch(endpoint, { method: 'POST', mode: 'no-cors', body: data }); st.textContent = 'You\'re on the list. See you on the 1st.'; f.reset(); track('Lead', { content_name: 'newsletter' }); }
+      catch (err) { st.textContent = 'That didn\'t work. Check your connection and try again.'; }
+    });
+  });
+
+  /* ---------- share buttons ---------- */
+  $$('[data-share-url]').forEach(box => {
+    const url = box.dataset.shareUrl, text = box.dataset.shareText || '';
+    const u = encodeURIComponent(url), t = encodeURIComponent(text);
+    box.innerHTML = `<button type="button" class="copy" data-copylink>Copy link</button>
+      <a class="sharebtn" href="https://wa.me/?text=${t}%20${u}" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="sharebtn" href="https://www.facebook.com/sharer/sharer.php?u=${u}" target="_blank" rel="noopener">Facebook</a>
+      <a class="sharebtn" href="https://twitter.com/intent/tweet?text=${t}&url=${u}" target="_blank" rel="noopener">X</a>
+      <a class="sharebtn" href="https://bsky.app/intent/compose?text=${t}%20${u}" target="_blank" rel="noopener">Bluesky</a>
+      <a class="sharebtn" href="https://t.me/share/url?url=${u}&text=${t}" target="_blank" rel="noopener">Telegram</a>`;
+    const b = $('[data-copylink]', box);
+    b.addEventListener('click', () => { try { navigator.clipboard.writeText(url).then(() => { b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy link', 1500); }, () => { b.textContent = url; }); } catch (e) { b.textContent = url; } });
+  });
+
+  /* ---------- Spotify / Groover embeds (link fallback where embeds are blocked) ---------- */
+  const sp = $('#spotify-embed');
+  if (sp && C.spotifyPlaylistId) sp.innerHTML = `<a class="sp-open" href="https://open.spotify.com/playlist/${esc(C.spotifyPlaylistId)}" target="_blank" rel="noopener">Open in Spotify ↗</a><iframe title="RRR playlist on Spotify" src="https://open.spotify.com/embed/playlist/${esc(C.spotifyPlaylistId)}?utm_source=generator&theme=0" width="100%" height="380" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+  const gw = $('#groover-embed');
+  if (gw && C.grooverWidgetUrl) gw.innerHTML = `<iframe title="Send your track to RRR on Groover" src="${esc(C.grooverWidgetUrl)}" width="100%" height="130" frameborder="0" loading="lazy" credentialless></iframe>`;
+  $$('[data-playlistpanda]').forEach(a => { if (C.playlistPandaUrl) a.href = C.playlistPandaUrl; });
+
+  /* ---------- press wall + submit ---------- */
+  const wall = $('#press-wall');
+  if (wall) {
+    const seed = [
+      { artist: 'Alex Vecchietti', outlet: 'PugliaNews', title: '"Blessed" di Alex Vecchietti', url: 'https://www.puglianews.org/magazine/8900-blessed-di-alex-vecchietti.html' },
+      { artist: 'Alex Vecchietti', outlet: 'Switch On', title: 'Blessed, il nuovo album di Alex Vecchietti', url: 'https://www.switchonmusic.it/blessed-il-nuovo-album-di-alex-vecchietti/' },
+      { artist: 'Alenis', outlet: 'System Failure Webzine', title: 'Intervista a Alenis', url: 'https://www.systemfailurewebzine.com/intervista-a-alenis/' },
+      { artist: 'Soapnote', outlet: 'Antenna Radio Esse', title: 'Music My Life – Intervista a Soapnote', url: 'https://www.antennaradioesse.it/music-my-life-a-cura-di-graziella-ventrone-intervista-a-soapnote-un-viaggio-tra-interferenze-e-melodie/' },
+      { artist: 'Dark Smoke Signal', outlet: 'Blogger Sander', title: 'Interview met Dark Smoke Signal', url: 'https://www.bloggersander.nl/2020/04/interview-met-dark-smoke-signal.html' },
+      { artist: 'Retro Reverb Records', outlet: 'Nightride FM', title: "Kaarin's EP94 with guests Retro Reverb Records", url: 'https://nightride.fm/blog/podcast/kaarin/kaarins-ep94-with-guests-retro-reverb-records/' }
+    ];
+    const draw = list => { wall.innerHTML = list.map(p => `<a class="panel presscard" href="${esc(p.url)}" target="_blank" rel="noopener"><span class="mtype">${esc(p.outlet)}</span><b>${esc(p.title || p.outlet)}</b>${p.quote ? `<q>${esc(p.quote)}</q>` : ''}<span class="small">${esc(p.artist)}</span></a>`).join(''); };
+    draw(seed);
+    if (endpoint) fetch(endpoint + (endpoint.includes('?') ? '&' : '?') + 'press=1').then(r => r.json()).then(d => { if (d.ok && d.press.length) draw(d.press.concat(seed)); }).catch(() => {});
+  }
+  const pf = $('#press-form');
+  if (pf) {
+    const st = $('.status', pf), open = !!endpoint;
+    $('fieldset', pf).disabled = !open;
+    setStatus(st, open, '<strong>Share your review.</strong> We check every link before it goes on the wall.', '<strong>Coming soon.</strong> Review sharing opens when the RRR automation is switched on.');
+    pf.addEventListener('submit', e => { e.preventDefault(); if (!open) return; if (!pf.checkValidity()) { pf.reportValidity(); return; } send(pf, st, 'press'); });
+  }
+
+  /* ---------- installable phone app ---------- */
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !/claude\.ai|claudeusercontent/.test(location.host)) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  const inst = $('#install');
+  if (inst) {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (!standalone) {
+      if (ios) { inst.hidden = false; $('#install-ios').hidden = false; }
+      window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault(); inst.hidden = false; const b = $('#install-btn'); b.hidden = false;
+        b.onclick = () => { e.prompt(); e.userChoice.finally(() => { inst.hidden = true; }); };
+      });
+    }
   }
 })();

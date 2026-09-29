@@ -40,7 +40,10 @@
   };
 
   const params = new URLSearchParams(location.search);
-  const id = (params.get('id') || (location.hash || '').slice(1) || '').trim().toUpperCase();
+  const mem = { get(){ try { return localStorage.getItem('rrr-member-id') || ''; } catch (e) { return ''; } }, set(v){ try { localStorage.setItem('rrr-member-id', v); } catch (e) {} } };
+  // The phone app remembers your member ID, so it opens straight to your dashboard
+  const id = (params.get('id') || (location.hash || '').slice(1) || mem.get() || '').trim().toUpperCase();
+  if (id && id !== 'DEMO' && params.get('id')) mem.set(id);
   $('#lk-id').value = id && id !== 'DEMO' ? id : '';
   $('#lookup').addEventListener('submit', e => {
     e.preventDefault();

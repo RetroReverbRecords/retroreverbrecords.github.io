@@ -6,6 +6,12 @@
 <title>Book with RRR</title>
 <meta name="theme-color" content="#07061A">
 <link rel="icon" href="assets/rrr-logo-stack.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RRR">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -17,14 +23,14 @@
     <a class="brand" href="index.html"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records home"></a>
     <nav aria-label="Sections">
       <a href="index.html#membership">Membership</a>
-      <a href="index.html#releases">Releases</a>
       <a href="index.html#catalogue">Catalogue</a>
+      <a href="index.html#playlist">Playlist</a>
       <a href="index.html#merch">Merch</a>
       <a href="cards.html">Cards</a>
-      <a href="how-it-works.html">How it works</a>
+      <a href="press.html">Press</a>
       <a href="history.html">History</a>
+      <a href="how-it-works.html">How it works</a>
       <a href="book.html">Book</a>
-      <a href="index.html#contact">Contact</a>
       <a href="member.html">My dashboard</a>
       <a class="btn primary small-btn" href="index.html#join">Create account</a>
     </nav>
@@ -46,7 +52,8 @@
         <button role="tab" id="tab-streaming" data-panel="streaming" aria-controls="panel-streaming">Streaming release</button>
         <button role="tab" id="tab-social" data-panel="social" aria-controls="panel-social">Social media post</button>
         <button role="tab" id="tab-youtube" data-panel="youtube" aria-controls="panel-youtube">YouTube upload</button>
-        <button role="tab" id="tab-bandcamphour" data-panel="bandcamphour" aria-controls="panel-bandcamphour">The Bandcamp Hour</button>
+        <button role="tab" id="tab-radio" data-panel="radio" aria-controls="panel-radio">Radio</button>
+        <button role="tab" id="tab-playlist" data-panel="playlist" aria-controls="panel-playlist">Playlists</button>
       </div>
 
       <div class="bookgrid">
@@ -153,14 +160,25 @@
             </form>
           </div>
 
-          <!-- Bandcamp Hour -->
-          <div class="tabpanel" id="panel-bandcamphour" role="tabpanel" aria-labelledby="tab-bandcamphour" hidden>
+          <!-- Radio -->
+          <div class="tabpanel" id="panel-radio" role="tabpanel" aria-labelledby="tab-radio" hidden>
             <div class="panel groover">
-              <p class="label">Radio show</p>
+              <p class="label">Radio · through Groover</p>
               <h2>Submit to The Bandcamp Hour</h2>
-              <p>Get your music considered for The Bandcamp Hour with Cybertronix. Submissions go through the RetroReverbRecords curator page on Groover, where you pay Groover per submission and get written feedback.</p>
-              <a class="btn primary" id="groover-link" href="https://groover.co/band/signup/referral/influencer/16806/" target="_blank" rel="noopener">Submit on Groover</a>
-              <p class="small">Groover sets its own price, which it shows before you pay.</p>
+              <p>The Bandcamp Hour airs on Spectrum On Air, Sundays 16:00–18:00 CET. Send your track through the RetroReverbRecords page on Groover: you're guaranteed a listen and written feedback. Groover charges per submission and shows the price before you pay.</p>
+              <div class="embed" id="groover-embed"></div>
+              <a class="btn primary" href="https://groover.co/band/signup/referral/influencer/16806/" target="_blank" rel="noopener">Submit on Groover</a>
+            </div>
+          </div>
+
+          <!-- Playlists -->
+          <div class="tabpanel" id="panel-playlist" role="tabpanel" aria-labelledby="tab-playlist" hidden>
+            <div class="panel groover">
+              <p class="label">Playlists · through Playlist Panda</p>
+              <h2>Submit to RRR playlists</h2>
+              <p>Want a spot on the RRR playlist? Send your track to RRR through Playlist Panda. Every submission is listened to.</p>
+              <a class="btn primary" data-playlistpanda href="https://playlistpanda.com/curator/profile" target="_blank" rel="noopener">Submit on Playlist Panda</a>
+              <p class="small">Listen first: <a href="https://open.spotify.com/playlist/6NOScmeECIxFvRz9jcinjm" target="_blank" rel="noopener">the RRR playlist on Spotify</a>.</p>
             </div>
           </div>
         </div>
@@ -191,6 +209,23 @@
     </div>
   </section>
 </main>
+<section class="nl" id="newsletter">
+  <div class="wrap">
+    <form class="panel newsletter-form" novalidate>
+      <div>
+        <p class="label">Monthly newsletter</p>
+        <h2>New releases, top posts, what's next</h2>
+        <p class="small">One email on the 1st of every month. Unsubscribe any time.</p>
+      </div>
+      <div class="nl-fields">
+        <label for="nl-email-f" class="small">Email<input id="nl-email-f" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label class="agree" for="nl-ok-f"><input type="checkbox" id="nl-ok-f" required> Yes, send me the RRR newsletter.</label>
+        <button class="btn primary" type="submit">Sign up</button>
+        <p class="nl-status small" role="status" aria-live="polite"></p>
+      </div>
+    </form>
+  </div>
+</section>
 <footer>
   <div class="wrap">
     <span>© Retro Reverb Records · Since 2016 · <a href="history.html">History</a> · <a href="how-it-works.html">How it works</a> · <a href="book.html">Book</a></span>

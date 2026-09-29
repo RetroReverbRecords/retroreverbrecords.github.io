@@ -7,6 +7,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#07061A">
 <link rel="icon" href="assets/rrr-logo-stack.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RRR">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -18,14 +24,14 @@
     <a class="brand" href="index.html"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records home"></a>
     <nav aria-label="Sections">
       <a href="index.html#membership">Membership</a>
-      <a href="index.html#releases">Releases</a>
       <a href="index.html#catalogue">Catalogue</a>
+      <a href="index.html#playlist">Playlist</a>
       <a href="index.html#merch">Merch</a>
       <a href="cards.html">Cards</a>
-      <a href="how-it-works.html">How it works</a>
+      <a href="press.html">Press</a>
       <a href="history.html">History</a>
+      <a href="how-it-works.html">How it works</a>
       <a href="book.html">Book</a>
-      <a href="index.html#contact">Contact</a>
       <a href="member.html">My dashboard</a>
       <a class="btn primary small-btn" href="index.html#join">Create account</a>
     </nav>
@@ -61,6 +67,23 @@
     </div>
   </section>
 </main>
+<section class="nl" id="newsletter">
+  <div class="wrap">
+    <form class="panel newsletter-form" novalidate>
+      <div>
+        <p class="label">Monthly newsletter</p>
+        <h2>New releases, top posts, what's next</h2>
+        <p class="small">One email on the 1st of every month. Unsubscribe any time.</p>
+      </div>
+      <div class="nl-fields">
+        <label for="nl-email-f" class="small">Email<input id="nl-email-f" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label class="agree" for="nl-ok-f"><input type="checkbox" id="nl-ok-f" required> Yes, send me the RRR newsletter.</label>
+        <button class="btn primary" type="submit">Sign up</button>
+        <p class="nl-status small" role="status" aria-live="polite"></p>
+      </div>
+    </form>
+  </div>
+</section>
 <footer>
   <div class="wrap">
     <span>© Retro Reverb Records · Since 2016 · <a href="history.html">History</a> · <a href="how-it-works.html">How it works</a> · <a href="book.html">Book</a></span>

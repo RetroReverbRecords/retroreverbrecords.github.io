@@ -55,3 +55,37 @@ Dashboards only show name, rank, points, achievements, releases, posts and stats
 
 ## Bandcamp subscriptions
 Bandcamp doesn't send payment notifications to other systems, so Bandcamp subscribers can't be automated this way. That's why the site uses PayPal for membership. Existing Bandcamp VIP subscribers can be added to the Members tab by hand.
+
+## 6. More ways to pay (all money still lands in PayPal)
+Without this, people can pay with PayPal or as a guest with a card. To also offer **Apple Pay / Google Pay (where available), Pay Later, MyBank, SEPA, iDEAL, Bancontact** and more:
+1. Go to **developer.paypal.com**, log in with the RRR PayPal (Business) account.
+2. **Apps & Credentials → Live → Create App** (name it "RRR website").
+3. Copy the **Client ID** into `paypal.clientId` in `assets/config.js`.
+4. For monthly memberships with card too: PayPal → **Pay & Get Paid → Subscriptions → Create plan**, one per price (Artist €3, Fan €0.50). Paste each Plan ID into `paypal.plans`.
+5. Guest card payments: PayPal → Settings → Website payments → **PayPal Account Optional: On**.
+(Which methods show depends on the buyer's country and device.)
+
+## 7. Monthly newsletter (automatic)
+- Sign-up box is on every page. Addresses go to the **Subscribers** tab with the date they agreed.
+- **28th of each month:** you get a preview by email.
+- **1st of each month:** it's sent to everyone subscribed, about 90 a day (free Gmail limit), so a big list goes out over a few days.
+- Content is built automatically: releases last month, **top social posts**, releases coming next month, approved press, new artists, the Spotify playlist.
+- To pause: in the **Settings** tab add a row `newsletter_mode` | `preview` (only you get it) or `off`.
+- Every email has an unsubscribe link that works automatically.
+
+**Top social posts** come from:
+- **Instagram (automatic):** needs an Instagram *Business or Creator* account linked to a Facebook Page, and a long-lived access token from developers.facebook.com (Instagram Graph API). Add Script properties `IG_ACCESS_TOKEN` and `IG_USER_ID`.
+- **Anything else:** type likes or views into the **Posts** tab.
+
+## 8. Marketing pixels
+Paste your IDs into `pixels` in `assets/config.js`:
+- **Meta Pixel** (Facebook/Instagram ads): Meta Events Manager → Data sources → Pixel ID.
+- **Google tag** (Analytics 4 / Google Ads): the `G-…` ID.
+- **TikTok Pixel**: TikTok Ads Manager → Assets → Events.
+The site then shows a cookie banner; pixels load only if the visitor clicks **Accept** (EU rule). Events sent: page view, newsletter sign-up (Lead), member sign-up (CompleteRegistration), booking (Schedule), payment (Purchase).
+
+## 9. Press & reviews
+Artists share links on press.html. You get an email; type **yes** in the `approved` column of the **Press** tab and it appears on the wall and in the next newsletter.
+
+## 10. Phone app
+The site is an installable app. On the live site, members open **My dashboard** and tap **Install app** (Android/desktop Chrome) or **Share → Add to Home Screen** (iPhone). The app opens straight to their dashboard and remembers their member ID.

@@ -10,6 +10,8 @@ Website for the RRR Community. Static site, no build step, hosted with GitHub Pa
 - `card-maker.html` – owner tool (not linked): makes serials and secret check codes for a print run
 - `member.html` – member dashboard (rank, points, achievements, releases, posts, stats). Open with `?id=RRR-XXXXX`
 - `backend/` – Google Apps Script automation + **SETUP.md** (sheet, PayPal notifications, calendar, emails, Songstats)
+- `press.html` – press & reviews wall + "share your review" form
+- `manifest.webmanifest`, `sw.js` – makes the site an installable phone app
 - `history.html` – RRR history timeline since 2016, with sources
 - `book.html` – booking forms: Bandcamp release, streaming release, social media post, YouTube upload, The Bandcamp Hour (Groover); deadline planner
 

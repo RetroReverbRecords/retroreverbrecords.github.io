@@ -7,9 +7,12 @@
  *  3. Adds bookings (releases, social posts, YouTube)  → Google Calendar "RRR Releases"
  *  4. Serves each member's dashboard data               → member.html on the website
  *  5. Pulls stats from Songstats (optional, needs API key) and emails you a daily digest
+ *  6. Collects newsletter sign-ups and sends the MONTHLY NEWSLETTER automatically
+ *     (preview to you on the 28th, sent to subscribers on the 1st)
+ *  7. Collects press/review links from artists; you approve them in the sheet
  *
- * Setup: see backend/SETUP.md. Nothing here spends money or messages members.
- * Only the owner gets emails.
+ * Setup: see backend/SETUP.md. Nothing here spends money.
+ * Only the newsletter goes to the public, and only to people who opted in.
  */
 
 // ---------- SETTINGS (edit these) ----------
@@ -22,7 +25,13 @@ const SETTINGS = {
   songstatsLabelId: 'ywz70gl4',                      // from songstats.com/label/ywz70gl4
   // Deadlines (days before release) — keep in step with assets/config.js
   bandcampAssetsDays: 21,
-  streamingAssetsDays: 14
+  streamingAssetsDays: 14,
+  spotifyPlaylist: 'https://open.spotify.com/playlist/6NOScmeECIxFvRz9jcinjm',
+  // Newsletter: 'auto' = preview to you on the 28th, sent on the 1st.
+  //             'preview' = only ever sent to you (you forward it yourself).
+  //             'off' = nothing.  Can also be changed in the Settings tab of the sheet.
+  newsletterMode: 'auto',
+  dailySendLimit: 90   // free Gmail allows ~100 emails a day; the rest go out the next days
 };
 
 // Sheet tabs and their columns. Created automatically on first run.
@@ -31,8 +40,13 @@ const TABS = {
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id'],
   Achievements: ['member_id','achievement','earned_on','points','note'],
-  Posts:        ['member_id','platform','date','link','status'],
+  Posts:        ['member_id','platform','date','link','status','caption','likes','views'],
   Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
+  Subscribers:  ['email','created','source','consent','status','token','member_id'],
+  Press:        ['created','artist','email','outlet','title','url','quote','approved'],
+  Newsletter:   ['month','created','subject','sent_to','queued','status'],
+  Queue:        ['email','month','sent'],
+  Settings:     ['key','value'],
   Log:          ['time','what','detail']
 };
 
@@ -60,6 +74,9 @@ function doPost(e) {
     const kind = p.form || 'unknown';
     if (kind === 'signup') return handleSignup_(p);
     if (/release|social-post|youtube-upload/.test(kind)) return handleBooking_(kind, p);
+    if (kind === 'newsletter') return handleSubscribe_(p);
+    if (kind === 'press') return handlePress_(p);
+    if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
     return text_('ok');
   } catch (err) {
@@ -70,6 +87,10 @@ function doPost(e) {
 
 // member.html calls: ?member=RRR-XXXX  → public JSON for that member
 function doGet(e) {
+  const q = (e && e.parameter) || {};
+  if (q.press) return json_({ ok: true, press: rows_('Press').filter(r => String(r.approved).toLowerCase() === 'yes').reverse().slice(0, 60)
+    .map(r => ({ artist: r.artist, outlet: r.outlet, title: r.title, url: r.url, quote: r.quote, date: r.created })) });
+  if (q.unsubscribe) return unsubscribe_(q.unsubscribe);
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
   const m = findRow_('Members', 'member_id', id);
@@ -245,6 +266,7 @@ function daily() {
     if (months >= 12) award_(m.member_id, 'loyal12');
   });
   updateSongstats();
+  newsletterTick_();
   digest_();
 }
 
@@ -315,3 +337,137 @@ function notify_(subject, body) { MailApp.sendEmail(SETTINGS.ownerEmail, subject
 function log_(what, detail) { try { sheet_('Log').appendRow([new Date(), what, detail]); } catch (e) {} }
 function text_(s) { return ContentService.createTextOutput(s); }
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+
+
+// ============================================================
+// NEWSLETTER SIGN-UPS
+// ============================================================
+function handleSubscribe_(p) {
+  const email = String(p.email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || p.consent !== 'yes') return text_('ok');
+  const existing = findRow_('Subscribers', 'email', email);
+  if (existing) { updateRow_('Subscribers', 'email', email, { status: 'subscribed' }); return text_('ok'); }
+  append_('Subscribers', { email: email, created: new Date(), source: p.source || 'website', consent: 'yes ' + new Date().toISOString(),
+    status: 'subscribed', token: Utilities.getUuid(), member_id: p.member_id || '' });
+  return text_('ok');
+}
+function unsubscribe_(token) {
+  const r = findRow_('Subscribers', 'token', token);
+  if (r) updateRow_('Subscribers', 'token', token, { status: 'unsubscribed' });
+  return HtmlService.createHtmlOutput('<body style="background:#07061A;color:#F3EEFF;font-family:sans-serif;padding:40px"><h2>You\'re unsubscribed</h2><p>You won\'t get the RRR newsletter any more.</p></body>');
+}
+
+// ============================================================
+// PRESS / REVIEWS (artists share links; you set approved = yes)
+// ============================================================
+function handlePress_(p) {
+  append_('Press', { created: new Date(), artist: p.artist, email: p.email, outlet: p.outlet, title: p.title, url: p.url, quote: String(p.quote || '').slice(0, 300), approved: 'pending' });
+  notify_('New RRR press link to approve: ' + (p.artist || '') + ' in ' + (p.outlet || ''),
+    (p.url || '') + '\n\nApprove it by typing yes in the "approved" column of the Press tab: ' + sheetUrl_());
+  return text_('ok');
+}
+
+// Card / wallet payments made through PayPal checkout on the site (one-off fees)
+function handleCardPayment_(p) {
+  append_('Payments', { received: new Date(), txn_type: 'checkout', payment_status: p.status || 'COMPLETED', amount: p.amount, currency: 'EUR',
+    item_name: p.item, payer_email: p.payer_email || '', member_id: p.custom || '', txn_id: p.order_id || '', subscr_id: '', raw: 'from website – check in PayPal' });
+  notify_('RRR one-off payment – ' + (p.amount || '') + ' EUR – ' + (p.item || ''), 'Order ' + (p.order_id || '') + '\nCheck it in PayPal.\n\n' + sheetUrl_());
+  return text_('ok');
+}
+
+// ============================================================
+// MONTHLY NEWSLETTER (fully automatic)
+// Content: releases last month, coming next month, top social posts, new members, playlist.
+// ============================================================
+function setting_(key, fallback) {
+  const r = findRow_('Settings', 'key', key);
+  return r && r.value !== '' ? r.value : fallback;
+}
+// 'm2026-09' (the m stops Sheets turning it into a date)
+function monthKey_(d) { return 'm' + Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM'); }
+
+function buildNewsletter_(forDate) {
+  const start = new Date(forDate.getFullYear(), forDate.getMonth() - 1, 1);
+  const end = new Date(forDate.getFullYear(), forDate.getMonth(), 1);
+  const nextEnd = new Date(forDate.getFullYear(), forDate.getMonth() + 1, 1);
+  const inRange = (d, a, b) => { const x = new Date(d); return x >= a && x < b; };
+  const monthName = Utilities.formatDate(start, Session.getScriptTimeZone(), 'MMMM yyyy');
+  const releases = rows_('Bookings').filter(r => /release/.test(r.kind) && r.date && inRange(r.date, start, end) && !/cancel/i.test(r.status));
+  const upcoming = rows_('Bookings').filter(r => /release/.test(r.kind) && r.date && inRange(r.date, end, nextEnd) && !/cancel/i.test(r.status));
+  const posts = topPosts_(start, end);
+  const newMembers = rows_('Members').filter(r => r.created && inRange(r.created, start, end) && /active/.test(r.status) && r.type === 'artist');
+  const press = rows_('Press').filter(r => String(r.approved).toLowerCase() === 'yes' && inRange(r.created, start, end));
+  const li = (arr, f) => arr.length ? '<ul>' + arr.map(x => '<li>' + f(x) + '</li>').join('') + '</ul>' : '<p style="color:#A99FCB">Nothing this month.</p>';
+  const h = (t) => '<h2 style="font-family:Arial Black,Arial;color:#FF2FA8;text-transform:uppercase;letter-spacing:1px;font-size:18px;margin:28px 0 8px">' + t + '</h2>';
+  const html =
+    '<div style="background:#07061A;color:#F3EEFF;font-family:Arial,sans-serif;padding:28px;max-width:620px;margin:auto">' +
+    '<p style="color:#3FD0FF;font-size:12px;letter-spacing:2px">RETRO REVERB RECORDS · ' + monthName.toUpperCase() + '</p>' +
+    '<h1 style="font-family:Arial Black,Arial;font-size:26px;margin:4px 0 16px">This month in the RRR community</h1>' +
+    h('Released last month') + li(releases, r => '<b>' + r.artist + '</b> – ' + r.title + ' <span style="color:#A99FCB">(' + (r.format || '') + ')</span>') +
+    h('Top social posts') + li(posts, p => '<a style="color:#3FD0FF" href="' + p.link + '">' + (p.caption || 'Post') + '</a> <span style="color:#A99FCB">' + p.score + ' interactions</span>') +
+    h('Coming next month') + li(upcoming, r => '<b>' + r.artist + '</b> – ' + r.title + ' · ' + Utilities.formatDate(new Date(r.date), Session.getScriptTimeZone(), 'd MMM')) +
+    (press.length ? h('In the press') + li(press, p => '<a style="color:#3FD0FF" href="' + p.url + '">' + p.artist + ' in ' + p.outlet + '</a>') : '') +
+    (newMembers.length ? h('Welcome to the roster') + li(newMembers, m => m.artist || m.name) : '') +
+    h('Listen') + '<p><a style="color:#3FD0FF" href="' + SETTINGS.spotifyPlaylist + '">The RRR playlist on Spotify</a> · <a style="color:#3FD0FF" href="https://retroreverbrecords.bandcamp.com/">RRR on Bandcamp</a></p>' +
+    '<p style="margin-top:28px"><a href="' + SETTINGS.siteUrl + '" style="background:#FF2FA8;color:#fff;padding:12px 18px;text-decoration:none;font-weight:bold">Visit RRR</a></p>' +
+    '<p style="color:#A99FCB;font-size:11px;margin-top:28px">You get this because you signed up on the RRR website. {{UNSUB}}</p></div>';
+  return { subject: 'RRR ' + monthName + ': new releases, top posts and what\'s next', html: html, month: monthKey_(start) };
+}
+
+// Top posts: from Instagram (if connected) plus any views/likes you type in the Posts tab
+function topPosts_(start, end) {
+  const out = [];
+  const tok = PropertiesService.getScriptProperties().getProperty('IG_ACCESS_TOKEN');
+  const igUser = PropertiesService.getScriptProperties().getProperty('IG_USER_ID');
+  if (tok && igUser) {
+    try {
+      const res = UrlFetchApp.fetch('https://graph.facebook.com/v19.0/' + igUser + '/media?fields=caption,permalink,timestamp,like_count,comments_count&limit=50&access_token=' + tok, { muteHttpExceptions: true });
+      const data = JSON.parse(res.getContentText()).data || [];
+      data.filter(m => { const t = new Date(m.timestamp); return t >= start && t < end; })
+        .forEach(m => out.push({ link: m.permalink, caption: String(m.caption || '').split('\n')[0].slice(0, 80), score: (m.like_count || 0) + (m.comments_count || 0) }));
+    } catch (err) { log_('instagram', String(err)); }
+  }
+  rows_('Posts').filter(r => r.link && r.date && new Date(r.date) >= start && new Date(r.date) < end && (Number(r.likes) || Number(r.views)))
+    .forEach(r => out.push({ link: r.link, caption: r.caption || r.platform, score: (Number(r.likes) || 0) + (Number(r.views) || 0) }));
+  return out.sort((a, b) => b.score - a.score).slice(0, 3);
+}
+
+// Runs every day from daily(): preview on the 28th, queue on the 1st, send in batches
+function newsletterTick_() {
+  const mode = String(setting_('newsletter_mode', SETTINGS.newsletterMode)).toLowerCase();
+  if (mode === 'off') return;
+  const today = new Date();
+  if (today.getDate() === 28) {
+    const nextFirst = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const n = buildNewsletter_(nextFirst);
+    MailApp.sendEmail({ to: SETTINGS.ownerEmail, subject: 'PREVIEW – ' + n.subject + (mode === 'auto' ? ' (sends automatically on the 1st)' : ''),
+      htmlBody: n.html.replace('{{UNSUB}}', '') + '<p>To stop this month\'s send, set newsletter_mode to "preview" in the Settings tab before the 1st.</p>' });
+  }
+  if (mode === 'auto' && today.getDate() === 1) {
+    const n = buildNewsletter_(today);
+    if (!findRow_('Newsletter', 'month', n.month)) {
+      const subs = rows_('Subscribers').filter(r => r.status === 'subscribed');
+      subs.forEach(r => append_('Queue', { email: r.email, month: n.month, sent: '' }));
+      append_('Newsletter', { month: n.month, created: new Date(), subject: n.subject, sent_to: 0, queued: subs.length, status: 'sending' });
+    }
+  }
+  sendQueued_();
+}
+function sendQueued_() {
+  const sh = sheet_('Queue'), v = sh.getDataRange().getValues();
+  let budget = Math.min(SETTINGS.dailySendLimit, MailApp.getRemainingDailyQuota() - 5);
+  const cache = {};
+  for (let i = 1; i < v.length && budget > 0; i++) {
+    if (v[i][2]) continue;
+    const email = v[i][0], month = v[i][1];
+    const sub = findRow_('Subscribers', 'email', email);
+    if (!sub || sub.status !== 'subscribed') { sh.getRange(i + 1, 3).setValue('skipped'); continue; }
+    if (!cache[month]) { const [y, m] = String(month).slice(1).split('-').map(Number); cache[month] = buildNewsletter_(new Date(y, m, 1)); }
+    const n = cache[month];
+    const unsub = ScriptApp.getService().getUrl() + '?unsubscribe=' + encodeURIComponent(sub.token);
+    MailApp.sendEmail({ to: email, subject: n.subject, name: 'Retro Reverb Records',
+      htmlBody: n.html.replace('{{UNSUB}}', '<a style="color:#A99FCB" href="' + unsub + '">Unsubscribe</a>') });
+    sh.getRange(i + 1, 3).setValue(new Date());
+    budget--;
+  }
+}

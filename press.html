@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>RRR Member Dashboard</title>
+<title>RRR Press</title>
 <meta name="theme-color" content="#07061A">
 <link rel="icon" href="assets/rrr-logo-stack.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -39,25 +39,33 @@
 <main>
   <div class="pagehead">
     <div class="wrap">
-      <p class="label">Member dashboard</p>
-      <h1>Your <em>progress</em></h1>
-      <p class="lede">Achievements, rank, releases, social posts and stats, all in one place.</p>
-      <form class="lookup" id="lookup" novalidate>
-        <label for="lk-id" class="small">Member ID</label>
-        <input id="lk-id" type="text" placeholder="RRR-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
-        <button class="btn primary" type="submit">Open</button>
-      </form>
-      <div class="install" id="install" hidden>
-        <p><strong>Get the RRR app.</strong> Add it to your home screen: it opens straight to your dashboard.</p>
-        <button class="btn ghost" type="button" id="install-btn" hidden>Install app</button>
-        <p class="small" id="install-ios" hidden>On iPhone: tap the Share button, then <b>Add to Home Screen</b>.</p>
-      </div>
+      <p class="label">Press &amp; reviews</p>
+      <h1>RRR <em>in the press</em></h1>
+      <p class="lede">Reviews, interviews and features about RRR artists. Got one? Share it and we'll add it to the wall.</p>
     </div>
   </div>
-
   <section class="side">
-    <div class="wrap" id="dash">
-      <div class="panel empty"><b>Loading…</b></div>
+    <div class="wrap">
+      <div class="presswall" id="press-wall"></div>
+    </div>
+  </section>
+  <section class="side" id="share-review">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">+</span><h2>Share your review</h2><p>Artists: send us a link to any review, interview, feature or radio play. Approved links go on this wall and into the monthly newsletter.</p></div>
+      <form class="panel booking-form" id="press-form" novalidate>
+        <div class="status" role="status"></div>
+        <fieldset>
+          <div class="fields">
+            <label for="pr-artist">Artist name<input id="pr-artist" name="artist" type="text" required></label>
+            <label for="pr-email">Email<input id="pr-email" name="email" type="email" required></label>
+            <label for="pr-outlet">Publication, blog or station<input id="pr-outlet" name="outlet" type="text" required></label>
+            <label for="pr-title">Headline<input id="pr-title" name="title" type="text"></label>
+            <label for="pr-url" class="wide">Link<input id="pr-url" name="url" type="url" required placeholder="https://"></label>
+            <label for="pr-quote" class="wide">Best quote (optional, max 300 characters)<textarea id="pr-quote" name="quote" maxlength="300"></textarea></label>
+          </div>
+          <button class="btn primary" type="submit">Share review</button>
+        </fieldset>
+      </form>
     </div>
   </section>
 </main>
@@ -87,6 +95,5 @@
 <script src="assets/config.js"></script>
 <script src="assets/releases.js"></script>
 <script src="assets/site.js"></script>
-<script src="assets/member-page.js"></script>
 </body>
 </html>

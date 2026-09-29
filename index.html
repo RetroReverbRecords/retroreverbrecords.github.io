@@ -7,6 +7,12 @@
 <meta name="description" content="RRR Community: membership for independent artists and fans, plus Bandcamp and streaming releases where artists keep 100% of their royalties.">
 <meta name="theme-color" content="#07061A">
 <link rel="icon" href="assets/rrr-logo-stack.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RRR">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -19,14 +25,14 @@
     <a class="brand" href="#top"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records"></a>
     <nav aria-label="Sections">
       <a href="#membership">Membership</a>
-      <a href="#releases">Releases</a>
       <a href="#catalogue">Catalogue</a>
+      <a href="#playlist">Playlist</a>
       <a href="#merch">Merch</a>
       <a href="cards.html">Cards</a>
-      <a href="how-it-works.html">How it works</a>
+      <a href="press.html">Press</a>
       <a href="history.html">History</a>
+      <a href="how-it-works.html">How it works</a>
       <a href="book.html">Book</a>
-      <a href="#contact">Contact</a>
       <a href="member.html">My dashboard</a>
       <a class="btn primary small-btn" href="#join">Create account</a>
     </nav>
@@ -185,10 +191,37 @@
     </div>
   </section>
 
-  <section class="side" id="merch">
+  <section class="side" id="playlist">
     <div class="wrap">
       <div class="side-head">
         <span class="tag">D</span>
+        <h2>The RRR playlist</h2>
+        <p>Our Spotify playlist of RRR artists and friends. Follow it, share it, and send us your track.</p>
+      </div>
+      <div class="bookgrid">
+        <div>
+          <div class="panel embed" id="spotify-embed"><a class="btn primary" href="https://open.spotify.com/playlist/6NOScmeECIxFvRz9jcinjm" target="_blank" rel="noopener">Open the playlist on Spotify</a></div>
+          <div class="share" data-share-url="https://open.spotify.com/playlist/6NOScmeECIxFvRz9jcinjm" data-share-text="Listen to the Retro Reverb Records playlist"></div>
+        </div>
+        <aside class="panel facts">
+          <h3>Get your music heard</h3>
+          <ul>
+            <li><b>Playlists:</b> submit through RRR on Playlist Panda.</li>
+            <li><b>Radio:</b> The Bandcamp Hour on Spectrum On Air, through Groover.</li>
+          </ul>
+          <div class="ctas-left">
+            <a class="btn primary" href="book.html#playlist">Submit to playlists</a>
+            <a class="btn ghost" href="book.html#radio">Submit to radio</a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="side" id="merch">
+    <div class="wrap">
+      <div class="side-head">
+        <span class="tag">E</span>
         <h2>Physical merch</h2>
         <p>Cassettes, CDs, vinyl, MiniDiscs and shirts from RRR and its artists. Stock and prices are live on Bandcamp and change as runs sell out.</p>
       </div>
@@ -200,7 +233,7 @@
   <section class="side" id="community">
     <div class="wrap">
       <div class="side-head">
-        <span class="tag">E</span>
+        <span class="tag">F</span>
         <h2>Community</h2>
       </div>
       <div class="grid2">
@@ -240,7 +273,7 @@
   <section class="join" id="join">
     <div class="wrap">
       <div class="side-head">
-        <span class="tag">F</span>
+        <span class="tag">G</span>
         <h2>Join RRR</h2>
         <p>Choose how you want to join. Sign-up opens when we launch; until then this form is switched off.</p>
       </div>
@@ -319,6 +352,23 @@
   </section>
 </main>
 
+<section class="nl" id="newsletter">
+  <div class="wrap">
+    <form class="panel newsletter-form" novalidate>
+      <div>
+        <p class="label">Monthly newsletter</p>
+        <h2>New releases, top posts, what's next</h2>
+        <p class="small">One email on the 1st of every month. Unsubscribe any time.</p>
+      </div>
+      <div class="nl-fields">
+        <label for="nl-email-f" class="small">Email<input id="nl-email-f" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label class="agree" for="nl-ok-f"><input type="checkbox" id="nl-ok-f" required> Yes, send me the RRR newsletter.</label>
+        <button class="btn primary" type="submit">Sign up</button>
+        <p class="nl-status small" role="status" aria-live="polite"></p>
+      </div>
+    </form>
+  </div>
+</section>
 <footer>
   <div class="wrap">
     <span>© Retro Reverb Records · Since 2016 · <a href="history.html">History</a> · <a href="how-it-works.html">How it works</a> · <a href="book.html">Book</a></span>

@@ -32,10 +32,26 @@ window.RRR_CONFIG = {
   // Monthly membership prices (placeholder, 27 Sep 2026)
   membershipPrices: { artist: 3.00, fan: 0.50 },
 
+  // MARKETING PIXELS. Paste IDs to switch on. They only load after a visitor
+  // clicks "Accept" on the cookie banner (required in the EU).
+  pixels: {
+    metaPixelId: "",     // Meta (Facebook/Instagram) Pixel ID, e.g. "123456789012345"
+    googleTagId: "",     // Google Analytics 4 / Google Ads tag, e.g. "G-XXXXXXX"
+    tiktokPixelId: ""    // TikTok Pixel ID
+  },
+
+  // PLAYLISTS AND SUBMISSIONS
+  spotifyPlaylistId: "6NOScmeECIxFvRz9jcinjm",
+  playlistPandaUrl: "https://playlistpanda.com/curator/profile",   // check: should be RRR's public curator page
+  grooverWidgetUrl: "https://groover.co/influencer/widget/0.retroreverbrecords?color=pink-yellow&ratio=rectangle&format=responsive&size=480&customText=Send%20us%20your%20track%20through%20Groover%2C%20get%20listened%20to%20and%20feedback%20guaranteed!&picture=true",
+
   // RRR's Bandcamp label ID. Release links carry it so they open through the RRR label.
   bandcampLabelId: "2880365093",
 
-  // PayPal. Create these in your PayPal Business account (see README).
+  // PayPal checkout with MORE WAYS TO PAY (card, Apple Pay/Google Pay where available,
+  // Pay Later, MyBank, SEPA, iDEAL, Bancontact...). All money lands in the RRR PayPal.
+  // Needs a free PayPal developer app: paste its Live Client ID here (see backend/SETUP.md).
+  // Empty = simple PayPal buttons using paypalEmail (PayPal or card as guest).
   paypal: {
     clientId: "",            // Live client ID from developer.paypal.com
     currency: "EUR",

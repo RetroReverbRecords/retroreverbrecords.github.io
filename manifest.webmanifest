@@ -1,0 +1,21 @@
+{
+  "name": "Retro Reverb Records",
+  "short_name": "RRR",
+  "description": "RRR Community: your dashboard, releases, bookings and Synth Stars cards.",
+  "start_url": "member.html?source=app",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07061A",
+  "theme_color": "#07061A",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "My dashboard", "url": "member.html?source=app" },
+    { "name": "Book", "url": "book.html" },
+    { "name": "Check a card", "url": "cards.html#check" }
+  ]
+}

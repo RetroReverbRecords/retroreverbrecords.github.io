@@ -25,17 +25,17 @@ window.RRR_LEVELS = {
   // how: "auto" = the system awards it; "checked" = RRR confirms it (send proof)
   points: [
     { group: "Support other artists", items: [
-      { action: "Full listen + save + playlist add of another member's release in its release week", pts: 5, how: "checked", cap: "up to 10 releases a week" },
-      { action: "Buy another member's release or merch on Bandcamp", pts: 15, how: "checked" },
-      { action: "Share another member's release by DM or story", pts: 3, how: "checked", cap: "up to 10 a week" },
-      { action: "Be in the live chat of The Bandcamp Hour or a member's YouTube premiere", pts: 5, how: "checked" },
-      { action: "Help another member (feedback, artwork help, collab)", pts: 10, how: "checked" }
+      { key: "listen", action: "Full listen + save + playlist add of another member's release in its release week", pts: 5, how: "checked", cap: "up to 10 releases a week" },
+      { key: "buy", action: "Buy another member's release or merch on Bandcamp", pts: 15, how: "checked" },
+      { key: "share", action: "Share another member's release by DM or story", pts: 3, how: "checked", cap: "up to 10 a week" },
+      { key: "live", action: "Be in the live chat of The Bandcamp Hour or a member's YouTube premiere", pts: 5, how: "checked" },
+      { key: "help", action: "Help another member (feedback, artwork help, collab)", pts: 10, how: "checked" }
     ]},
     { group: "Grow the community", items: [
       { action: "A fan you invited joins", pts: 20, how: "auto" },
       { action: "An artist you invited joins", pts: 40, how: "auto" },
       { action: "Sign up to the newsletter", pts: 5, how: "auto" },
-      { action: "Complete a community mission", pts: "10–50", how: "checked" }
+      { key: "mission", action: "Complete a community mission", pts: "10–50", how: "checked" }
     ]},
     { group: "Your own journey", items: [
       { action: "Join the community", pts: 10, how: "auto" },

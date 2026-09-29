@@ -46,6 +46,7 @@ const TABS = {
   Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
   Subscribers:  ['email','created','source','consent','status','token','member_id'],
   Press:        ['created','artist','email','outlet','title','url','quote','approved'],
+  Claims:       ['created','member_id','action','points','proof','note','approved'],
   Newsletter:   ['month','created','subject','sent_to','queued','status'],
   Queue:        ['email','month','sent'],
   Settings:     ['key','value'],
@@ -87,6 +88,7 @@ function doPost(e) {
     if (kind === 'newsletter') return handleSubscribe_(p);
     if (kind === 'unsubscribe') { const r = findRow_('Subscribers', 'email', String(p.email || '').trim().toLowerCase()); if (r) updateRow_('Subscribers', 'email', r.email, { status: 'unsubscribed' }); return text_('ok'); }
     if (kind === 'press') return handlePress_(p);
+    if (kind === 'claim') return handleClaim_(p);
     if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
     return text_('ok');
@@ -324,6 +326,7 @@ function daily() {
     if (m) { addPoints_(m.member_id, POINTS.pressApproved, 'Press: ' + (pv[i][ti] || pv[i][oi])); if (!rows_('Achievements').some(r => r.member_id === m.member_id && r.achievement === 'In the press')) append_('Achievements', { member_id: m.member_id, achievement: 'In the press', earned_on: new Date(), points: 0, note: 'badge' }); }
     sh.getRange(i + 1, ai + 1).setValue('yes – points given');
   }
+  approveClaims();
   updateSongstats();
   newsletterTick_();
   digest_();
@@ -433,6 +436,64 @@ function handlePress_(p) {
   notify_('New RRR press link to approve: ' + (p.artist || '') + ' in ' + (p.outlet || ''),
     (p.url || '') + '\n\nApprove it by typing yes in the "approved" column of the Press tab: ' + sheetUrl_());
   return text_('ok');
+}
+
+// ============================================================
+// POINTS CLAIMS ("Checked" points on the Levels page)
+// Members send proof. You check it, then type yes in "approved".
+// Points are added at the next daily run, or straight away with
+// the sheet menu RRR → Give approved points now.
+// You can change the number in "points" before approving (e.g. missions 10–50).
+// Type no to turn a claim down.
+// ============================================================
+const CLAIM_POINTS = { listen: 5, buy: 15, share: 3, live: 5, help: 10, mission: 10 };
+const CLAIM_LABELS = { listen: 'Full listen + save + playlist add', buy: 'Bought a member release or merch', share: 'Shared a member release',
+  live: 'In the live chat', help: 'Helped another member', mission: 'Community mission' };
+
+function handleClaim_(p) {
+  const id = String(p.member_id || '').trim().toUpperCase();
+  const action = String(p.action || '');
+  const m = findRow_('Members', 'member_id', id);
+  if (!m || !(action in CLAIM_POINTS)) { log_('claim rejected', id + ' ' + action); return text_('ok'); }
+  append_('Claims', { created: new Date(), member_id: id, action: CLAIM_LABELS[action] || action, points: CLAIM_POINTS[action],
+    proof: String(p.proof || '').slice(0, 500), note: String(p.note || '').slice(0, 500), approved: 'pending' });
+  notify_('RRR points claim: ' + (m.artist || m.name || id) + ' – ' + (CLAIM_LABELS[action] || action),
+    'Proof: ' + (p.proof || '(none)') + '\nNote: ' + (p.note || '') + '\n\nCheck it, then type yes in the "approved" column of the Claims tab: ' + sheetUrl_());
+  return text_('ok');
+}
+
+function approveClaims() {
+  const sh = sheet_('Claims'), v = sh.getDataRange().getValues(), h = v[0];
+  const ai = h.indexOf('approved'), mi = h.indexOf('member_id'), pi = h.indexOf('points'), ac = h.indexOf('action');
+  let given = 0;
+  for (let i = 1; i < v.length; i++) {
+    if (String(v[i][ai]).trim().toLowerCase() !== 'yes') continue;
+    const pts = Number(v[i][pi]) || 0, id = v[i][mi];
+    if (pts > 0 && id) {
+      addPoints_(id, pts, 'Claim: ' + v[i][ac]);
+      given++;
+      const m = findRow_('Members', 'member_id', id);
+      if (m && m.email) {
+        const fresh = findRow_('Members', 'member_id', id) || m;
+        MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: '+' + pts + ' points: ' + v[i][ac],
+          body: 'Nice one! Your claim was approved: +' + pts + ' points.\n\nYou now have ' + (fresh.points || '') + ' points (' + (fresh.rank || '') + ').\n' +
+            'See your belt: ' + SETTINGS.siteUrl + 'member.html?id=' + encodeURIComponent(id) + '\n\nRetro Reverb Records' });
+      }
+    }
+    sh.getRange(i + 1, ai + 1).setValue('yes – points given');
+  }
+  return given;
+}
+
+// Sheet menu so you don't have to wait for the daily run
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('RRR')
+    .addItem('Give approved points now', 'approveClaimsNow')
+    .addToUi();
+}
+function approveClaimsNow() {
+  const n = approveClaims();
+  SpreadsheetApp.getUi().alert(n ? 'Done: points given for ' + n + ' claim(s). Members were emailed.' : 'No new approved claims. Type yes in the "approved" column first.');
 }
 
 // Card / wallet payments made through PayPal checkout on the site (one-off fees)

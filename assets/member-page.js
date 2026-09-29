@@ -42,6 +42,13 @@
       { platform: 'instagram, tiktok', date: '2026-07-03', link: '', status: 'posted' },
       { platform: 'instagram', date: '2026-11-13', link: '', status: 'booked' }
     ],
+    recentPoints: [
+      { note: 'Claim: Bought a member release or merch', on: '2026-09-26', points: 15 },
+      { note: 'Active month 2026-09', on: '2026-09-01', points: 10 },
+      { note: 'Claim: Full listen + save + playlist add', on: '2026-08-22', points: 5 },
+      { note: 'Social post booked', on: '2026-07-03', points: 5 },
+      { note: 'Release booked: Night Drive', on: '2026-06-10', points: 15 }
+    ],
     stats: { updated: '2026-09-28', spotifyListeners: 1840, spotifyStreams: 42310, playlists: 27, youtubeViews: 3900, tiktokViews: 12500, source: 'Songstats' }
   };
 
@@ -123,6 +130,10 @@
           ${demo ? '<button type="button" class="copy" id="try-levelup">Preview a level-up 🎉</button>' : ''}
         </div>
       </div>
+
+      <h3 class="subhead">Points history <span class="small"><a href="${demo ? 'levels.html#claim' : 'levels.html?id=' + encodeURIComponent(m.id) + '#claim'}">Claim points</a> · <a href="levels.html#points-table">what earns points</a></span></h3>
+      ${(m.recentPoints || []).length ? `<ul class="list ptlog">${m.recentPoints.map(r => `<li class="panel"><div><b>${esc(String(r.note || 'Points').replace(/^Claim: /, ''))}</b><span class="small">${esc(fmt(r.on))}${/^Claim: /.test(r.note || '') ? ' · checked by RRR' : ''}</span></div><em class="num pts">+${num(r.points)}</em></li>`).join('')}</ul>`
+        : `<div class="panel empty"><b>No points yet beyond your badges.</b><span>Support another member's release, then <a href="levels.html#claim">claim your points</a>.</span></div>`}
 
       <h3 class="subhead">Stats${s && s.updated ? ` <span class="small">updated ${esc(fmt(s.updated))}${s.source ? ' · via ' + esc(s.source) : ''}</span>` : ''}</h3>
       ${s ? `<div class="tiles">

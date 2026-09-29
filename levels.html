@@ -52,13 +52,31 @@
   </section>
   <section class="side">
     <div class="wrap">
-      <div class="side-head"><span class="tag">B</span><h2>How you earn points</h2><p><b class="tagauto">Auto</b> means the system adds them. <b class="tagcheck">Checked</b> means send proof (a screenshot or link) to RRR and we add them.</p></div>
+      <div class="side-head"><span class="tag">B</span><h2>How you earn points</h2><p><b class="tagauto">Auto</b> means the system adds them. <b class="tagcheck">Checked</b> means <a href="#claim">claim them below</a> with proof (a link or screenshot) and RRR adds them once checked.</p></div>
       <div id="points-table"></div>
+    </div>
+  </section>
+  <section class="side" id="claim">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">C</span><h2>Claim points</h2><p>Did something marked <b class="tagcheck">Checked</b>? Send proof here. RRR checks it, adds the points and emails you.</p></div>
+      <form class="panel booking-form claim-form" id="claim-form" novalidate>
+        <div class="status" role="status" id="claim-status"></div>
+        <fieldset id="claim-fields">
+          <div class="fields">
+            <label for="cl-id">Your member ID<input id="cl-id" name="member_id" type="text" placeholder="RRR-XXXXX" required autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+            <label for="cl-action">What did you do?<select id="cl-action" name="action" required></select></label>
+            <label for="cl-proof" class="wide">Proof link<input id="cl-proof" name="proof" type="url" placeholder="Link to the post, playlist, Bandcamp purchase or screenshot (Google Drive, Imgur…)" required></label>
+            <label for="cl-note" class="wide">Which member did you support? Anything else?<textarea id="cl-note" name="note" placeholder="e.g. Bought Neon Rain EP by Demo Artist"></textarea></label>
+          </div>
+          <label class="agree"><input type="checkbox" name="honest" value="yes" required> <span>This is real support, not bots or swaps just for points. See the <a href="code-of-conduct.html">Code of Conduct</a>.</span></label>
+          <button class="btn primary" type="submit">Send claim</button>
+        </fieldset>
+      </form>
     </div>
   </section>
   <section class="side">
     <div class="wrap">
-      <div class="side-head"><span class="tag">C</span><h2>Fair play</h2></div>
+      <div class="side-head"><span class="tag">D</span><h2>Fair play</h2></div>
       <div class="notes">
         <p>Points have no cash value and can't be transferred.</p>
         <p>Fake engagement (bots, loops, fake accounts) earns nothing and breaks the <a href="code-of-conduct.html">Code of Conduct</a>.</p>

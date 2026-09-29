@@ -42,6 +42,13 @@
       { platform: 'instagram, tiktok', date: '2026-07-03', link: '', status: 'posted' },
       { platform: 'instagram', date: '2026-11-13', link: '', status: 'booked' }
     ],
+    membershipActive: true, artistType: 'Member', bandcampLinked: true, eligible: true,
+    programme: [
+      { title: 'Neon Rain EP', affiliation: 'RRR Genre Release', series: 'RRR SYNTH', catalogue: 'RRSYN-001', date: '2026-11-14' },
+      { title: 'Chrome Hearts', affiliation: 'Pending review', series: 'RRR DARK', catalogue: '', date: '2026-12-05' },
+      { title: 'Night Drive', affiliation: 'Independent', date: '2026-07-04' },
+      { title: 'Split 12" with Friends', affiliation: 'Other Label', date: '2026-03-20' }
+    ],
     recentPoints: [
       { note: 'Claim: Bought a member release or merch', on: '2026-09-26', points: 15 },
       { note: 'Active month 2026-09', on: '2026-09-01', points: 10 },
@@ -104,6 +111,22 @@
     else if ((Number(m.points) || 0) > (Number(prev) || 0)) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = `+${(Number(m.points) || 0) - (Number(prev) || 0)} points since your last visit ⭐`; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
   }
 
+  // Releases grouped by affiliation. Membership never makes a release an RRR release.
+  function progTable(list){
+    const groups = [
+      ['RRR releases', r => /^RRR /.test(r.affiliation) && r.catalogue, 'rrr'],
+      ['Pending RRR submissions', r => r.affiliation === 'Pending review' || (/^RRR /.test(r.affiliation) && !r.catalogue), 'pend'],
+      ['Independent releases', r => r.affiliation === 'Independent', 'ind'],
+      ['Other-label releases', r => r.affiliation === 'Other Label', 'oth'],
+      ['Not selected', r => r.affiliation === 'Rejected', 'rej']
+    ];
+    if (!list.length) return '<div class="panel empty"><b>No releases added yet.</b><span><a href="series.html#submit">Add a release or submit one to RRR</a></span></div>';
+    return groups.map(([label, test, cls]) => {
+      const rows = list.filter(test); if (!rows.length) return '';
+      return `<p class="label" style="margin:14px 0 8px">${label} · ${rows.length}</p><ul class="list">${rows.map(r => `<li class="panel"><div><b>${esc(r.title)}</b><span class="small">${r.series ? esc(r.series) + ' · ' : ''}${r.catalogue ? '<b class="num">' + esc(r.catalogue) + '</b> · ' : ''}${esc(fmt(r.date))}</span></div><em class="aff ${cls}">${cls === 'rrr' ? 'Selected Release' : cls === 'pend' ? 'In review' : cls === 'ind' ? 'Independent' : cls === 'oth' ? 'Other label' : 'Not selected'}</em></li>`).join('')}</ul>`;
+    }).join('');
+  }
+
   function render(m, demo, notLive){
     const pts = Number(m.points) || 0;
     const belt = beltFor(pts), nb = nextBelt(pts);
@@ -131,6 +154,18 @@
           ${demo ? '<button type="button" class="copy" id="try-levelup">Preview a level-up 🎉</button>' : ''}
         </div>
       </div>
+
+      ${m.type === 'artist' ? `
+      <h3 class="subhead">RRR status <span class="small"><a href="series.html">about Selected Releases</a></span></h3>
+      <div class="statusgrid">
+        <div class="panel"><span class="label">RRR membership</span><b class="${m.membershipActive ? 'ok' : 'no'}">${m.membershipActive ? 'Active' : 'Inactive'}</b></div>
+        <div class="panel"><span class="label">Bandcamp linked</span><b class="${m.bandcampLinked ? 'ok' : 'no'}">${m.bandcampLinked ? 'Yes' : 'No'}</b></div>
+        <div class="panel"><span class="label">Artist type</span><b>${esc(m.artistType || 'Member')}</b></div>
+        <div class="panel"><span class="label">Eligible for RRR release</span><b class="${m.eligible ? 'ok' : 'no'}">${m.eligible ? 'Yes' : 'No'}</b></div>
+      </div>
+      ${m.bandcampLinked ? '' : '<p class="small">Link your Bandcamp to the RRR Bandcamp to submit RRR releases and get free Bandcamp VIP membership. <a href="series.html#submit">How to link</a></p>'}
+      <h3 class="subhead">My releases <span class="small"><a href="series.html${demo ? '' : '?id=' + encodeURIComponent(m.id)}#submit">Submit or add a release</a></span></h3>
+      ${progTable(m.programme || [])}` : ''}
 
       <h3 class="subhead">Points history <span class="small"><a href="${demo ? 'levels.html#claim' : 'levels.html?id=' + encodeURIComponent(m.id) + '#claim'}">Claim points</a> · <a href="levels.html#points-table">what earns points</a></span></h3>
       ${(m.recentPoints || []).length ? `<ul class="list ptlog">${m.recentPoints.map(r => `<li class="panel"><div><b>${esc(String(r.note || 'Points').replace(/^Claim: /, ''))}</b><span class="small">${esc(fmt(r.on))}${/^Claim: /.test(r.note || '') ? ' · checked by RRR' : ''}</span></div><em class="num pts">+${num(r.points)}</em></li>`).join('')}</ul>`

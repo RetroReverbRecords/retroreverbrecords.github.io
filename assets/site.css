@@ -562,3 +562,46 @@ input[type=number]{font:400 15px var(--body);color:var(--text);background:var(--
 @media (max-width:640px){.compare{padding:16px}.cmp,.cmp tbody{display:block;width:100%;min-width:0}.cmp thead{display:none}.cmp tr{display:grid;grid-template-columns:minmax(0,1fr);padding:10px 0;border-bottom:1px solid var(--line)}.cmp th,.cmp td{border:0;padding:4px 6px;max-width:none;overflow-wrap:anywhere}.cmp td.us::before{content:"RRR: ";color:var(--muted)}.cmp td:not(.us)::before{content:"Elsewhere: "}}
 .cmp-intro{margin:-6px 0 14px}
 .compare h3 em{color:var(--pink);font-style:normal}
+/* ---------- RRR Series page ---------- */
+.serieschips{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 20px}
+.serieschips button{font:600 13px/1 var(--mono);letter-spacing:.08em;padding:10px 14px;border-radius:999px;border:1px solid var(--sc,var(--violet));background:transparent;color:var(--text);cursor:pointer}
+.serieschips button[aria-selected=true]{background:var(--sc,var(--violet));color:#07061A;box-shadow:0 0 16px var(--sc,var(--violet))}
+.selgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.selgrid>.empty{grid-column:1/-1}
+.selcard{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.selcard img,.selcard .noart{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--panel-2)}
+.selcard .noart{display:grid;place-items:center;font:600 20px var(--mono);color:var(--muted)}
+.selcard.featured{box-shadow:0 0 0 2px var(--pink),0 0 30px rgba(255,47,168,.35)}
+.selbody{padding:14px 16px 16px;display:grid;gap:6px}
+.selbody h3{font-size:18px}
+.selbody .by{color:var(--cyan)}
+.selbody .links{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.selbadge{justify-self:start;display:inline-flex;gap:6px;align-items:center;font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;border-radius:6px;border:1px solid var(--sc);color:var(--text);background:rgba(0,0,0,.35)}
+.selbadge b{color:var(--sc)}
+.pad{padding:22px}
+.pad h3{margin:6px 0 12px}
+.affex{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:10px}
+.affex li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.affex span{color:var(--muted);font-size:14px}
+.aff{font:500 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;padding:6px 8px;border-radius:6px;font-style:normal;white-space:nowrap}
+.aff.ind{background:rgba(169,159,203,.15);color:var(--muted)}
+.aff.oth{background:rgba(63,208,255,.12);color:var(--cyan)}
+.aff.rrr{background:var(--pink);color:#fff}
+.aff.pend{background:rgba(255,214,107,.15);color:#FFD66B}
+.aff.rej{background:rgba(255,80,80,.12);color:#ff8a8a}
+.payflow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 14px}
+.payflow span{padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+.payflow span.you{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(63,208,255,.3)}
+.payflow i{color:var(--pink);font-style:normal;font-size:20px}
+.statusgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0}
+.statusgrid .panel{padding:14px 16px;display:grid;gap:6px}
+.statusgrid b{font:600 18px var(--mono)}
+.statusgrid b.ok{color:#2ED47A}.statusgrid b.no{color:#ff8a8a}
+.linkbox{padding:20px;display:grid;gap:10px;border-color:var(--pink)}
+.linkbox ol{margin:0;padding-left:20px;display:grid;gap:8px}
+.radios{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:14px}
+.radios label{display:flex;gap:8px;align-items:center}
+.radios input:disabled+*{opacity:.5}
+#sel-form{margin-top:18px}
+@media (max-width:640px){.affex li{grid-template-columns:1fr auto}.affex li span{grid-column:1/-1;order:3}}
+[hidden]{display:none!important}

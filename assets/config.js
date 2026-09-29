@@ -63,7 +63,7 @@ window.RRR_CONFIG = {
 
   // Current version of the Terms. Change the date when the Terms change;
   // new sign-ups then sign the new version.
-  termsVersion: "2026-09-29-beta",
+  termsVersion: "2026-09-29-beta2",
 
   // YouTube community
   youtube: {
@@ -112,6 +112,17 @@ window.RRR_CONFIG = {
 
   // Groover link for The Bandcamp Hour submissions.
   grooverUrl: "https://groover.co/band/signup/referral/influencer/16806/",
+
+  // RRR SELECTED RELEASE SERIES. Add a line to add a series.
+  // Keep names and prefixes in step with SERIES in backend/Code.gs.
+  // "about" is shown on the Series page: edit freely.
+  series: [
+    { name: "RRR SYNTH",       prefix: "RRSYN",  about: "Synthwave, retrowave, outrun",          color: "#FF2FA8" },
+    { name: "RRR DARK",        prefix: "RRDRK",  about: "Darksynth, cyberpunk, darkwave",        color: "#FF2A5A" },
+    { name: "RRR ELECTRONIC",  prefix: "RRELEC", about: "Electronic, electro, techno, dance",    color: "#3FD0FF" },
+    { name: "RRR AMBIENT",     prefix: "RRAMB",  about: "Ambient, downtempo, chill",             color: "#2ED47A" },
+    { name: "RRR ALTERNATIVE", prefix: "RRALT",  about: "Alternative, indie, rock, experimental", color: "#9B5CFF" }
+  ],
 
   email: "retroreverbrecords@gmail.com"
 };

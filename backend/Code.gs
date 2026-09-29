@@ -10,6 +10,8 @@
  *  6. Collects newsletter sign-ups and sends the MONTHLY NEWSLETTER automatically
  *     (preview to you on the 28th, sent to subscribers on the 1st)
  *  7. Collects press/review links from artists; you approve them in the sheet
+ *  8. RRR Selected Releases: artists submit a release, you approve it in the Releases tab,
+ *     it gets a series + catalogue number (e.g. RRSYN-001) and shows on the website
  *
  * Setup: see backend/SETUP.md. Nothing here spends money.
  * Only the newsletter goes to the public, and only to people who opted in.
@@ -32,12 +34,14 @@ const SETTINGS = {
   //             'preview' = only ever sent to you (you forward it yourself).
   //             'off' = nothing.  Can also be changed in the Settings tab of the sheet.
   newsletterMode: 'auto',
-  dailySendLimit: 90   // free Gmail allows ~100 emails a day; the rest go out the next days
+  dailySendLimit: 90,  // free Gmail allows ~100 emails a day; the rest go out the next days
+  releaseDecisionEmails: true, // email artists when a Selected Release is approved or not selected
+  maxReleasesPerWeek: 0        // release slots per week (Mon–Sun). 0 = no limit. Over the limit, bookings are flagged 'date full' for you
 };
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id'],
@@ -47,6 +51,8 @@ const TABS = {
   Subscribers:  ['email','created','source','consent','status','token','member_id'],
   Press:        ['created','artist','email','outlet','title','url','quote','approved'],
   Claims:       ['created','member_id','action','points','proof','note','approved'],
+  Releases:     ['release_id','created','member_id','artist','email','title','bandcamp_url','artwork_url','genre','subgenre','release_date',
+                 'description','why_fit','spotify_url','youtube_url','affiliation','series','catalogue_no','featured','status','approved_on','notified','admin_notes'],
   Newsletter:   ['month','created','subject','sent_to','queued','status'],
   Queue:        ['email','month','sent'],
   Settings:     ['key','value'],
@@ -89,6 +95,7 @@ function doPost(e) {
     if (kind === 'unsubscribe') { const r = findRow_('Subscribers', 'email', String(p.email || '').trim().toLowerCase()); if (r) updateRow_('Subscribers', 'email', r.email, { status: 'unsubscribed' }); return text_('ok'); }
     if (kind === 'press') return handlePress_(p);
     if (kind === 'claim') return handleClaim_(p);
+    if (kind === 'rrr-release') return handleReleaseSubmission_(p);
     if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
     return text_('ok');
@@ -104,6 +111,7 @@ function doGet(e) {
   if (q.press) return json_({ ok: true, press: rows_('Press').filter(r => /^yes/i.test(String(r.approved))).reverse().slice(0, 60)
     .map(r => ({ artist: r.artist, outlet: r.outlet, title: r.title, url: r.url, quote: r.quote, date: r.created })) });
   if (q.unsubscribe) return unsubscribe_(q.unsubscribe);
+  if (q.series) return json_({ ok: true, series: SERIES, releases: publicSelectedReleases_() });
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
   const m = findRow_('Members', 'member_id', id);
@@ -122,7 +130,8 @@ function handleSignup_(p) {
     member_id: id, created: new Date(), type: p.type || 'fan', name: p.name, artist: p.artist,
     email: p.email, country: p.country, address_line1: p.address_line1, address_line2: p.address_line2,
     city: p.city, postcode: p.postcode, bandcamp: p.bandcamp, status: 'pending payment',
-    plan: p.type === 'artist' ? 'Artist' : 'Fan', points: 0, rank: 'Signal', public: 'yes'
+    plan: p.type === 'artist' ? 'Artist' : 'Fan', points: 0, rank: 'White belt', public: 'yes',
+    artist_type: p.type === 'artist' ? 'Member' : '', bandcamp_linked: p.type === 'artist' ? 'no' : ''
   });
   award_(id, 'joined');
 
@@ -167,9 +176,14 @@ function handleBooking_(kind, p) {
   const memberId = member ? member.member_id : '';
   const title = p.title || p.link || '';
   let eventId = '';
-  if (date) eventId = addToCalendar_(kind, p, date);
+  // Release slots: dates are subject to availability
+  const full = /release/.test(kind) && date && SETTINGS.maxReleasesPerWeek > 0 &&
+    rows_('Bookings').filter(r => /release/.test(r.kind) && !/cancel|full/i.test(String(r.status)) && r.date && weekKey_(r.date) === weekKey_(date)).length >= SETTINGS.maxReleasesPerWeek;
+  if (date && !full) eventId = addToCalendar_(kind, p, date);
   append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
-    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: 'requested', calendar_event_id: eventId });
+    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : 'requested', calendar_event_id: eventId });
+  if (full) notify_('⚠ Release week full: ' + (p.artist || '') + ' – ' + title, 'Requested ' + date + '. That week already has ' + SETTINGS.maxReleasesPerWeek +
+    ' release(s). Reply to ' + (p.email || 'the artist') + ' with the nearest free date, then change the status in the Bookings tab.\n' + sheetUrl_());
   if (memberId) {
     if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title); }
     if (kind === 'youtube-upload') addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title);
@@ -179,6 +193,12 @@ function handleBooking_(kind, p) {
   notify_('New RRR booking: ' + kind + ' – ' + (p.artist || '') + ' – ' + title,
     'Date: ' + date + '\nMember: ' + (memberId || 'not matched to a member – check email') + '\n\nBookings sheet: ' + sheetUrl_());
   return text_('ok');
+}
+
+function weekKey_(d) {
+  const x = new Date(d); if (isNaN(x)) return '';
+  const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day);
+  return Utilities.formatDate(x, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
 
 function addToCalendar_(kind, p, isoDate) {
@@ -270,6 +290,12 @@ function publicProfile_(m) {
     id: id, name: m.artist || m.name, type: m.type, since: m.created, status: m.status,
     points: pts, rank: rank.name, nextRank: next ? next.name : null, nextAt: next ? next.min : null, rankFrom: rank.min,
     belt: rank.name,
+    membershipActive: /active/i.test(String(m.status)),
+    artistType: m.type === 'artist' ? (m.artist_type || 'Member') : '',
+    bandcampLinked: /^y/i.test(String(m.bandcamp_linked)),
+    eligible: isEligible_(m),
+    programme: rows_('Releases').filter(r => r.member_id === id).map(r => ({ title: r.title, affiliation: r.affiliation || 'Unspecified',
+      series: r.series, catalogue: r.catalogue_no, date: r.release_date, url: r.bandcamp_url, artwork: r.artwork_url })),
     achievements: rows_('Achievements').filter(r => r.member_id === id && r.achievement !== 'Points').map(r => ({ title: r.achievement, on: r.earned_on, points: r.points })),
     recentPoints: rows_('Achievements').filter(r => r.member_id === id && r.achievement === 'Points').slice(-10).reverse().map(r => ({ note: r.note, on: r.earned_on, points: r.points })),
     releases: rows_('Bookings').filter(r => r.member_id === id && /release/.test(r.kind)).map(r => ({ title: r.title, kind: r.kind, format: r.format, date: r.date, status: r.status })),
@@ -327,6 +353,7 @@ function daily() {
     sh.getRange(i + 1, ai + 1).setValue('yes – points given');
   }
   approveClaims();
+  processReleaseDecisions();
   updateSongstats();
   newsletterTick_();
   digest_();
@@ -361,6 +388,7 @@ function testDigest() { digest_(); }
 // Run once from the editor: creates tabs, calendar and the daily trigger.
 function setup() {
   Object.keys(TABS).forEach(sheet_);
+  applyValidations_();
   getCalendar_();
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'daily') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('daily').timeBased().everyDays(1).atHour(8).create();
@@ -372,9 +400,17 @@ function setup() {
 // ============================================================
 function ss_() { return SpreadsheetApp.getActiveSpreadsheet(); }
 function sheetUrl_() { return ss_().getUrl(); }
+const HEADERS_OK_ = {};
 function sheet_(name) {
   let sh = ss_().getSheetByName(name);
   if (!sh) { sh = ss_().insertSheet(name); sh.appendRow(TABS[name]); sh.setFrozenRows(1); sh.getRange(1, 1, 1, TABS[name].length).setFontWeight('bold'); }
+  else if (!HEADERS_OK_[name] && TABS[name]) {
+    // New columns added to TABS in a code update are added to the end of the existing sheet
+    const have = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0];
+    const missing = TABS[name].filter(k => have.indexOf(k) < 0);
+    if (missing.length) { const c = have.filter(String).length + 1; sh.getRange(1, c, 1, missing.length).setValues([missing]).setFontWeight('bold'); }
+  }
+  HEADERS_OK_[name] = true;
   return sh;
 }
 function rows_(name) {
@@ -385,7 +421,10 @@ function findRow_(name, col, val) {
   const want = String(val).toLowerCase();
   return rows_(name).find(r => String(r[col]).toLowerCase() === want) || null;
 }
-function append_(name, obj) { sheet_(name).appendRow(TABS[name].map(k => obj[k] !== undefined ? obj[k] : '')); }
+function append_(name, obj) {
+  const sh = sheet_(name), h = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  sh.appendRow(h.map(k => obj[k] !== undefined ? obj[k] : ''));
+}
 function updateRow_(name, keyCol, keyVal, patch) {
   const sh = sheet_(name), v = sh.getDataRange().getValues(), h = v[0];
   const ki = h.indexOf(keyCol);
@@ -505,11 +544,138 @@ function setupFounders() {
   return 'Founders ready: RRR-00001 Cybertronix (10th Dan), RRR-00002 Eden Future (3rd Dan). Add Eden Future\'s email in the Members tab.';
 }
 
+// ============================================================
+// RRR SELECTED RELEASES (genre series)
+// Membership and release affiliation are SEPARATE things:
+//  - Members tab: artist_type (Member / Signed), bandcamp_linked (yes / no)
+//  - Releases tab: one row per release, each with its own affiliation.
+// Only releases YOU set to "RRR Genre Release" or "RRR Signed Release" get RRR branding.
+// Nothing is ever inferred from membership. Membership is non-exclusive.
+//
+// To approve: in the Releases tab set affiliation to "RRR Genre Release" and pick a series.
+// Then RRR menu → Process release decisions now (or wait for the daily run).
+// The catalogue number (e.g. RRSYN-001) is added and the artist is emailed.
+// To turn one down: set affiliation to "Rejected".
+// To add a series: add a line to SERIES (and to assets/config.js on the website).
+// ============================================================
+const SERIES = [
+  { name: 'RRR SYNTH',       prefix: 'RRSYN'  },
+  { name: 'RRR DARK',        prefix: 'RRDRK'  },
+  { name: 'RRR ELECTRONIC',  prefix: 'RRELEC' },
+  { name: 'RRR AMBIENT',     prefix: 'RRAMB'  },
+  { name: 'RRR ALTERNATIVE', prefix: 'RRALT'  }
+];
+const AFFILIATIONS = ['Pending review', 'RRR Genre Release', 'RRR Signed Release', 'Independent', 'Other Label', 'Unspecified', 'Rejected'];
+const RRR_AFFILIATIONS = ['RRR Genre Release', 'RRR Signed Release'];
+
+function isEligible_(m) {
+  return !!m && m.type === 'artist' && /active/i.test(String(m.status)) && /^y/i.test(String(m.bandcamp_linked));
+}
+
+function handleReleaseSubmission_(p) {
+  const id = String(p.member_id || '').trim().toUpperCase();
+  const m = findRow_('Members', 'member_id', id);
+  const forRrr = p.intent !== 'log';
+  if (!m || m.type !== 'artist') { log_('release submission refused', id + ' not an artist member'); return text_('ok'); }
+  if (forRrr && !isEligible_(m)) { log_('release submission refused', id + ' not eligible (membership or Bandcamp link)'); return text_('ok'); }
+  const affiliation = forRrr ? 'Pending review' : (p.affiliation === 'Other Label' ? 'Other Label' : 'Independent');
+  const url = String(p.bandcamp_url || '').trim();
+  append_('Releases', {
+    release_id: 'REL-' + Date.now().toString(36).toUpperCase(), created: new Date(), member_id: id,
+    artist: p.artist || m.artist || m.name, email: m.email, title: p.title, bandcamp_url: url,
+    artwork_url: p.artwork_url || bandcampArtwork_(url), genre: p.genre, subgenre: p.subgenre, release_date: p.release_date,
+    description: String(p.description || '').slice(0, 600), why_fit: String(p.why_fit || '').slice(0, 800),
+    spotify_url: p.spotify_url, youtube_url: p.youtube_url, affiliation: affiliation,
+    series: forRrr ? (p.series || '') : '', featured: 'no'
+  });
+  if (forRrr) notify_('RRR Selected Release submitted: ' + (p.artist || m.artist) + ' – ' + (p.title || ''),
+    'Bandcamp: ' + url + '\nSuggested series: ' + (p.series || '-') + '\nWhy it fits: ' + (p.why_fit || '') +
+    '\n\nTo approve: in the Releases tab set affiliation to "RRR Genre Release", choose a series, then RRR menu → Process release decisions now.\n' + sheetUrl_());
+  return text_('ok');
+}
+
+// Cover art from the Bandcamp page (og:image), so artists don't have to upload it
+function bandcampArtwork_(url) {
+  if (!/^https:\/\/[a-z0-9-]+\.bandcamp\.com\//i.test(url)) return '';
+  try {
+    const html = UrlFetchApp.fetch(url, { muteHttpExceptions: true }).getContentText();
+    const mm = html.match(/<meta property="og:image" content="([^"]+)"/);
+    return mm ? mm[1] : '';
+  } catch (e) { return ''; }
+}
+
+function processReleaseDecisions() {
+  const sh = sheet_('Releases'), v = sh.getDataRange().getValues(), h = v[0];
+  const col = k => h.indexOf(k);
+  const c = { aff: col('affiliation'), ser: col('series'), cat: col('catalogue_no'), app: col('approved_on'), not: col('notified'),
+              notes: col('admin_notes'), title: col('title'), email: col('email'), artist: col('artist') };
+  const used = {};
+  v.slice(1).forEach(r => { const n = String(r[c.cat] || ''); const mm = n.match(/^([A-Z]+)-(\d+)$/); if (mm) used[mm[1]] = Math.max(used[mm[1]] || 0, Number(mm[2])); });
+  let done = 0;
+  for (let i = 1; i < v.length; i++) {
+    const aff = String(v[i][c.aff]).trim(), row = i + 1;
+    if (RRR_AFFILIATIONS.indexOf(aff) >= 0 && !v[i][c.cat]) {
+      const s = SERIES.find(x => x.name === String(v[i][c.ser]).trim());
+      if (!s && aff === 'RRR Genre Release') { sh.getRange(row, c.notes + 1).setValue('Choose a series to finish approving'); continue; }
+      const prefix = s ? s.prefix : 'RRSIG';
+      used[prefix] = (used[prefix] || 0) + 1;
+      const num = prefix + '-' + String(used[prefix]).padStart(3, '0');
+      sh.getRange(row, c.cat + 1).setValue(num);
+      sh.getRange(row, c.app + 1).setValue(new Date());
+      done++;
+      if (SETTINGS.releaseDecisionEmails && v[i][c.email] && !v[i][c.not]) {
+        MailApp.sendEmail({ to: v[i][c.email], name: 'Retro Reverb Records', subject: '"' + v[i][c.title] + '" is an RRR Selected Release (' + num + ')',
+          body: 'Great news! "' + v[i][c.title] + '" has been approved as ' + (s ? s.name + ' · Selected Release' : 'an RRR Signed Release') +
+            ', catalogue number ' + num + '.\n\nOnly this release carries RRR status. Your other music stays exactly as it is, and your Bandcamp payments still go directly to you.\n\n' +
+            'See it: ' + SETTINGS.siteUrl + 'series.html\n\nRetro Reverb Records' });
+        sh.getRange(row, c.not + 1).setValue('approved ' + new Date().toISOString().slice(0, 10));
+      }
+    }
+    if (aff === 'Rejected' && !v[i][c.not] && v[i][c.email] && SETTINGS.releaseDecisionEmails) {
+      MailApp.sendEmail({ to: v[i][c.email], name: 'Retro Reverb Records', subject: 'Your RRR Selected Release submission: "' + v[i][c.title] + '"',
+        body: 'Thanks for submitting "' + v[i][c.title] + '". It hasn\'t been selected for an RRR series this time.\n\n' +
+          'Nothing changes for this release: it stays yours, on your Bandcamp page, and you\'re welcome to submit future releases.\n\nRetro Reverb Records' });
+      sh.getRange(row, c.not + 1).setValue('not selected ' + new Date().toISOString().slice(0, 10));
+      done++;
+    }
+  }
+  return done;
+}
+function processReleasesNow() {
+  const n = processReleaseDecisions();
+  SpreadsheetApp.getUi().alert(n ? 'Done: ' + n + ' release decision(s) processed.' : 'Nothing new. Set affiliation to "RRR Genre Release" (and pick a series) or "Rejected" first.');
+}
+
+function publicSelectedReleases_() {
+  const today = new Date();
+  return rows_('Releases').filter(r => RRR_AFFILIATIONS.indexOf(String(r.affiliation)) >= 0 && r.catalogue_no)
+    .map(r => ({ artist: r.artist, title: r.title, artwork: r.artwork_url, genre: r.genre, subgenre: r.subgenre, date: r.release_date,
+      series: r.series, catalogue: r.catalogue_no, affiliation: r.affiliation, url: r.bandcamp_url, spotify: r.spotify_url, youtube: r.youtube_url,
+      description: r.description, featured: /^y|true/i.test(String(r.featured)),
+      status: r.status || (r.release_date && new Date(r.release_date) > today ? 'Upcoming' : 'Out now'), added: r.approved_on }))
+    .sort((a, b) => (b.featured - a.featured) || (new Date(b.date || 0) - new Date(a.date || 0)));
+}
+
+// Dropdowns in the sheet so choices are always spelled right
+function applyValidations_() {
+  const list = (vals) => SpreadsheetApp.newDataValidation().requireValueInList(vals, true).setAllowInvalid(false).build();
+  const set = (tab, colName, rule) => { const sh = sheet_(tab), h = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0], ci = h.indexOf(colName);
+    if (ci >= 0) sh.getRange(2, ci + 1, 999, 1).setDataValidation(rule); };
+  set('Releases', 'affiliation', list(AFFILIATIONS));
+  set('Releases', 'series', list(SERIES.map(s => s.name)));
+  set('Releases', 'featured', list(['yes', 'no']));
+  set('Members', 'artist_type', list(['Member', 'Signed']));
+  set('Members', 'bandcamp_linked', list(['yes', 'no']));
+  set('Members', 'bandcamp_pro', list(['yes', 'no', 'eligible']));
+}
+
 // Sheet menu so you don't have to wait for the daily run
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('RRR')
     .addItem('Give approved points now', 'approveClaimsNow')
+    .addItem('Process release decisions now', 'processReleasesNow')
     .addToUi();
+  try { applyValidations_(); } catch (e) {}
 }
 function approveClaimsNow() {
   const n = approveClaims();

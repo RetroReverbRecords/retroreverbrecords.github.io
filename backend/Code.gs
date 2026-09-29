@@ -288,6 +288,14 @@ function digest_() {
     '\n\nSheet: ' + sheetUrl_());
 }
 
+// Beta testing: run from the editor to email yourself this month's newsletter right now.
+function testNewsletter() {
+  const n = buildNewsletter_(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1));
+  MailApp.sendEmail({ to: SETTINGS.ownerEmail, subject: 'TEST – ' + n.subject, htmlBody: n.html.replace('{{UNSUB}}', '(unsubscribe link goes here)') });
+}
+// Beta testing: run from the editor to email yourself the daily digest right now.
+function testDigest() { digest_(); }
+
 // Run once from the editor: creates tabs, calendar and the daily trigger.
 function setup() {
   Object.keys(TABS).forEach(sheet_);

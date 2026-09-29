@@ -7,6 +7,10 @@ window.RRR_CONFIG = {
   // Sign-up form on the home page (#join). Keep false until launch.
   signupOpen: false,
 
+  // Beta testing: open the site with ?beta=rrr-beta to use the forms before launch.
+  // Open with ?beta=off to leave beta mode. Change or empty this at launch.
+  betaKey: "rrr-beta",
+
   // Booking forms on book.html. Keep false until launch.
   bookingOpen: false,
 

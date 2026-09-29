@@ -408,3 +408,5 @@ nav a{font-size:11px;letter-spacing:.1em}
 .install .btn{border:1px solid var(--cyan);cursor:pointer;background:transparent}
 .embed{position:relative;display:block}
 .sp-open{display:block;padding:10px 14px;font:700 12px var(--head);letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);text-decoration:none}
+
+.betatag{position:fixed;left:50%;transform:translateX(-50%);top:calc(6px + env(safe-area-inset-top,0px));z-index:60;font:700 10px var(--head);letter-spacing:.12em;background:var(--needle,#F5C433);color:#07061A;padding:5px 10px;border-radius:999px;pointer-events:none}

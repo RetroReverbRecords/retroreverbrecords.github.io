@@ -63,6 +63,14 @@
       <span class="mprice num">${m.price ? esc(m.price) : 'See Bandcamp'}</span>
     </a>`).join('');
 
+  /* ---------- beta mode: ?beta=rrr-beta turns forms on for the tester only ---------- */
+  const betaStore = { get(){ try { return localStorage.getItem('rrr-beta'); } catch (e) { return null; } }, set(v){ try { v ? localStorage.setItem('rrr-beta', v) : localStorage.removeItem('rrr-beta'); } catch (e) {} } };
+  const qp = new URLSearchParams(location.search);
+  if (qp.has('beta')) betaStore.set(qp.get('beta') === C.betaKey ? C.betaKey : '');
+  const BETA = !!C.betaKey && betaStore.get() === C.betaKey;
+  if (BETA) { const tag = document.createElement('div'); tag.className = 'betatag'; tag.textContent = 'BETA MODE · forms are live for you only'; document.body.appendChild(tag); }
+  const signupOn = !!(C.signupOpen || BETA), bookingOn = !!(C.bookingOpen || BETA);
+
   /* ---------- form helpers ---------- */
   const endpoint = C.automationUrl || C.formEndpoint || '';
   const P = C.payments || {};
@@ -148,7 +156,7 @@
   const isFan = () => !!($('#type-fan') && $('#type-fan').checked);
   const price = () => (C.membershipPrices || {})[isFan() ? 'fan' : 'artist'];
   if (signup) {
-    const open = !!(C.signupOpen && endpoint);
+    const open = !!(signupOn && endpoint);
     $('#signup-fields').disabled = !open;
     setStatus($('#signup-status'), open, '<strong>Sign-up is open.</strong> Fill in the form, then set up your monthly payment.',
       '<strong>Coming soon.</strong> Sign-up isn\'t open yet. Follow us below to hear when it opens.');
@@ -189,7 +197,7 @@
     const start = (location.hash || '').slice(1);
     show(tabs.some(t => t.dataset.panel === start) ? start : tabs[0].dataset.panel);
 
-    const open = !!(C.bookingOpen && endpoint);
+    const open = !!(bookingOn && endpoint);
     const fees0 = C.uploadFees || {};
     $$('.booking-form').forEach(f => {
       $('fieldset', f).disabled = !open;

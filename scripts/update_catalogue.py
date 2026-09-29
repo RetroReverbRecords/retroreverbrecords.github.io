@@ -46,6 +46,22 @@ def releases():
                     "url": url, "image": f"https://f4.bcbits.com/img/a{art_id:010d}_16.jpg" if art_id else ""})
     return out[:24]
 
+TYPES = [("minidisc", "MiniDisc"), ("vinyl", "Vinyl"), ("lp", "Vinyl"), ("cassette", "Cassette"), ("tape", "Cassette"),
+         ("cd", "CD"), ("t-shirt", "T-shirt"), ("shirt", "T-shirt"), ("hoodie", "Hoodie"), ("bundle", "Bundle"),
+         ("poster", "Poster"), ("sticker", "Stickers"), ("pin", "Pin"), ("booklet", "Booklet")]
+
+def guess_type(t):
+    low = " " + t.lower() + " "
+    for key, name in TYPES:
+        if re.search(r"[^a-z]" + re.escape(key) + r"[^a-z]", low):
+            return name
+    return "Merch"
+
+def clean_title(t):
+    # Bandcamp merch titles look like "Release – Artist – Item description"; keep the release name
+    first = re.split(r"\s+[–-]\s+", t)[0].strip()
+    return first or t
+
 def merch():
     page = get(LABEL + "/merch")
     out = []
@@ -59,7 +75,8 @@ def merch():
         kind = re.search(r'<span class="merchtype[^"]*">(.*?)</span>', li, re.S)
         if not (a and t):
             continue
-        out.append({"title": text(t.group(1)), "type": text(kind.group(1)) if kind else "Merch",
+        full = text(t.group(1))
+        out.append({"title": clean_title(full), "type": text(kind.group(1)) if kind else guess_type(full),
                     "price": text(price.group(1)) if price else "", "url": absolute(a.group(1)).split("?")[0],
                     "image": img_size(img.group(1), 16) if img else ""})
     return out[:24]

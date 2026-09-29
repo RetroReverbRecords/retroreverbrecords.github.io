@@ -350,7 +350,7 @@
   /* ---------- Spotify / Groover players: tap to load (faster, no third-party cookies until
      the visitor chooses, and no broken box where players are blocked) ---------- */
   function clickToLoad(box, label, iframeHtml, openUrl){
-    box.innerHTML = `<div class="c2l"><button type="button" class="btn primary">${label}</button>${openUrl ? `<a class="sp-open" href="${esc(openUrl)}" target="_blank" rel="noopener">Or open it in a new tab ↗</a>` : ''}<p class="small">Loading this player lets the service set its own cookies.</p></div>`;
+    box.innerHTML = `<div class="c2l"><button type="button" class="btn primary">${label}</button>${openUrl ? `<a class="sp-open" href="${esc(openUrl)}" target="_blank" rel="noopener">Or open it in a new tab ↗</a>` : ''}<p class="small">Loading this player lets the service set its own cookies.${label.includes('playlist') ? ' Log in to Spotify in this browser to pick tracks and hear full songs; logged out, Spotify only plays previews.' : ''}</p></div>`;
     box.querySelector('button').addEventListener('click', () => { box.innerHTML = iframeHtml + (openUrl ? `<a class="sp-open" href="${esc(openUrl)}" target="_blank" rel="noopener">Not playing? Open it in a new tab ↗</a>` : ''); });
   }
   const sp = $('#spotify-embed');

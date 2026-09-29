@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RRR Card Maker</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#07061A">
+<link rel="icon" href="assets/rrr-logo-stack.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records home"></a>
+    <nav aria-label="Sections">
+      <a href="index.html#membership">Membership</a>
+      <a href="index.html#releases">Releases</a>
+      <a href="index.html#catalogue">Catalogue</a>
+      <a href="index.html#merch">Merch</a>
+      <a href="cards.html">Cards</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="book.html">Book</a>
+      <a href="index.html#contact">Contact</a>
+      <a class="btn primary small-btn" href="index.html#join">Create account</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <div class="pagehead">
+    <div class="wrap">
+      <p class="label">Owner tool · not linked from the site</p>
+      <h1>Card <em>maker</em></h1>
+      <p class="lede">Make serials and secret check codes for a print run. Send the print list to the printer, paste the register lines into <b class="num">assets/cards.js</b>. Codes are shown once and never saved on the site.</p>
+    </div>
+  </div>
+  <section class="side">
+    <div class="wrap">
+      <form class="panel booking-form" id="maker" novalidate>
+        <div class="fields">
+          <label for="m-season">Season<input id="m-season" type="text" value="S1"></label>
+          <label for="m-card">Card number (1–52)<input id="m-card" type="number" min="1" max="52" value="1"></label>
+          <label for="m-edition">Edition<select id="m-edition"><option value="M">M – Member card</option><option value="P" selected>P – Numbered print</option><option value="A">A – Artist-signed single edition</option></select></label>
+          <label for="m-of">Run size (the "of" number)<input id="m-of" type="number" min="1" value="50"></label>
+          <label for="m-from">First copy number<input id="m-from" type="number" min="1" value="1"></label>
+          <label for="m-count">How many to make now<input id="m-count" type="number" min="1" max="500" value="10"></label>
+        </div>
+        <button class="btn primary" type="submit">Make serials and codes</button>
+        <div id="m-out" class="maker-out" hidden>
+          <label for="m-print">1. Print list for the printer (serial + check code, keep private)<textarea id="m-print" rows="8" readonly></textarea></label>
+          <button type="button" class="copy" data-copyfield="m-print">Copy</button>
+          <label for="m-register">2. Register lines to paste into assets/cards.js under <b>issued</b> (safe to publish)<textarea id="m-register" rows="8" readonly></textarea></label>
+          <button type="button" class="copy" data-copyfield="m-register">Copy</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="wrap">
+    <span>© Retro Reverb Records · <a href="how-it-works.html">How it works</a> · <a href="book.html">Book</a></span>
+    <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
+  </div>
+</footer>
+<script src="assets/config.js"></script>
+<script src="assets/releases.js"></script>
+<script src="assets/site.js"></script>
+<script src="assets/cards.js"></script>
+<script src="assets/cards-page.js"></script>
+</body>
+</html>

@@ -284,3 +284,31 @@ input[type=date],input[type=time]{font:400 15px var(--body);color:var(--text);ba
 .tracks{display:block;font:400 12px var(--mono);color:var(--muted)}
 
 .post{display:grid;gap:10px}
+
+/* cards */
+.verify{padding:28px;display:grid;gap:18px}
+.verify input{text-transform:uppercase;font-family:var(--mono)}
+.vresult{margin-top:18px;padding:22px 26px;display:grid;gap:12px}
+.vresult .vtitle{display:flex;gap:10px;align-items:center;font:700 16px var(--head);text-transform:uppercase;letter-spacing:.06em}
+.vresult .dot{width:12px;height:12px;border-radius:50%}
+.vresult.good{border-color:var(--cyan);box-shadow:0 0 24px rgba(63,208,255,.25)}
+.vresult.good .dot{background:var(--cyan);box-shadow:var(--glow-cyan)}
+.vresult.bad{border-color:var(--pink)}
+.vresult.bad .dot{background:var(--pink);box-shadow:var(--glow-pink)}
+.vresult > div{color:var(--muted)}
+.vfacts{display:grid;gap:8px;margin:0}
+.vfacts div{display:grid;grid-template-columns:90px 1fr;gap:12px}
+.vfacts dt{font:500 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.vfacts dd{margin:0;color:var(--text)}
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:14px}
+.slot{margin:0;display:grid;gap:6px}
+.slot img,.slot .blank{width:100%;aspect-ratio:700/991;max-width:100%;border-radius:8px;border:1px solid var(--line);object-fit:cover}
+.slot .blank{display:grid;place-items:center;background:repeating-linear-gradient(135deg,rgba(155,92,255,.08) 0 8px,transparent 8px 16px),var(--panel)}
+.slot .blank span{font:800 28px var(--head);color:var(--grid)}
+.slot.filled img{box-shadow:0 0 18px rgba(255,47,168,.35)}
+.slot figcaption{font-size:13px;color:var(--muted)}
+.slot figcaption .num{font-family:var(--mono);color:var(--cyan);margin-right:4px}
+.maker-out{display:grid;gap:10px}
+.maker-out label{display:grid;gap:6px;font-size:14px;color:var(--muted)}
+.maker-out textarea{font:400 13px var(--mono);color:var(--text);background:var(--void);border:1px solid var(--line);border-radius:4px;padding:10px;width:100%}
+.maker-out .copy{justify-self:start}

@@ -192,10 +192,23 @@
                   <label for="mc-price">Your price (€)<input id="mc-price" name="price" type="number" min="1" step="0.5" required></label>
                   <label for="mc-stock">How many can you sell?<input id="mc-stock" name="stock" type="text" placeholder="e.g. 50, or print on demand"></label>
                   <label for="mc-ship" class="wide">Who ships it?<select id="mc-ship" name="shipping" required><option value="">Choose…</option><option>I post it myself</option><option>A print-on-demand / fulfilment company</option></select></label>
-                  <label for="mc-photos" class="wide">Photos (Google Drive link)<input id="mc-photos" name="photos" type="url" required placeholder="https://drive.google.com/…"></label>
-                  <label for="mc-notes" class="wide">Sizes, colours, shipping countries, anything else<textarea id="mc-notes" name="notes"></textarea></label>
+                  <label for="mc-photos" class="wide">Photos (Google Drive link)<input id="mc-photos" name="photos" type="url" required placeholder="https://drive.google.com/… at least 1 clear photo, 1200px or bigger"></label>
+                  <label for="mc-desc" class="wide">Description for the listing<textarea id="mc-desc" name="description" required placeholder="What it is, material, size, what's included (e.g. digital download)"></textarea></label>
+                  <label for="mc-var" class="wide">Sizes / colours (if any)<input id="mc-var" name="variants" type="text" placeholder="e.g. S, M, L, XL · black"></label>
+                  <label for="mc-from">Ships from (country)<input id="mc-from" name="ships_from" type="text" required></label>
+                  <label for="mc-days">Posted within<select id="mc-days" name="dispatch_days" required><option value="">Choose…</option><option>3 days</option><option>7 days</option><option>14 days (print on demand)</option></select></label>
+                  <label for="mc-s1">Postage: your country (€)<input id="mc-s1" name="ship_home" type="number" min="0" step="0.5" required></label>
+                  <label for="mc-s2">Postage: rest of Europe (€)<input id="mc-s2" name="ship_europe" type="number" min="0" step="0.5" required></label>
+                  <label for="mc-s3">Postage: rest of the world (€)<input id="mc-s3" name="ship_world" type="number" min="0" step="0.5" placeholder="leave empty if you don't ship there"></label>
+                  <label for="mc-pod">Print-on-demand company (if used)<input id="mc-pod" name="pod_company" type="text" placeholder="e.g. Printful"></label>
+                  <label for="mc-notes" class="wide">Anything else<textarea id="mc-notes" name="notes"></textarea></label>
                 </div>
-                <label class="agree"><input type="checkbox" id="mc-agree" name="agree" value="yes" required> I'll ship every order within 7 days (or my fulfilment company will), and I agree to RRR's share of each sale.</label>
+                <div class="checks">
+                  <label class="agree"><input type="checkbox" name="rights" value="yes" required> <span>I own or have permission for every design, photo, logo and piece of music on this item.</span></label>
+                  <label class="agree"><input type="checkbox" name="tracking" value="yes" required> <span>I'll post every order within the time above and send RRR proof of postage (tracking where possible).</span></label>
+                  <label class="agree"><input type="checkbox" name="returns" value="yes" required> <span>I'll replace or refund items that arrive faulty or get lost.</span></label>
+                  <label class="agree"><input type="checkbox" id="mc-agree" name="agree" value="yes" required> <span>I agree to RRR's share of each sale.</span></label>
+                </div>
                 <button class="btn primary" type="submit">Send merch listing</button>
               </fieldset>
             </form>

@@ -1,0 +1,31 @@
+name: promo covers
+on:
+  push:
+    branches: [promo-assets]
+    paths: [".github/workflows/covers.yml"]
+permissions:
+  contents: write
+jobs:
+  get:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: promo-assets }
+      - run: |
+          mkdir -p covers
+          curl -sSL https://raw.githubusercontent.com/RetroReverbRecords/retroreverbrecords.github.io/main/assets/catalogue.json -o cat.json
+          python3 - <<'PY'
+          import json, urllib.request
+          d = json.load(open('cat.json'))
+          for i, r in enumerate(d['releases'][:24]):
+              u = r.get('image')
+              if not u: continue
+              u = u.replace('_16.jpg', '_10.jpg')
+              try:
+                  urllib.request.urlretrieve(u, f'covers/{i:02d}.jpg')
+              except Exception as e:
+                  print('fail', u, e)
+          PY
+          rm cat.json
+          git config user.name "Retro Reverb Records"; git config user.email noreply@anthropic.com
+          git add covers && git commit -m "Promo covers" && git push

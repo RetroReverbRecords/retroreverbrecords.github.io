@@ -125,7 +125,7 @@
       <div class="side-head">
         <span class="tag">B</span>
         <h2>Releases</h2>
-        <p>A label-backed release on Bandcamp, streaming platforms, or both. You pay a one-off upload fee and keep every cent of your royalties.</p>
+        <p>A label-backed release on Bandcamp, streaming platforms, or both. You pay a one-off upload fee and keep 100% of your royalties.</p>
         <p class="prov"><span>Provisional</span> Placeholder prices while we finalise the new model. They may change before launch.</p>
       </div>
 
@@ -134,18 +134,40 @@
           <thead>
             <tr>
               <th scope="col">Format</th>
-              <th scope="col">Bandcamp<small>via the RRR catalogue</small></th>
-              <th scope="col">Streaming<small>via RouteNote</small></th>
+              <th scope="col">Upload fee<small>Bandcamp, streaming or both: same price</small></th>
+              <th scope="col">What's included</th>
             </tr>
           </thead>
           <tbody>
-            <tr><th scope="row">Single</th><td class="price num" data-price="single">€2.00</td><td class="price num" data-price="single">€2.00</td></tr>
-            <tr><th scope="row">EP <small class="tracks">2–5 tracks</small></th><td class="price num" data-price="ep">€3.00</td><td class="price num" data-price="ep">€3.00</td></tr>
-            <tr><th scope="row">Album</th><td class="price num" data-price="album">€3.50</td><td class="price num" data-price="album">€3.50</td></tr>
-            <tr><th scope="row">Royalties</th><td>100% to you</td><td>100% to you</td></tr>
-            <tr><th scope="row">Included</th><td>Listed on your Bandcamp page and the RRR page, artist page edits, community promotion</td><td>Upload and management through the RRR RouteNote account, community support where applicable</td></tr>
+            <tr><th scope="row">Single</th><td class="price num" data-price="single">€2.00</td><td rowspan="3">Bandcamp: listed on your page and the RRR catalogue, artist page edits. Streaming: Spotify, Apple Music and more through the RRR account. Community promotion on both.</td></tr>
+            <tr><th scope="row">EP <small class="tracks">2–5 tracks</small></th><td class="price num" data-price="ep">€3.00</td></tr>
+            <tr><th scope="row">Album <small class="tracks">6+ tracks</small></th><td class="price num" data-price="album">€3.50</td></tr>
+            <tr><th scope="row">Royalties</th><td colspan="2">100% to you. Bandcamp buyers pay you directly; streaming royalties are passed on in full.</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="panel compare" id="compare">
+        <p class="label">Compare the value</p>
+        <h3>What you get with RRR, and what it costs elsewhere</h3>
+        <div class="tablewrap">
+          <table class="cmp">
+            <thead><tr><th scope="col">What you get</th><th scope="col" class="us">With RRR</th><th scope="col">Typical cost elsewhere</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Release on Spotify, Apple Music and other streaming</th><td class="us">Included in your upload fee</td><td>DistroKid $24.99/year · CD Baby $9.99 per release + 9% of royalties</td></tr>
+              <tr><th scope="row">Release on a label's Bandcamp catalogue, shown on your page and the label's page</th><td class="us">Included in your upload fee</td><td>Not offered by distributors. Labels usually take a share of royalties</td></tr>
+              <tr><th scope="row">Royalties you keep</th><td class="us"><b>100%</b></td><td>85–100% depending on the distributor and plan</td></tr>
+              <tr><th scope="row">Promotion on the RRR socials, missions and a community that streams, buys and shares your music</th><td class="us">Included in membership</td><td>Pitching one curator on Groover costs about €2</td></tr>
+              <tr><th scope="row">Upload to the RRR YouTube channel</th><td class="us"><span data-price="youtube">€2.00</span> per video</td><td>–</td></tr>
+              <tr><th scope="row">Belts, points, Synth Stars card posted to you</th><td class="us">Included in membership</td><td>No equivalent</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="yearcalc">
+          <div><span class="small">A year with RRR: membership + 4 singles</span><b class="num" id="calc-year">–</b></div>
+          <div><span class="small">That's per month</span><b class="num" id="calc-month">–</b></div>
+          <p class="small">Same price whether you choose Bandcamp, streaming or both, so both is the best value. Bandcamp still takes its usual sales fee; you keep 100% of your royalties. Other companies' prices checked 29 Sep 2026 and may change.</p>
+        </div>
       </div>
 
       <div class="panel leadtime">
@@ -349,7 +371,7 @@
               <p class="small">Before you create an account, read and agree to these. Your typed name is your electronic signature. We store it with the date and the version you agreed to, and email you a copy.</p>
               <label class="agree"><input type="checkbox" id="f-terms" name="agree_terms" value="yes" required> I have read and agree to the <a href="terms.html" target="_blank">Membership Terms</a>, the <a href="code-of-conduct.html" target="_blank">Code of Conduct</a> and the <a href="privacy.html" target="_blank">Privacy Policy</a>.</label>
               <label class="agree artist-only"><input type="checkbox" id="f-ai" name="agree_ai" value="yes"> I agree to the <a href="terms.html#ai" target="_blank">AI-Generated Music Policy</a> and the <a href="release-policy.html" target="_blank">Release Policy</a>, and will declare any AI use with each release.</label>
-              <label class="agree artist-only"><input type="checkbox" id="f-link" name="agree_link" value="yes"> I understand that to keep 100% of my Bandcamp royalties my Bandcamp account must be linked to the RRR label.</label>
+              <label class="agree artist-only"><input type="checkbox" id="f-link" name="agree_link" value="yes"> I understand that for Bandcamp sales to be paid straight to me, my Bandcamp account must be linked to the RRR label.</label>
               <label for="f-sign">Type your full legal name to sign<input id="f-sign" name="signature" type="text" autocomplete="name" required placeholder="Full legal name"></label>
               <p class="small">Signed on <b id="f-sign-date" class="num"></b> · Terms version <b id="f-terms-v" class="num"></b></p>
             </div>

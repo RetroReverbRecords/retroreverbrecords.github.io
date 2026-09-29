@@ -544,3 +544,19 @@ input[type=number]{font:400 15px var(--body);color:var(--text);background:var(--
 @media (prefers-reduced-motion:reduce){.lvlcard{animation:none}}
 
 .rolechip{display:inline-block;margin:6px 0 4px;padding:4px 12px;border-radius:999px;font:600 13px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#1a1200;background:linear-gradient(90deg,#FFD66B,#FF9F2F);box-shadow:0 0 14px rgba(255,190,70,.55)}
+
+.compare{margin-top:18px;padding:22px}
+.compare h3{margin:8px 0 14px}
+.cmp{width:100%;border-collapse:collapse;font-size:15px}
+.cmp th,.cmp td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.cmp thead th{font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.cmp tbody th{font-weight:500;color:var(--text);max-width:320px}
+.cmp td{color:var(--muted)}
+.cmp .us{color:var(--cyan);background:rgba(63,208,255,.06)}
+.cmp thead .us{color:var(--cyan)}
+.cmp td.us b{color:var(--pink);font:600 18px var(--mono)}
+.yearcalc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.yearcalc>div{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);display:grid;gap:4px}
+.yearcalc b{font:600 26px var(--mono);color:var(--pink)}
+.yearcalc p{grid-column:1/-1}
+@media (max-width:640px){.compare{padding:16px}.cmp,.cmp tbody{display:block;width:100%;min-width:0}.cmp thead{display:none}.cmp tr{display:grid;grid-template-columns:minmax(0,1fr);padding:10px 0;border-bottom:1px solid var(--line)}.cmp th,.cmp td{border:0;padding:4px 6px;max-width:none;overflow-wrap:anywhere}.cmp td.us::before{content:"RRR: ";color:var(--muted)}.cmp td:not(.us)::before{content:"Elsewhere: "}}

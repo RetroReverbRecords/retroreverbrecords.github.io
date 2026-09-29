@@ -35,17 +35,17 @@ window.RRR_CONFIG = {
 
   // ============================================================
   // PRICES — THE ONLY PLACE PRICES ARE SET. Every page reads them from here.
-  // Placeholder prices, 27 Sep 2026.
+  // Owner decision, 29 Sep 2026.
   // ============================================================
   prices: {
-    artist: 3.00,            // Artist membership, per month
-    fan: 0.50,               // Fan membership, per month
-    supporterArtist: 0.50,   // Community Supporter Status (artist), per month
-    supporterFan: 0.25,      // Community Supporter Status (fan), per month
-    single: 2.00,            // Upload fee: single (Bandcamp or streaming, each)
-    ep: 3.00,                // Upload fee: EP, 2–5 tracks
-    album: 3.50,             // Upload fee: album
-    youtube: 2.00            // YouTube upload, per video
+    artist: 2.00,            // Artist membership, per month
+    fan: 1.00,               // Fan membership, per month
+    supporterArtist: 1.00,   // Pause (Community Supporter Status), artist, per month
+    supporterFan: 0.50,      // Pause (Community Supporter Status), fan, per month
+    single: 2.00,            // Upload fee: single. Same price for Bandcamp, streaming or both
+    ep: 2.50,                // Upload fee: EP, 2–5 tracks. Same price for Bandcamp, streaming or both
+    album: 3.00,             // Upload fee: album, 6+ tracks. Same price for Bandcamp, streaming or both
+    youtube: 1.50            // YouTube upload, per video
   },
 
   // SELL YOUR MERCH WITH US

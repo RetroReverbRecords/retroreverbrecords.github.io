@@ -81,6 +81,9 @@
   const PR = C.prices || {};
   const euro = v => '€' + Number(v).toFixed(2);
   $$('[data-price]').forEach(el => { const v = PR[el.dataset.price]; if (v != null) el.textContent = euro(v); });
+  // Compare-the-value calculator: membership for a year + 4 singles
+  const cy = $('#calc-year'), cm = $('#calc-month');
+  if (cy && PR.artist != null && PR.single != null) { const y = PR.artist * 12 + PR.single * 4; cy.textContent = euro(y); if (cm) cm.textContent = euro(y / 12); }
   $$('option[data-price-label]').forEach(o => { const v = PR[o.dataset.priceLabel]; if (v != null) o.textContent = o.textContent.replace(/€[\d.,]+/, euro(v)); });
 
   /* ---------- beta mode: ?beta=rrr-beta turns forms on for the tester only ---------- */

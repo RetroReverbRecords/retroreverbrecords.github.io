@@ -38,9 +38,18 @@
       </a>`).join('')
       : `<div class="empty panel"><b>No releases announced yet.</b><span>Booked releases appear here with their release date. Artists can <a href="book.html#bandcamp">book a release</a> once booking opens.</span></div>`;
   }
+  const viaLabel = u => {
+    if (!u || !C.bandcampLabelId || !/bandcamp\.com\/(album|track)\//.test(u) || u.includes('label=')) return u;
+    return u + (u.includes('?') ? '&' : '?') + 'label=' + C.bandcampLabelId + '&tab=music';
+  };
+  const bcp = $('#bc-pages');
+  if (bcp) bcp.innerHTML = (R.bandcampPages || []).map(b => `
+    <a class="mcard panel" href="${esc(b.url)}" target="_blank" rel="noopener">
+      <span class="mtype">Bandcamp</span><b>${esc(b.name)}</b><span class="small">${esc(b.genre || '')}</span>
+    </a>`).join('') + `<div class="mcard panel ghost-card"><span class="mtype">Coming soon</span><b>Genre pages</b><span class="small">Dedicated Bandcamp pages for specific styles and release types.</span></div>`;
   const lat = $('#latest-list');
   if (lat) lat.innerHTML = (R.latest || []).map(r => `
-    <a class="rcard" href="${esc(r.url)}" target="_blank" rel="noopener">
+    <a class="rcard" href="${esc(viaLabel(r.url))}" target="_blank" rel="noopener">
       ${sleeve(r.title)}
       <div class="rmeta"><b>${esc(r.title)}</b><span>${esc(r.artist)}</span></div>
     </a>`).join('');
@@ -100,8 +109,15 @@
     return fan ? pp.plans?.fan : pp.plans?.artist;
   }
   let ppLoaded = false;
+  const P = C.payments || {};
   function renderPayPal(){
     const box = $('#paypal-buttons'); if (!box) return;
+    if (P.membershipVia === 'bandcamp') {
+      const live = !!(C.signupOpen && P.bandcampSubscribeUrl);
+      $('#pay-note').hidden = false;
+      box.innerHTML = live ? `<a class="btn ghost" href="${esc(P.bandcampSubscribeUrl)}" target="_blank" rel="noopener">Subscribe on Bandcamp</a>` : '';
+      return;
+    }
     const plan = planFor();
     const live = !!(C.signupOpen && pp.clientId && plan);
     $('#pay-note').hidden = live;
@@ -142,9 +158,24 @@
       f.addEventListener('submit', e => { e.preventDefault(); if (!open) return; if (!f.checkValidity()) { f.reportValidity(); return; } send(f, st, f.dataset.kind); });
     });
 
+    // One-off fees: PayPal.Me pay buttons (only when booking is open and paypalMe is set)
+    const fees0 = C.uploadFees || {};
+    $$('.booking-form').forEach(f => {
+      const pl = $('.paylink', f); if (!pl) return;
+      const sel = $('select[name=format]', f);
+      const draw = () => {
+        const amt = sel ? fees0[sel.value] : fees0[pl.dataset.amount];
+        const live = !!(C.bookingOpen && P.paypalMe && amt);
+        pl.hidden = !live;
+        if (live) pl.innerHTML = `<a class="btn ghost" href="https://www.paypal.me/${encodeURIComponent(P.paypalMe)}/${amt.toFixed(2)}EUR" target="_blank" rel="noopener">Pay €${amt.toFixed(2)} with PayPal</a> <span class="small">Pay after you book. Put the release title in the PayPal note.</span>`;
+      };
+      if (sel) sel.addEventListener('change', draw);
+      draw();
+    });
+
     // Fee display from config
     const fees = C.uploadFees || {};
-    $$('[data-fee]').forEach(el => { const v = fees[el.dataset.fee]; if (v != null) el.textContent = '€' + v.toFixed(2); });
+    $$('b[data-fee]').forEach(el => { const v = fees[el.dataset.fee]; if (v != null) el.textContent = '€' + v.toFixed(2); });
   }
 
   /* ---------- deadline planner (always active) ---------- */

@@ -18,6 +18,11 @@ window.RRR_RELEASES = {
     { title: "Cardiac Illusions", artist: "Vihana", url: "https://vihanamakesmusic.bandcamp.com/album/cardiac-illusions" },
     { title: "Neon Born", artist: "Eden Future", url: "https://edenfuture.bandcamp.com/album/neon-born" }
   ],
+  // RRR Bandcamp pages. Add genre-dedicated pages here as they are set up, e.g.
+  // { name: "RRR Darksynth", genre: "Darksynth and cyberpunk releases", url: "https://....bandcamp.com/" },
+  bandcampPages: [
+    { name: "Retro Reverb Records", genre: "Main label page · every release", url: "https://retroreverbrecords.bandcamp.com/" }
+  ],
   merch: [
     { title: "RetroReverbRetribution Vol 2", type: "CD", price: "€15", url: "https://retroreverbrecords.bandcamp.com/album/retroreverbretribution-vol-2" },
     { title: "RetroReverbRythms Vol 2", type: "CD / Cassette", price: "€16", url: "https://retroreverbrecords.bandcamp.com/album/retroreverbrythms-vol-2" },

@@ -15,6 +15,20 @@ window.RRR_CONFIG = {
   // Leave empty and forms stay in "coming soon" mode even if opened above.
   formEndpoint: "",
 
+  // HOW PEOPLE PAY
+  // membershipVia: "bandcamp" = monthly membership is the RRR Bandcamp subscription
+  //                "paypal"   = PayPal subscription plans below
+  // paypalMe: your PayPal.Me name (e.g. "retroreverbrecords") for one-off fees
+  //           (release uploads, YouTube uploads). Leave empty to hide pay buttons.
+  payments: {
+    membershipVia: "bandcamp",
+    bandcampSubscribeUrl: "https://retroreverbrecords.bandcamp.com/subscribe",
+    paypalMe: ""
+  },
+
+  // RRR's Bandcamp label ID. Release links carry it so they open through the RRR label.
+  bandcampLabelId: "2880365093",
+
   // PayPal. Create these in your PayPal Business account (see README).
   paypal: {
     clientId: "",            // Live client ID from developer.paypal.com

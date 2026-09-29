@@ -89,6 +89,7 @@
                 <label for="bc-collab" class="wide collab">Featured artists, producers, remixers (if any)<input id="bc-collab" name="collaborators" type="text" placeholder="Names, or leave empty"></label>
                 <label class="agree"><input type="checkbox" id="bc-collab-ok" name="collaborators_agreed" value="yes" required> Everyone who worked on this release has agreed to it being released.</label>
                 <p class="paylink" hidden></p>
+                <label class="agree"><input type="checkbox" name="start_now" value="yes" required> <span>Please start work on this booking straight away. I understand that once RRR has uploaded it, I can no longer withdraw from this booking (<a href="refunds.html#r1" target="_blank">Refund Policy</a>).</span></label>
                 <button class="btn primary" type="submit">Book Bandcamp release</button>
               </fieldset>
             </form>
@@ -121,6 +122,7 @@
                 <label for="st-collab" class="wide collab">Featured artists, producers, remixers (if any)<input id="st-collab" name="collaborators" type="text" placeholder="Names, or leave empty"></label>
                 <label class="agree"><input type="checkbox" id="st-collab-ok" name="collaborators_agreed" value="yes" required> Everyone who worked on this release has agreed to it being released.</label>
                 <p class="paylink" hidden></p>
+                <label class="agree"><input type="checkbox" name="start_now" value="yes" required> <span>Please start work on this booking straight away. I understand that once RRR has uploaded it, I can no longer withdraw from this booking (<a href="refunds.html#r1" target="_blank">Refund Policy</a>).</span></label>
                 <button class="btn primary" type="submit">Book streaming release</button>
               </fieldset>
             </form>
@@ -172,6 +174,7 @@
                 </div>
                 <label class="agree"><input type="checkbox" id="yt-agree" name="agree" required> I own or have cleared the rights to everything in this video.</label>
                 <p class="paylink" data-amount="youtube" hidden></p>
+                <label class="agree"><input type="checkbox" name="start_now" value="yes" required> <span>Please start work on this booking straight away. I understand that once RRR has uploaded it, I can no longer withdraw from this booking (<a href="refunds.html#r1" target="_blank">Refund Policy</a>).</span></label>
                 <button class="btn primary" type="submit">Book YouTube upload</button>
               </fieldset>
             </form>
@@ -181,7 +184,7 @@
           <div class="tabpanel" id="panel-merch" role="tabpanel" aria-labelledby="tab-merch" hidden>
             <form class="panel booking-form" data-kind="merch-listing" novalidate>
               <h2>Sell your merch with us</h2>
-              <p class="intro">We list it in the RRR store and in front of the community. RRR takes payment and pays you your share; RRR keeps <b><span data-merch-pct>a percentage</span></b> of each sale. RRR doesn't ship: you post it, or use a print-on-demand or fulfilment company (<a href="index.html#sell-merch">suggestions</a>).</p>
+              <p class="intro">Your merch goes on your own Bandcamp page, linked to RRR, so it shows on the RRR page too and <b>fans pay you directly</b>. RRR charges a flat <b data-price="merch">€2.00</b> per item listed and takes no share of your sales. Send us the photos and details and we can set the listing up for you. You post the orders and handle refunds and fans' questions, yourself or with a print-on-demand or fulfilment company (<a href="index.html#sell-merch">suggestions</a>).</p>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
@@ -200,6 +203,8 @@
                   <label for="mc-s1">Postage: your country (€)<input id="mc-s1" name="ship_home" type="number" min="0" step="0.5" required></label>
                   <label for="mc-s2">Postage: rest of Europe (€)<input id="mc-s2" name="ship_europe" type="number" min="0" step="0.5" required></label>
                   <label for="mc-s3">Postage: rest of the world (€)<input id="mc-s3" name="ship_world" type="number" min="0" step="0.5" placeholder="leave empty if you don't ship there"></label>
+                  <label for="mc-bc" class="wide">Your Bandcamp page (linked to RRR)<input id="mc-bc" name="bandcamp" type="url" required placeholder="https://yourname.bandcamp.com"></label>
+                  <label for="mc-who">Who sets up the listing?<select id="mc-who" name="setup_by" required><option value="">Choose…</option><option>RRR sets it up from my photos and details</option><option>I set it up myself on my page</option></select></label>
                   <label for="mc-pod">Print-on-demand company (if used)<input id="mc-pod" name="pod_company" type="text" placeholder="e.g. Printful"></label>
                   <label for="mc-notes" class="wide">Anything else<textarea id="mc-notes" name="notes"></textarea></label>
                 </div>
@@ -207,8 +212,9 @@
                   <label class="agree"><input type="checkbox" name="rights" value="yes" required> <span>I own or have permission for every design, photo, logo and piece of music on this item.</span></label>
                   <label class="agree"><input type="checkbox" name="tracking" value="yes" required> <span>I'll post every order within the time above and send RRR proof of postage (tracking where possible).</span></label>
                   <label class="agree"><input type="checkbox" name="returns" value="yes" required> <span>I'll replace or refund items that arrive faulty or get lost.</span></label>
-                  <label class="agree"><input type="checkbox" id="mc-agree" name="agree" value="yes" required> <span>I agree to RRR's share of each sale.</span></label>
+                  <label class="agree"><input type="checkbox" id="mc-agree" name="agree" value="yes" required> <span>I'll pay the <b data-price="merch">€2.00</b> listing fee per item, and I'm responsible for posting orders, refunds and customer questions.</span></label>
                 </div>
+                <p class="paylink" data-amount="merch" hidden></p>
                 <button class="btn primary" type="submit">Send merch listing</button>
               </fieldset>
             </form>
@@ -284,7 +290,7 @@
   <div class="wrap">
     <span>© Retro Reverb Records · Since 2016 · A label for the people</span>
     <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
-    <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a></span>
+    <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="agreement.html">Member Agreement</a> · <a href="terms.html">Terms</a> · <a href="refunds.html">Refunds</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a> · <a href="withdraw.html">Withdraw from contract here</a></span>
   </div>
 </footer>
 <script src="assets/config.js"></script>

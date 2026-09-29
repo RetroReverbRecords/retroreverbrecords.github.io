@@ -41,7 +41,7 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id'],
@@ -51,6 +51,8 @@ const TABS = {
   Subscribers:  ['email','created','source','consent','status','token','member_id'],
   Press:        ['created','artist','email','outlet','title','url','quote','approved'],
   Claims:       ['created','member_id','action','points','proof','note','approved'],
+  Withdrawals:  ['received','name','email','member_id','contract_date','what','detail','sent_at','acknowledged','refund_by','refund_status'],
+  Blocked:      ['email','member_id','standing','since','reason','owner_checklist_sent'],
   Releases:     ['release_id','created','member_id','artist','email','title','bandcamp_url','artwork_url','genre','subgenre','release_date',
                  'description','why_fit','spotify_url','youtube_url','affiliation','series','catalogue_no','featured','status','approved_on','notified','admin_notes'],
   Newsletter:   ['month','created','subject','sent_to','queued','status'],
@@ -96,6 +98,7 @@ function doPost(e) {
     if (kind === 'press') return handlePress_(p);
     if (kind === 'claim') return handleClaim_(p);
     if (kind === 'rrr-release') return handleReleaseSubmission_(p);
+    if (kind === 'withdrawal') return handleWithdrawal_(p);
     if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
     return text_('ok');
@@ -115,7 +118,7 @@ function doGet(e) {
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
   const m = findRow_('Members', 'member_id', id);
-  if (!m || String(m.public).toLowerCase() === 'no') return json_({ ok: false, error: 'not found' });
+  if (!m || String(m.public).toLowerCase() === 'no' || standing_(m) === 'removed') return json_({ ok: false, error: 'not found' });
   return json_({ ok: true, member: publicProfile_(m) });
 }
 
@@ -123,6 +126,13 @@ function doGet(e) {
 // SIGN-UPS
 // ============================================================
 function handleSignup_(p) {
+  // Removed members can't join again (Code of Conduct: Blocking and removing abusive users)
+  const em = String(p.email || '').trim().toLowerCase();
+  if (em && rows_('Blocked').some(b => String(b.email).toLowerCase() === em && /removed/i.test(String(b.standing)))) {
+    log_('signup refused: blocked email', em);
+    notify_('Blocked person tried to sign up: ' + em, 'Their sign-up was not created. If they pay through PayPal anyway, refund them.\n' + sheetUrl_());
+    return text_('ok');
+  }
   // The website makes the member ID so it can go straight to PayPal with it
   let id = String(p.member_id || '').toUpperCase();
   if (!/^RRR-[A-Z0-9]{5}$/.test(id) || findRow_('Members', 'member_id', id)) id = newMemberId_();
@@ -143,9 +153,10 @@ function handleSignup_(p) {
     MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Your RRR membership agreement (' + version + ')',
       htmlBody: '<p>Hi ' + (p.name || '') + ',</p><p>Welcome to the RRR Community. This is your copy of what you agreed to when you signed up.</p>' +
         '<ul><li><b>Signed by:</b> ' + (p.signature || '') + '</li><li><b>Date and time:</b> ' + new Date().toUTCString() + '</li><li><b>Member ID:</b> ' + id + '</li><li><b>Terms version:</b> ' + version + '</li>' +
-        '<li>Agreed to the Membership Terms, Code of Conduct and Privacy Policy: ' + (p.agree_terms === 'yes' ? 'yes' : 'no') + '</li>' +
+        '<li>Agreed to the RRR Member Agreement (Membership Terms, Code of Conduct, Refund Policy, Privacy Policy): ' + (p.agree_terms === 'yes' ? 'yes' : 'no') + '</li>' +
         (isArtist ? '<li>Agreed to the AI-Generated Music Policy and Release Policy: ' + (p.agree_ai === 'yes' ? 'yes' : 'no') + '</li><li>Understands Bandcamp linking is needed for Bandcamp sales to be paid straight to them: ' + (p.agree_link === 'yes' ? 'yes' : 'no') + '</li>' : '') +
-        '</ul><p>Read the terms any time: <a href="' + SETTINGS.siteUrl + SETTINGS.termsUrl + '">' + SETTINGS.siteUrl + SETTINGS.termsUrl + '</a></p><p>Your dashboard: <a href="' + SETTINGS.siteUrl + 'member.html?id=' + id + '">' + SETTINGS.siteUrl + 'member.html?id=' + id + '</a></p><p>Retro Reverb Records</p>' });
+        '</ul><p>Your agreement: <a href="' + SETTINGS.siteUrl + 'agreement.html">' + SETTINGS.siteUrl + 'agreement.html</a> (with the <a href="' + SETTINGS.siteUrl + SETTINGS.termsUrl + '">Membership Terms</a>, <a href="' + SETTINGS.siteUrl + 'code-of-conduct.html">Code of Conduct</a>, <a href="' + SETTINGS.siteUrl + 'refunds.html">Refund Policy</a> and <a href="' + SETTINGS.siteUrl + 'privacy.html">Privacy Policy</a>).</p>' +
+        '<p><b>14 days to change your mind:</b> you can withdraw within 14 days of joining for a full refund of your membership. Use <a href="' + SETTINGS.siteUrl + 'withdraw.html">Withdraw from contract here</a> or reply to this email.</p><p>Your dashboard: <a href="' + SETTINGS.siteUrl + 'member.html?id=' + id + '">' + SETTINGS.siteUrl + 'member.html?id=' + id + '</a></p><p>Retro Reverb Records</p>' });
     emailed = 'yes';
   } catch (err) { log_('agreement email failed', String(err)); }
   append_('Agreements', { member_id: id, signed_at_server: new Date(), signed_at_client: p.signed_at || '', signature_name: p.signature || '', email: p.email, type: p.type,
@@ -174,6 +185,7 @@ function handleBooking_(kind, p) {
   const date = p.release_date || p.preferred_date || p.premiere_date || '';
   const member = p.email ? findRow_('Members', 'email', p.email) : null;
   const memberId = member ? member.member_id : '';
+  if (member && !inGoodStanding_(member)) { log_('booking refused: ' + standing_(member), memberId + ' ' + kind); notify_('Booking refused (member ' + standing_(member) + '): ' + memberId, JSON.stringify(p).slice(0, 800)); return text_('ok'); }
   const title = p.title || p.link || '';
   let eventId = '';
   // Release slots: dates are subject to availability
@@ -290,7 +302,8 @@ function publicProfile_(m) {
     id: id, name: m.artist || m.name, type: m.type, since: m.created, status: m.status,
     points: pts, rank: rank.name, nextRank: next ? next.name : null, nextAt: next ? next.min : null, rankFrom: rank.min,
     belt: rank.name,
-    membershipActive: /active/i.test(String(m.status)),
+    membershipActive: /active/i.test(String(m.status)) && standing_(m) !== 'suspended',
+    standing: standing_(m),
     artistType: m.type === 'artist' ? (m.artist_type || 'Member') : '',
     bandcampLinked: /^y/i.test(String(m.bandcamp_linked)),
     eligible: isEligible_(m),
@@ -354,6 +367,7 @@ function daily() {
   }
   approveClaims();
   processReleaseDecisions();
+  processStanding_();
   updateSongstats();
   newsletterTick_();
   digest_();
@@ -494,6 +508,7 @@ function handleClaim_(p) {
   const action = String(p.action || '');
   const m = findRow_('Members', 'member_id', id);
   if (!m || !(action in CLAIM_POINTS)) { log_('claim rejected', id + ' ' + action); return text_('ok'); }
+  if (!inGoodStanding_(m)) { log_('claim refused: ' + standing_(m), id); return text_('ok'); }
   append_('Claims', { created: new Date(), member_id: id, action: CLAIM_LABELS[action] || action, points: CLAIM_POINTS[action],
     proof: String(p.proof || '').slice(0, 500), note: String(p.note || '').slice(0, 500), approved: 'pending' });
   notify_('RRR points claim: ' + (m.artist || m.name || id) + ' – ' + (CLAIM_LABELS[action] || action),
@@ -569,7 +584,7 @@ const AFFILIATIONS = ['Pending review', 'RRR Genre Release', 'RRR Signed Release
 const RRR_AFFILIATIONS = ['RRR Genre Release', 'RRR Signed Release'];
 
 function isEligible_(m) {
-  return !!m && m.type === 'artist' && /active/i.test(String(m.status)) && /^y/i.test(String(m.bandcamp_linked));
+  return !!m && m.type === 'artist' && /active/i.test(String(m.status)) && /^y/i.test(String(m.bandcamp_linked)) && inGoodStanding_(m);
 }
 
 function handleReleaseSubmission_(p) {
@@ -577,6 +592,7 @@ function handleReleaseSubmission_(p) {
   const m = findRow_('Members', 'member_id', id);
   const forRrr = p.intent !== 'log';
   if (!m || m.type !== 'artist') { log_('release submission refused', id + ' not an artist member'); return text_('ok'); }
+  if (!inGoodStanding_(m)) { log_('release submission refused', id + ' ' + standing_(m)); return text_('ok'); }
   if (forRrr && !isEligible_(m)) { log_('release submission refused', id + ' not eligible (membership or Bandcamp link)'); return text_('ok'); }
   const affiliation = forRrr ? 'Pending review' : (p.affiliation === 'Other Label' ? 'Other Label' : 'Independent');
   const url = String(p.bandcamp_url || '').trim();
@@ -648,7 +664,8 @@ function processReleasesNow() {
 
 function publicSelectedReleases_() {
   const today = new Date();
-  return rows_('Releases').filter(r => RRR_AFFILIATIONS.indexOf(String(r.affiliation)) >= 0 && r.catalogue_no)
+  const removed = rows_('Members').filter(m => standing_(m) === 'removed').map(m => m.member_id);
+  return rows_('Releases').filter(r => RRR_AFFILIATIONS.indexOf(String(r.affiliation)) >= 0 && r.catalogue_no && removed.indexOf(r.member_id) < 0)
     .map(r => ({ artist: r.artist, title: r.title, artwork: r.artwork_url, genre: r.genre, subgenre: r.subgenre, date: r.release_date,
       series: r.series, catalogue: r.catalogue_no, affiliation: r.affiliation, url: r.bandcamp_url, spotify: r.spotify_url, youtube: r.youtube_url,
       description: r.description, featured: /^y|true/i.test(String(r.featured)),
@@ -668,6 +685,68 @@ function applyValidations_() {
   set('Members', 'bandcamp_linked', list(['yes', 'no']));
   set('Members', 'bandcamp_pro', list(['yes', 'no', 'eligible']));
   set('Members', 'link_method', list(['password', 'invite']));
+  set('Members', 'standing', list(['good', 'warning', 'suspended', 'removed']));
+  set('Withdrawals', 'refund_status', list(['to do', 'refunded', 'not due']));
+}
+
+// ============================================================
+// SAFETY: warnings, suspensions, removals (Code of Conduct → Blocking and removing abusive users)
+// In the Members tab set "standing" to warning / suspended / removed.
+//  - suspended: no bookings, claims or submissions; dashboard shows "suspended"
+//  - removed: profile hidden, RRR releases unlisted, email blocked from joining again
+// You get a checklist email for the things only you can do (PayPal, Discord, Bandcamp).
+// Always email the member yourself: what you decided, which rule, why, how to appeal (14 days).
+// ============================================================
+function standing_(m) { return String((m && m.standing) || 'good').trim().toLowerCase() || 'good'; }
+function inGoodStanding_(m) { const s = standing_(m); return s !== 'suspended' && s !== 'removed'; }
+
+function processStanding_() {
+  const blocked = rows_('Blocked');
+  let n = 0;
+  rows_('Members').forEach(m => {
+    const s = standing_(m);
+    if (s !== 'suspended' && s !== 'removed') return;
+    if (blocked.some(b => b.member_id === m.member_id && String(b.standing).toLowerCase() === s)) return;
+    append_('Blocked', { email: String(m.email || '').toLowerCase(), member_id: m.member_id, standing: s, since: new Date(), reason: m.admin_notes || '', owner_checklist_sent: 'yes' });
+    n++;
+    const who = (m.artist || m.name || '') + ' (' + m.member_id + ', ' + m.email + ')';
+    notify_((s === 'removed' ? 'Removal' : 'Suspension') + ' checklist: ' + who,
+      (s === 'removed'
+        ? 'Done automatically: profile hidden, RRR releases unlisted from the website, bookings/claims/submissions refused, email blocked from joining again.\n\nYour checklist:\n1. PayPal: cancel their subscription (Activity → subscription → Cancel).\n2. Refund upload fees for releases not uploaded yet (Refund Policy section 5).\n3. Discord: remove or ban them.\n4. Bandcamp: remove them from the RRR label roster and RRR branding from their releases.\n5. Email them: what you decided, which rule, why, and that they can appeal within 14 days by replying.'
+        : 'Done automatically: bookings, claims and submissions are refused and their dashboard shows "suspended".\n\nYour checklist:\n1. PayPal: suspend (pause) their subscription for the suspension period.\n2. Discord: mute them or give them a timeout.\n3. Email them: what you decided, which rule, why, how long (max 30 days), and that they can appeal within 14 days by replying.\n4. When it ends: set standing back to good and restart their PayPal subscription.') +
+      '\n\n' + sheetUrl_());
+  });
+  return n;
+}
+function processStandingNow() {
+  const n = processStanding_();
+  SpreadsheetApp.getUi().alert(n ? n + ' change(s) applied. Check your email for the checklist.' : 'Nothing new. Set "standing" in the Members tab first.');
+}
+
+// ============================================================
+// WITHDRAWAL (14 days to change your mind: EU Directive 2023/2673, Codice del Consumo art. 54-bis)
+// The website's "Withdraw from contract here" page sends here. The person gets an
+// acknowledgement email straight away (required), and you get a refund reminder.
+// ============================================================
+function handleWithdrawal_(p) {
+  const now = new Date(), refundBy = new Date(now.getTime() + 14 * 86400000);
+  const email = String(p.email || '').trim();
+  let ack = 'no';
+  if (email) {
+    try {
+      MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', subject: 'We have received your withdrawal',
+        body: 'Hi ' + (p.name || '') + ',\n\nWe received your withdrawal on ' + now.toUTCString() + '.\n\n' +
+          'You withdrew from: ' + (p.what || '') + (p.detail ? ' (' + p.detail + ')' : '') + '\nMember ID: ' + (p.member_id || '-') + '\n\n' +
+          'If you are within your 14 days, we refund what is due under our Refund Policy within 14 days, to the payment method you used: ' + SETTINGS.siteUrl + 'refunds.html\n\n' +
+          'Keep this email as your receipt.\n\nRetro Reverb Records' });
+      ack = 'yes ' + now.toISOString();
+    } catch (e) { log_('withdrawal ack failed', String(e)); }
+  }
+  append_('Withdrawals', { received: now, name: p.name, email: email, member_id: String(p.member_id || '').toUpperCase(), contract_date: p.contract_date,
+    what: p.what, detail: String(p.detail || '').slice(0, 500), sent_at: p.sent_at, acknowledged: ack, refund_by: refundBy, refund_status: 'to do' });
+  notify_('WITHDRAWAL: ' + (p.name || email) + ' – ' + (p.what || ''), 'Refund what is due by ' + refundBy.toDateString() + ' (legal deadline: 14 days).\n' +
+    '1. Check the date they joined/booked is within 14 days.\n2. Refund in PayPal (and cancel their subscription if it is the membership).\n3. Set refund_status in the Withdrawals tab.\n\n' + sheetUrl_());
+  return text_('ok');
 }
 
 // Sheet menu so you don't have to wait for the daily run
@@ -675,6 +754,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('RRR')
     .addItem('Give approved points now', 'approveClaimsNow')
     .addItem('Process release decisions now', 'processReleasesNow')
+    .addItem('Apply suspensions and removals now', 'processStandingNow')
     .addToUi();
   try { applyValidations_(); } catch (e) {}
 }

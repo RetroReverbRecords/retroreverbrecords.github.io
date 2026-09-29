@@ -233,7 +233,7 @@
       setStatus(st, open, '<strong>Booking is open.</strong> We confirm every booking by email.',
         '<strong>Coming soon.</strong> Booking opens when RRR membership launches. You can still use the deadline planner.');
       const pl = $('.paylink', f), sel = $('select[name=format]', f);
-      const amount = () => sel ? fees0[sel.value] : (pl ? fees0[pl.dataset.amount] : null);
+      const amount = () => (pl && pl.dataset.amount) ? fees0[pl.dataset.amount] : (sel ? fees0[sel.value] : null);
       f.addEventListener('submit', async e => {
         e.preventDefault();
         if (!open) return;

@@ -260,8 +260,8 @@
         <div>
           <p class="label">For artists</p>
           <h3>Sell your merch with us</h3>
-          <p>List your shirts, cassettes, CDs, vinyl and prints in the RRR store and in front of the whole community. RRR takes the payment and sends you your share. RRR keeps <b><span data-merch-pct>a percentage</span></b> of each sale.</p>
-          <p class="small">RRR doesn't handle shipping: you post the items yourself or use a print-on-demand or fulfilment company that makes and ships them for you.</p>
+          <p>List your shirts, cassettes, CDs, vinyl and prints on your own Bandcamp page, linked to RRR, and in front of the whole community. <b>Fans pay you directly.</b> RRR charges a flat <b data-price="merch">€2.00</b> per item listed and takes no share of your sales. Send us photos and details and we can set the listing up for you.</p>
+          <p class="small">RRR doesn't handle shipping, refunds or customer questions: you post the items yourself or use a print-on-demand or fulfilment company that makes and ships them for you.</p>
           <details class="needs"><summary>What you need to list merch</summary>
             <ul>
               <li><b>Rights:</b> you own or have permission for every design, photo and logo. No band, film or brand artwork you don't own.</li>
@@ -269,10 +269,10 @@
               <li><b>Details:</b> title, description, price, sizes and colours, and how many you have.</li>
               <li><b>Shipping:</b> the country it ships from and postage costs for your country, Europe and the rest of the world. Weigh a packed item at the post office first so your postage is right.</li>
               <li><b>Posting on time:</b> post within the time you promise and send proof of postage, with tracking where possible. Bandcamp doesn't make, store or ship anything.</li>
-              <li><b>Problems:</b> replace or refund anything that arrives faulty or gets lost.</li>
+              <li><b>Problems and returns:</b> you're the seller, so you answer fans' questions and replace or refund anything that arrives faulty or gets lost.</li>
               <li><b>Print on demand:</b> Bandcamp doesn't connect to Printful and similar companies, so each order has to be placed with them by hand.</li>
             </ul>
-            <p class="small">Bandcamp keeps 10% of merch sales plus payment fees. RRR's share is on top of that.</p>
+            <p class="small">Bandcamp keeps 10% of merch sales plus payment fees. RRR takes no share: just the <span data-price="merch">€2.00</span> listing fee.</p>
           </details>
           <a class="btn primary" href="book.html#merch">List your merch</a>
         </div>
@@ -388,15 +388,24 @@
             </div>
             <label for="f-ref" class="small ref">Who invited you? (optional, they earn points)<input id="f-ref" name="referred_by" type="text" placeholder="Artist name or member ID"></label>
             <div class="sign">
-              <span class="label">Agreement · required</span>
-              <p class="small">Before you create an account, read and agree to these. Your typed name is your electronic signature. We store it with the date and the version you agreed to, and email you a copy.</p>
-              <label class="agree"><input type="checkbox" id="f-terms" name="agree_terms" value="yes" required> I have read and agree to the <a href="terms.html" target="_blank">Membership Terms</a>, the <a href="code-of-conduct.html" target="_blank">Code of Conduct</a> and the <a href="privacy.html" target="_blank">Privacy Policy</a>.</label>
+              <span class="label">Sign the RRR Member Agreement · required</span>
+              <div class="keypoints">
+                <p><b>In short:</b></p>
+                <ul>
+                  <li>Monthly membership through PayPal. Cancel any time. <b>14 days to change your mind</b> for a full refund.</li>
+                  <li>Your music stays yours: <b>100% of your royalties</b>, non-exclusive, release by release.</li>
+                  <li>Follow the Code of Conduct. Abuse can lead to warnings, suspension or removal, and you can always appeal.</li>
+                  <li>Points, belts and cards have no cash value.</li>
+                </ul>
+                <p class="small"><a href="agreement.html" target="_blank">Read the full agreement</a> (1 page) · <a href="terms.html" target="_blank">Terms</a> · <a href="code-of-conduct.html" target="_blank">Code of Conduct</a> · <a href="refunds.html" target="_blank">Refunds</a> · <a href="privacy.html" target="_blank">Privacy</a></p>
+              </div>
+              <label class="agree"><input type="checkbox" id="f-terms" name="agree_terms" value="yes" required> <span>I have read and agree to the <a href="agreement.html" target="_blank">RRR Member Agreement</a>, which includes the Membership Terms, Code of Conduct, Refund Policy and Privacy Policy. I'm 18 or over, or have a parent's or guardian's permission.</span></label>
               <label class="agree artist-only"><input type="checkbox" id="f-ai" name="agree_ai" value="yes"> I agree to the <a href="terms.html#ai" target="_blank">AI-Generated Music Policy</a> and the <a href="release-policy.html" target="_blank">Release Policy</a>, and will declare any AI use with each release.</label>
               <label class="agree artist-only"><input type="checkbox" id="f-link" name="agree_link" value="yes"> I understand that for Bandcamp sales to be paid straight to me, my Bandcamp account must be linked to the RRR label.</label>
               <label for="f-sign">Type your full legal name to sign<input id="f-sign" name="signature" type="text" autocomplete="name" required placeholder="Full legal name"></label>
-              <p class="small">Signed on <b id="f-sign-date" class="num"></b> · Terms version <b id="f-terms-v" class="num"></b></p>
+              <p class="small">Your typed name is your electronic signature. We store it with the date, time and version, and email you a copy. Signed on <b id="f-sign-date" class="num"></b> · Agreement version <b id="f-terms-v" class="num"></b></p>
             </div>
-            <button class="btn primary" type="submit" id="signup-submit">Create account</button>
+            <button class="btn primary" type="submit" id="signup-submit">Sign and create account</button>
             <div class="pay">
               <span class="label">Payment</span>
               <div id="paypal-buttons"></div>
@@ -454,7 +463,7 @@
   <div class="wrap">
     <span>© Retro Reverb Records · Since 2016 · A label for the people</span>
     <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
-    <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a></span>
+    <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="agreement.html">Member Agreement</a> · <a href="terms.html">Terms</a> · <a href="refunds.html">Refunds</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a> · <a href="withdraw.html">Withdraw from contract here</a></span>
   </div>
 </footer>
 

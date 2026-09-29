@@ -137,6 +137,7 @@
     const kindLabel = k => ({ 'bandcamp-release': 'Bandcamp', 'streaming-release': 'Streaming' }[k] || k);
     const s = m.stats;
     $('#dash').innerHTML = `
+      ${m.standing === 'suspended' ? `<div class="panel empty" style="border-color:#ff8a8a"><b>Your membership is suspended.</b><span>Bookings, claims and submissions are paused. We've emailed you why and how to appeal. Questions: ${esc(C.email)}</span></div>` : ''}
       ${demo ? `<p class="prov"><span>Example</span> ${notLive ? 'Member dashboards go live when the RRR automation is switched on. This is an example.' : 'This is an example dashboard with made-up numbers.'}</p>` : ''}
       <div class="dash-top">
         <div class="panel who">

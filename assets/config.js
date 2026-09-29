@@ -45,11 +45,13 @@ window.RRR_CONFIG = {
     single: 2.00,            // Upload fee: single. Same price for Bandcamp, streaming or both
     ep: 2.50,                // Upload fee: EP, 2–5 tracks. Same price for Bandcamp, streaming or both
     album: 3.00,             // Upload fee: album, 6+ tracks. Same price for Bandcamp, streaming or both
-    youtube: 1.50            // YouTube upload, per video
+    youtube: 1.50,           // YouTube upload, per video
+    merch: 2.00              // Merch listing, per item (one-off). Sales are paid to the artist directly
   },
 
   // SELL YOUR MERCH WITH US
-  // commissionPercent: RRR's share of each merch sale. null = not decided yet (site says "a percentage").
+  // Merch is sold from the artist's own linked Bandcamp page and paid to the artist.
+  // RRR charges a flat listing fee (prices.merch). commissionPercent is no longer used.
   merch: {
     commissionPercent: null,
     fulfilment: [
@@ -63,7 +65,7 @@ window.RRR_CONFIG = {
 
   // Current version of the Terms. Change the date when the Terms change;
   // new sign-ups then sign the new version.
-  termsVersion: "2026-09-29-beta3",
+  termsVersion: "2026-09-29-beta4",
 
   // YouTube community
   youtube: {
@@ -129,4 +131,4 @@ window.RRR_CONFIG = {
 
 // Older names some code still reads — kept in step automatically. Don't edit these.
 window.RRR_CONFIG.membershipPrices = { artist: window.RRR_CONFIG.prices.artist, fan: window.RRR_CONFIG.prices.fan };
-window.RRR_CONFIG.uploadFees = { single: window.RRR_CONFIG.prices.single, ep: window.RRR_CONFIG.prices.ep, album: window.RRR_CONFIG.prices.album, youtube: window.RRR_CONFIG.prices.youtube };
+window.RRR_CONFIG.uploadFees = { single: window.RRR_CONFIG.prices.single, ep: window.RRR_CONFIG.prices.ep, album: window.RRR_CONFIG.prices.album, youtube: window.RRR_CONFIG.prices.youtube, merch: window.RRR_CONFIG.prices.merch };

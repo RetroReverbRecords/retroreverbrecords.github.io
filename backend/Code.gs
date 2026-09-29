@@ -20,7 +20,7 @@ const SETTINGS = {
   ownerEmail: 'retroreverbrecords@gmail.com',       // where alerts go
   paypalEmail: 'retroreverbrecords@gmail.com',      // PayPal account that receives money
   calendarName: 'RRR Releases',
-  siteUrl: 'https://londonlanguageschool.github.io/Retro-Reverb-Records-membership-platform/',
+  siteUrl: 'https://beta.retroreverbrecords.com/',
   songstatsBase: 'https://api.songstats.com/enterprise/v1', // confirm in Songstats docs
   songstatsLabelId: 'ywz70gl4',                      // from songstats.com/label/ywz70gl4
   // Deadlines (days before release) — keep in step with assets/config.js

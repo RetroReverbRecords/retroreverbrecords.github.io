@@ -22,7 +22,7 @@ window.RRR_CONFIG = {
   automationUrl: "",
 
   // Public address of this site (used for PayPal "return to site" links).
-  siteUrl: "https://londonlanguageschool.github.io/Retro-Reverb-Records-membership-platform/",
+  siteUrl: "https://beta.retroreverbrecords.com/",
 
   // HOW PEOPLE PAY
   // membershipVia: "paypal"   = monthly PayPal subscription to paypalEmail (automated)

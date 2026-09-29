@@ -485,6 +485,26 @@ function approveClaims() {
   return given;
 }
 
+// ============================================================
+// FOUNDING MEMBERS — run once: select setupFounders above, click Run.
+// Cybertronix: founder, 10th Dan. Eden Future: ambassador, starts at 3rd Dan.
+// Safe to run again: it never adds anyone twice.
+// ============================================================
+const FOUNDERS = [
+  { member_id: 'RRR-00001', artist: 'Cybertronix', name: 'Cybertronix', email: SETTINGS.ownerEmail, role: 'Founder', points: 20000, status: 'active (founder)' },
+  { member_id: 'RRR-00002', artist: 'Eden Future', name: 'Eden Future', email: '', role: 'Ambassador', points: 4200, status: 'active (ambassador)' }
+];
+function setupFounders() {
+  FOUNDERS.forEach(f => {
+    if (!findRow_('Members', 'member_id', f.member_id))
+      append_('Members', { member_id: f.member_id, created: new Date(), type: 'artist', name: f.name, artist: f.artist, email: f.email, status: f.status, plan: 'honorary', public: 'yes' });
+    if (!rows_('Achievements').some(r => r.member_id === f.member_id && r.achievement === f.role))
+      append_('Achievements', { member_id: f.member_id, achievement: f.role, earned_on: new Date(), points: f.points, note: f.role + ' starting rank' });
+    recalcPoints_(f.member_id);
+  });
+  return 'Founders ready: RRR-00001 Cybertronix (10th Dan), RRR-00002 Eden Future (3rd Dan). Add Eden Future\'s email in the Members tab.';
+}
+
 // Sheet menu so you don't have to wait for the daily run
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('RRR')

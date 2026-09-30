@@ -44,7 +44,7 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id'],
@@ -285,9 +285,16 @@ function handlePayPal_(e) {
   // 3. Update the member
   const t = p.txn_type;
   const setStatus = (status) => { if (memberId) updateRow_('Members', 'member_id', memberId, { status: status, paypal_subscr_id: p.subscr_id || '' }); };
-  if (t === 'subscr_signup' || t === 'subscr_payment') setStatus('active');
+  const mem = memberId ? findRow_('Members', 'member_id', memberId) : null;
+  if (t === 'subscr_signup' || t === 'subscr_payment') {
+    const wasLocked = mem && /locked|archived|payment failed|lapsed/i.test(String(mem.status));
+    setStatus('active');
+    if (memberId) updateRow_('Members', 'member_id', memberId, { payment_issue_since: ' ', payment_chase: ' ' });
+    if (wasLocked && mem.email) try { MailApp.sendEmail({ to: mem.email, name: 'Retro Reverb Records', subject: 'Welcome back to RRR', body: 'Your payment came through and everything is unlocked again: bookings, points and Series. Thanks!\n\n' + SETTINGS.siteUrl + 'member.html?id=' + memberId + '\n\nRetro Reverb Records' }); } catch (e) {}
+  }
   if (t === 'subscr_cancel') setStatus('cancelled (active until period ends)');
-  if (t === 'subscr_eot' || t === 'subscr_failed') setStatus('lapsed');
+  if (t === 'subscr_eot' && mem && /^cancelled/i.test(String(mem.status))) setStatus('ended');
+  else if (t === 'subscr_failed' || t === 'subscr_eot') startPaymentChase_(mem);
 
   // 4. Tell the owner straight away
   const who = memberId || p.payer_email;
@@ -398,6 +405,7 @@ function daily() {
   processStanding_();
   processDisputes_();
   expireUnpaidBookings_();
+  paymentChase_();
   try { cleanDisputeFiles_(); } catch (e) { log_('dispute cleanup failed', String(e)); }
   updateSongstats();
   newsletterTick_();
@@ -731,8 +739,41 @@ function applyValidations_() {
 // You get a checklist email for the things only you can do (PayPal, Discord, Bandcamp).
 // Always email the member yourself: what you decided, which rule, why, how to appeal (14 days).
 // ============================================================
+// ============================================================
+// MISSED PAYMENTS: polite, automatic, nothing deleted
+// Day 0 friendly email · day 7 reminder · day 14 locked (can see belt/points, can't book or claim)
+// · day 90 archived (email first). A payment unlocks everything straight away.
+// ============================================================
+function startPaymentChase_(m) {
+  if (!m) return;
+  if (!String(m.payment_issue_since || '').trim()) updateRow_('Members', 'member_id', m.member_id, { status: 'payment failed', payment_issue_since: new Date(), payment_chase: 'day 0' });
+  else return;
+  chaseEmail_(m, 'day0');
+}
+function chaseEmail_(m, step) {
+  if (!m.email) return;
+  const pause = 'Need a break instead? Pausing costs €1 a month for artists (€0.50 for fans) and keeps your belt and points: reply "pause".';
+  const texts = {
+    day0: ['Quick one about your RRR membership', 'PayPal couldn\'t take your membership payment. It happens: an expired card, a new bank card, low balance.\n\nTo fix it, update your card in PayPal (Settings → Payments → Manage automatic payments), or restart your membership here: ' + SETTINGS.siteUrl + 'index.html#join\n\nPayPal will also try again in a few days.\n\n' + pause],
+    day7: ['Reminder: your RRR membership payment', 'Your membership payment still hasn\'t gone through. If it isn\'t sorted within a week, your account will be locked (nothing is deleted: your belt, points and releases stay safe).\n\nUpdate your card in PayPal or restart here: ' + SETTINGS.siteUrl + 'index.html#join\n\n' + pause],
+    day14: ['Your RRR account is locked (nothing is deleted)', 'We still haven\'t received your membership payment, so your account is locked: you can see your belt and points, but bookings, claims and Series submissions are paused.\n\nPay and everything unlocks straight away: ' + SETTINGS.siteUrl + 'index.html#join\n\n' + pause],
+    day90: ['Your RRR account has been archived', 'Your membership has been unpaid for 90 days, so we\'ve archived your account. Your points stay on record for 12 months: rejoin any time and pick up where you left off: ' + SETTINGS.siteUrl + 'index.html#join']
+  }[step];
+  try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: texts[0], body: 'Hi ' + (m.artist || m.name || '') + ',\n\n' + texts[1] + '\n\nRetro Reverb Records' }); } catch (e) { log_('chase email failed', String(e)); }
+}
+function paymentChase_() {
+  const now = Date.now();
+  rows_('Members').forEach(m => {
+    const since = String(m.payment_issue_since || '').trim(); if (!since) return;
+    const days = (now - new Date(m.payment_issue_since).getTime()) / 86400000, done = String(m.payment_chase || '');
+    if (days >= 90 && done !== 'day 90') { updateRow_('Members', 'member_id', m.member_id, { status: 'archived (unpaid)', payment_chase: 'day 90' }); chaseEmail_(m, 'day90'); }
+    else if (days >= 14 && days < 90 && !/day (14|90)/.test(done)) { updateRow_('Members', 'member_id', m.member_id, { status: 'locked (unpaid)', payment_chase: 'day 14' }); chaseEmail_(m, 'day14'); }
+    else if (days >= 7 && days < 14 && done === 'day 0') { updateRow_('Members', 'member_id', m.member_id, { payment_chase: 'day 7' }); chaseEmail_(m, 'day7'); }
+  });
+}
+
 function standing_(m) { return String((m && m.standing) || 'good').trim().toLowerCase() || 'good'; }
-function inGoodStanding_(m) { const s = standing_(m); return s !== 'suspended' && s !== 'removed'; }
+function inGoodStanding_(m) { const s = standing_(m); return s !== 'suspended' && s !== 'removed' && !/locked|archived/i.test(String(m && m.status)); }
 
 function processStanding_() {
   const blocked = rows_('Blocked');

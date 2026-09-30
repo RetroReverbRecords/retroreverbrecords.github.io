@@ -50,6 +50,12 @@ nav a:hover{color:var(--pink);text-shadow:var(--glow-pink)}
 .brandkit .sw img{position:absolute;inset:14px;width:calc(100% - 28px);height:calc(100% - 28px);max-width:none;object-fit:contain}
 .brandkit figcaption{font-size:14px;color:var(--muted)}
 .legalline{display:block;font-size:12px;opacity:.75;margin-top:6px}
+.labelline{margin:10px auto 6px;max-width:52ch;font:500 14px/1.5 var(--mono);letter-spacing:.06em;color:var(--cyan)}
+.pitch{gap:0 40px;align-items:start}
+.steps.steps2{counter-reset:step 3}
+.promises{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px 0}
+.promises span{border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:600;background:var(--panel,#141032)}
+@media (max-width:760px){.pitch{grid-template-columns:1fr}.pitch .steps li{padding-block:16px}}
 .hero .lede{font-size:18px;color:var(--muted);max-width:56ch}
 .ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .btn{display:inline-block;padding:13px 22px;border-radius:4px;font:700 13px var(--head);letter-spacing:.12em;text-transform:uppercase;text-decoration:none}
@@ -209,8 +215,8 @@ nav a.btn.primary:hover{color:#fff;text-shadow:none}
 .more a{font:700 12px var(--head);letter-spacing:.12em;text-transform:uppercase;text-decoration:none}
 
 /* merch */
-.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px}
-.mcard{padding:18px;display:grid;gap:8px;align-content:start;text-decoration:none;color:var(--text);transition:border-color .2s,box-shadow .2s}
+.mgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:26px}
+.mcard{min-width:0;overflow-wrap:anywhere;padding:18px;display:grid;gap:8px;align-content:start;text-decoration:none;color:var(--text);transition:border-color .2s,box-shadow .2s}
 .mcard:hover{border-color:var(--cyan);box-shadow:0 0 18px rgba(63,208,255,.25)}
 .mtype{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
 .mcard b{font-weight:600;line-height:1.3}
@@ -274,9 +280,9 @@ input[type=date],input[type=time]{font:400 15px var(--body);color:var(--text);ba
 .groover p{color:var(--muted);max-width:60ch}
 .groover .btn{justify-self:start}
 
-@media (max-width:900px){.rgrid,.mgrid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){.rgrid,.mgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:760px){
-  .rgrid,.mgrid{grid-template-columns:repeat(2,1fr)}
+  .rgrid,.mgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .bookgrid{grid-template-columns:1fr}
   .steps li{grid-template-columns:44px 1fr;gap:14px}
   .steps li::before{font-size:22px}

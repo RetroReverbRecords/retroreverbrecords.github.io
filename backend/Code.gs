@@ -20,6 +20,10 @@
 // ---------- SETTINGS (edit these) ----------
 const SETTINGS = {
   ownerEmail: 'retroreverbrecords@gmail.com',       // where alerts go
+  // Demo / walkthrough accounts: sign up with retroreverbrecords+anything@gmail.com.
+  // They skip payment, bookings confirm without paying and take no real dates or calendar slots.
+  // Remove them with the menu: RRR → Remove demo test data.
+  demoEmailPrefix: 'retroreverbrecords+',
   paypalEmail: 'retroreverbrecords@gmail.com',      // PayPal account that receives money
   calendarName: 'RRR Releases',
   siteUrl: 'https://retroreverbrecords.github.io/',
@@ -154,7 +158,7 @@ function handleSignup_(p) {
   append_('Members', {
     member_id: id, created: new Date(), type: p.type || 'fan', name: p.name, artist: p.artist,
     email: p.email, country: p.country, address_line1: p.address_line1, address_line2: p.address_line2,
-    city: p.city, postcode: p.postcode, bandcamp: p.bandcamp, status: 'pending payment',
+    city: p.city, postcode: p.postcode, bandcamp: p.bandcamp, status: isDemo_(p.email) ? 'active (demo)' : 'pending payment',
     plan: p.type === 'artist' ? 'Artist' : 'Fan', points: 0, rank: 'White belt', public: 'yes',
     artist_type: p.type === 'artist' ? 'Member' : '', bandcamp_linked: p.type === 'artist' ? 'no' : ''
   });
@@ -166,7 +170,7 @@ function handleSignup_(p) {
   let emailed = 'no';
   try {
     MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Your RRR membership agreement (' + version + ')',
-      htmlBody: '<p>Hi ' + (p.name || '') + ',</p><p>Welcome to the RRR Community. This is your copy of what you agreed to when you signed up.</p>' +
+      htmlBody: '<p>Hi ' + (p.name || '') + ',</p><p><b>Welcome to the family.</b> You are now part of the RRR Community. This is your copy of what you agreed to when you signed up.</p>' +
         '<ul><li><b>Signed by:</b> ' + (p.signature || '') + '</li><li><b>Date and time:</b> ' + new Date().toUTCString() + '</li><li><b>Member ID:</b> ' + id + '</li><li><b>Terms version:</b> ' + version + '</li>' +
         '<li>Agreed to the RRR Member Agreement (Membership Terms, Code of Conduct, Refund Policy, Privacy Policy): ' + (p.agree_terms === 'yes' ? 'yes' : 'no') + '</li>' +
         (isArtist ? '<li>Agreed to the AI-Generated Music Policy and Release Policy: ' + (p.agree_ai === 'yes' ? 'yes' : 'no') + '</li><li>Understands Bandcamp linking is needed for Bandcamp sales to be paid straight to them: ' + (p.agree_link === 'yes' ? 'yes' : 'no') + '</li>' : '') +
@@ -189,7 +193,7 @@ function handleSignup_(p) {
     updateRow_('Members', 'member_id', id, { referred_by: ref });
   }
   notify_('New RRR sign-up: ' + (p.artist || p.name) + ' (' + (p.type || 'fan') + ')',
-    'Member ID: ' + id + '\nEmail: ' + p.email + '\nWaiting for PayPal payment.\n\nMembers sheet: ' + sheetUrl_());
+    'Member ID: ' + id + '\nEmail: ' + p.email + (isDemo_(p.email) ? '\nDEMO account: payment skipped, already active.' : '\nWaiting for PayPal payment.') + '\n\nMembers sheet: ' + sheetUrl_());
   return text_('ok');
 }
 
@@ -210,6 +214,7 @@ function handleBooking_(kind, p) {
   if (SETTINGS.paidKinds.indexOf(kind) >= 0 && p.booking_id) {
     append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email, title: title, format: p.format || '',
       date: date, details: JSON.stringify(p).slice(0, 1500), status: 'awaiting payment', booking_id: String(p.booking_id).toUpperCase() });
+    if (isDemo_(p.email)) confirmBooking_(String(p.booking_id).toUpperCase(), 'demo', 'DEMO');
     return text_('ok');
   }
   if (date && !full) eventId = addToCalendar_(kind, p, date);
@@ -290,7 +295,7 @@ function handlePayPal_(e) {
     const wasLocked = mem && /locked|archived|payment failed|lapsed/i.test(String(mem.status));
     setStatus('active');
     if (memberId) updateRow_('Members', 'member_id', memberId, { payment_issue_since: ' ', payment_chase: ' ' });
-    if (wasLocked && mem.email) try { MailApp.sendEmail({ to: mem.email, name: 'Retro Reverb Records', subject: 'Welcome back to RRR', body: 'Your payment came through and everything is unlocked again: bookings, points and Series. Thanks!\n\n' + SETTINGS.siteUrl + 'member.html?id=' + memberId + '\n\nRetro Reverb Records' }); } catch (e) {}
+    if (wasLocked && mem.email) try { MailApp.sendEmail({ to: mem.email, name: 'Retro Reverb Records', subject: 'Welcome back to the family', body: 'Your payment came through and everything is unlocked again: bookings, points and Series. Thanks!\n\n' + SETTINGS.siteUrl + 'member.html?id=' + memberId + '\n\nRetro Reverb Records' }); } catch (e) {}
   }
   if (t === 'subscr_cancel') setStatus('cancelled (active until period ends)');
   if (t === 'subscr_eot' && mem && /^cancelled/i.test(String(mem.status))) setStatus('ended');
@@ -419,7 +424,7 @@ function digest_() {
   const books = rows_('Bookings').filter(r => new Date(r.created) >= since);
   const soon = new Date(Date.now() + 7 * 24 * 3600 * 1000);
   const deadlines = getCalendar_().getEvents(new Date(), soon).filter(ev => /^DEADLINE/.test(ev.getTitle())).map(ev => '• ' + ev.getAllDayStartDate().toDateString() + ' – ' + ev.getTitle());
-  const active = rows_('Members').filter(r => /active/.test(r.status)).length;
+  const active = rows_('Members').filter(r => /active/.test(r.status) && !/demo/.test(r.status)).length;
   if (!newM.length && !pays.length && !books.length && !deadlines.length) return;
   notify_('RRR daily digest – ' + newM.length + ' new members, ' + pays.length + ' payments, ' + books.length + ' bookings',
     'Active members: ' + active +
@@ -772,6 +777,8 @@ function paymentChase_() {
   });
 }
 
+function isDemo_(email) { const e = String(email || '').trim().toLowerCase(); return !!SETTINGS.demoEmailPrefix && e.indexOf(SETTINGS.demoEmailPrefix) === 0 && /@gmail\.com$/.test(e); }
+
 function standing_(m) { return String((m && m.standing) || 'good').trim().toLowerCase() || 'good'; }
 function inGoodStanding_(m) { const s = standing_(m); return s !== 'suspended' && s !== 'removed' && !/locked|archived/i.test(String(m && m.status)); }
 
@@ -983,10 +990,11 @@ function confirmBooking_(bookingId, amount, txnId) {
     const row = i + 1, status = String(v[i][c('status')]);
     if (/^confirmed/i.test(status)) return;          // already done (PayPal can repeat)
     const kind = v[i][c('kind')], p = JSON.parse(v[i][c('details')] || '{}');
+    const demo = txnId === 'DEMO';
     let date = isoDate_(v[i][c('date')]), moved = '';
-    if (date && !slotFree_(kind, date)) { const nd = nextFreeDate_(kind, date); moved = date; date = nd; sh.getRange(row, c('date') + 1).setValue(date); }
-    const eventId = date ? addToCalendar_(kind, Object.assign({}, p, { title: v[i][c('title')], artist: v[i][c('artist')] }), date) : '';
-    sh.getRange(row, c('status') + 1).setValue(moved ? 'confirmed (moved from ' + moved + ')' : 'confirmed');
+    if (date && !demo && !slotFree_(kind, date)) { const nd = nextFreeDate_(kind, date); moved = date; date = nd; sh.getRange(row, c('date') + 1).setValue(date); }
+    const eventId = date && !demo ? addToCalendar_(kind, Object.assign({}, p, { title: v[i][c('title')], artist: v[i][c('artist')] }), date) : '';
+    sh.getRange(row, c('status') + 1).setValue(demo ? 'demo (not a real booking)' : moved ? 'confirmed (moved from ' + moved + ')' : 'confirmed');
     sh.getRange(row, c('calendar_event_id') + 1).setValue(eventId);
     sh.getRange(row, c('paid_amount') + 1).setValue(amount || '');
     sh.getRange(row, c('txn_id') + 1).setValue(txnId || '');
@@ -997,8 +1005,8 @@ function confirmBooking_(bookingId, amount, txnId) {
     }
     const email = v[i][c('email')];
     if (email) try {
-      MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', subject: 'Booking confirmed: "' + title + '" on ' + date + ' (' + bookingId + ')',
-        body: 'Payment received, thank you. Your booking is confirmed.\n\nBooking: ' + bookingId + '\nWhat: ' + kind.replace('-', ' ') + '\nTitle: ' + title + '\nDate: ' + date +
+      MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', subject: (demo ? '[DEMO] ' : '') + 'Booking confirmed: "' + title + '" on ' + date + ' (' + bookingId + ')',
+        body: (demo ? 'DEMO BOOKING: no payment taken and no real date reserved. This is what a member sees after paying.\n\n' : '') + 'Payment received, thank you. Your booking is confirmed.\n\nBooking: ' + bookingId + '\nWhat: ' + kind.replace('-', ' ') + '\nTitle: ' + title + '\nDate: ' + date +
           (moved ? '\n\nSomeone paid for ' + moved + ' just before you, so your booking moved to the next free day, ' + date + '. If that doesn\'t work for you, reply to this email and we\'ll move it or refund you.' : '') +
           '\n\nYour checklist and deadlines: ' + SETTINGS.siteUrl + 'release-policy.html\nBandcamp assets: at least ' + SETTINGS.bandcampAssetsDays + ' days before. Streaming assets: at least ' + SETTINGS.streamingAssetsDays + ' days before.\n\nRetro Reverb Records' });
     } catch (e) { log_('booking confirm email failed', String(e)); }
@@ -1023,6 +1031,8 @@ function onOpen() {
     .addItem('Process release decisions now', 'processReleasesNow')
     .addItem('Apply suspensions and removals now', 'processStandingNow')
     .addItem('Process AI disputes now', 'processDisputesNow')
+    .addSeparator()
+    .addItem('Remove demo test data', 'removeDemoData')
     .addToUi();
   try { applyValidations_(); } catch (e) {}
 }
@@ -1059,7 +1069,7 @@ function buildNewsletter_(forDate) {
   const releases = rows_('Bookings').filter(r => /release/.test(r.kind) && r.date && inRange(r.date, start, end) && !/cancel/i.test(r.status));
   const upcoming = rows_('Bookings').filter(r => /release/.test(r.kind) && r.date && inRange(r.date, end, nextEnd) && !/cancel/i.test(r.status));
   const posts = topPosts_(start, end);
-  const newMembers = rows_('Members').filter(r => r.created && inRange(r.created, start, end) && /active/.test(r.status) && r.type === 'artist');
+  const newMembers = rows_('Members').filter(r => r.created && inRange(r.created, start, end) && /active/.test(r.status) && !/demo/.test(r.status) && r.type === 'artist');
   const press = rows_('Press').filter(r => String(r.approved).toLowerCase() === 'yes' && inRange(r.created, start, end));
   const li = (arr, f) => arr.length ? '<ul>' + arr.map(x => '<li>' + f(x) + '</li>').join('') + '</ul>' : '<p style="color:#A99FCB">Nothing this month.</p>';
   const h = (t) => '<h2 style="font-family:Arial Black,Arial;color:#FF2FA8;text-transform:uppercase;letter-spacing:1px;font-size:18px;margin:28px 0 8px">' + t + '</h2>';
@@ -1134,4 +1144,28 @@ function sendQueued_() {
     sh.getRange(i + 1, 3).setValue(new Date());
     budget--;
   }
+}
+
+
+// ============================================================
+// DEMO / WALKTHROUGH ACCOUNTS
+// Sign up on the site with retroreverbrecords+demo1@gmail.com (any word after +).
+// Gmail delivers those emails to you. Remove everything they made with:
+// RRR menu → Remove demo test data.
+// ============================================================
+function removeDemoData() {
+  const ids = rows_('Members').filter(m => isDemo_(m.email)).map(m => String(m.member_id).toUpperCase());
+  const tabs = ['Members', 'Bookings', 'Releases', 'Claims', 'Achievements', 'Posts', 'Agreements', 'Withdrawals', 'Disputes', 'Feedback', 'PointsLog'];
+  let removed = 0;
+  tabs.forEach(name => {
+    const sh = ss_().getSheetByName(name); if (!sh) return;
+    const v = sh.getDataRange().getValues(), h = v[0], ei = h.indexOf('email'), mi = h.indexOf('member_id');
+    for (let i = v.length - 1; i >= 1; i--) {
+      const hit = (ei >= 0 && isDemo_(v[i][ei])) || (mi >= 0 && ids.indexOf(String(v[i][mi]).toUpperCase()) >= 0);
+      if (hit) { sh.deleteRow(i + 1); removed++; }
+    }
+  });
+  log_('demo data removed', removed + ' rows, members ' + ids.join(', '));
+  try { SpreadsheetApp.getUi().alert('Removed ' + removed + ' demo rows (' + (ids.join(', ') || 'no demo members') + ').'); } catch (e) {}
+  return removed;
 }

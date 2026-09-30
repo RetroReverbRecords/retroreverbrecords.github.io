@@ -10,6 +10,8 @@ window.RRR_CONFIG = {
   // Beta testing: open the site with ?beta=rrr-beta to use the forms before launch.
   // Open with ?beta=off to leave beta mode. Change or empty this at launch.
   betaKey: "rrr-beta",
+  // Walkthrough/demo accounts: emails starting with this skip payment (the backend has the same rule).
+  demoEmailPrefix: "retroreverbrecords+",
 
   // Booking forms on book.html. Keep false until launch.
   bookingOpen: false,
@@ -65,7 +67,7 @@ window.RRR_CONFIG = {
 
   // Current version of the Terms. Change the date when the Terms change;
   // new sign-ups then sign the new version.
-  termsVersion: "2026-09-29-beta4",
+  termsVersion: "2026-09-30-beta5",
 
   // YouTube community
   youtube: {

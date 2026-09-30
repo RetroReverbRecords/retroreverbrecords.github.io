@@ -140,7 +140,7 @@
       const cfg = o.kind === 'sub'
         ? { style: { layout: 'vertical', color: 'blue', label: 'subscribe' },
             createSubscription: (d, a) => a.subscription.create({ plan_id: o.plan, custom_id: o.custom }),
-            onApprove: d => { box.innerHTML = `<p class="paid"><strong>Membership payment set up.</strong> Welcome to RRR.</p>`; } }
+            onApprove: d => { box.innerHTML = `<p class="paid"><strong>Membership payment set up.</strong> Welcome to the family.</p>`; } }
         : { style: { layout: 'vertical', color: 'blue' },
             createOrder: (d, a) => a.order.create({ purchase_units: [{ amount: { value: o.amount.toFixed(2), currency_code: 'EUR' }, description: o.item.slice(0, 120), custom_id: String(o.custom || '').slice(0, 120) }] }),
             onApprove: (d, a) => a.order.capture().then(det => {
@@ -178,6 +178,7 @@
 
   /* ---------- sign-up → member ID → PayPal subscription ---------- */
   const signup = $('#signup');
+  const isDemoEmail = e => { const x = String(e || '').trim().toLowerCase(); return !!C.demoEmailPrefix && x.indexOf(C.demoEmailPrefix) === 0 && /@gmail\.com$/.test(x); };
   const isFan = () => !!($('#type-fan') && $('#type-fan').checked);
   const price = () => (C.membershipPrices || {})[isFan() ? 'fan' : 'artist'];
   if (signup) {
@@ -197,6 +198,8 @@
       const id = newMemberId(), fan = isFan(), amt = price();
       const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist',
         terms_version: C.termsVersion || '', signed_at: new Date().toISOString(), user_agent: navigator.userAgent.slice(0, 250), signed_on_page: location.href.split('?')[0] });
+      const em = (signup.querySelector('[name=email]') || {}).value;
+      if (ok && isDemoEmail(em)) { $('#pay-note').hidden = true; $('#paypal-buttons').innerHTML = `<div class="welcome"><p class="motto">Welcome to the family.</p><p><strong>Demo account: payment skipped.</strong> Your account is active straight away.</p><p class="small">Your member ID is <b class="num">${esc(id)}</b>. Open your <a href="member.html?id=${encodeURIComponent(id)}">member dashboard</a>.</p></div>`; return; }
       if (ok) { renderPay(id, fan, amt); track('CompleteRegistration', { content_name: fan ? 'fan' : 'artist' }); }
     });
   }
@@ -209,7 +212,7 @@
     if (P.membershipVia === 'bandcamp' && P.bandcampSubscribeUrl) {
       btn = `<a class="btn primary" href="${esc(P.bandcampSubscribeUrl)}" target="_blank" rel="noopener">Subscribe on Bandcamp</a>`;
     }
-    box.innerHTML = `<div class="welcome"><p><strong>Step 2: set up your monthly payment.</strong></p><div class="paybox">${btn}</div>
+    box.innerHTML = `<div class="welcome"><p class="motto">Welcome to the family.</p><p><strong>Step 2: set up your monthly payment.</strong></p><div class="paybox">${btn}</div>
       <p class="small">Your member ID is <b class="num">${esc(memberId)}</b>. Keep it: it opens your <a href="${esc(dash)}">member dashboard</a>.</p></div>`;
     if (!btn && amt) payButtons(box.querySelector('.paybox'), { kind: 'sub', amount: amt, item: `RRR ${fan ? 'Fan' : 'Artist'} Membership`, custom: memberId,
       plan: ((PP.plans || {})[fan ? 'fan' : 'artist']) || '', returnUrl: (C.siteUrl || '') + dash });
@@ -269,6 +272,7 @@
         const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : {});
         // One-off fee: PayPal button appears after booking, tagged with the member's email
         if (ok) track('Schedule', { content_name: f.dataset.kind });
+        if (ok && pl && amt && isDemoEmail(email)) { pl.hidden = false; pl.innerHTML = `<p class="paid"><strong>Demo booking ${esc(bookingId)}:</strong> no payment needed. It confirms automatically; check your inbox for the [DEMO] confirmation email.</p>`; return; }
         if (ok && pl && amt) {
           pl.hidden = false;
           payButtons(pl, { kind: 'one-off', amount: amt, item: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title} (${bookingId})`, custom: bookingId, note: `Booking ${bookingId}. Your date is only confirmed when payment arrives: first to pay gets the date. You'll get a confirmation email.` });

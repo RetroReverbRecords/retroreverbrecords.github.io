@@ -142,6 +142,7 @@
       <div class="dash-top">
         <div class="panel who">
           <p class="label">${esc(m.type === 'artist' ? 'Artist member' : 'Fan member')} · ${esc(m.id)}</p>
+          <p class="motto">Welcome to the family</p>
           <h2>${esc(m.name)}</h2>
           ${(m.achievements || []).filter(x => /^(Founder|Ambassador|Moderator)$/.test(x.title)).map(x => `<b class="rolechip">${x.title === 'Founder' ? '👑' : '🌟'} RRR ${esc(x.title)}</b>`).join(' ')}
           <p class="small">Member since ${esc(fmt(m.since))} · ${esc(m.status || '')}</p>

@@ -36,6 +36,9 @@ nav a:hover{color:var(--pink);text-shadow:var(--glow-pink)}
 .screen video{width:100%;height:100%;object-fit:cover;display:block}
 .hero h1{font-size:clamp(26px,4.6vw,48px);font-weight:800;letter-spacing:.01em;max-width:22ch;text-transform:uppercase}
 .hero h1 em{font-style:normal;color:var(--pink);text-shadow:var(--glow-pink)}
+.motto{margin:0 0 6px;font-family:var(--display,inherit);font-weight:700;font-size:clamp(15px,2vw,19px);letter-spacing:.14em;text-transform:uppercase;color:var(--cyan,#4ff);text-shadow:var(--glow-cyan,none)}
+.foot-motto{font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--pink)}
+.who .motto{font-size:13px;margin:0 0 2px}
 .hero .lede{font-size:18px;color:var(--muted);max-width:56ch}
 .ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .btn{display:inline-block;padding:13px 22px;border-radius:4px;font:700 13px var(--head);letter-spacing:.12em;text-transform:uppercase;text-decoration:none}

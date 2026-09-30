@@ -235,6 +235,9 @@
       setStatus(st, open, '<strong>Booking is open.</strong> We confirm every booking by email.',
         '<strong>Coming soon.</strong> Booking opens when RRR membership launches. You can still use the deadline planner.');
       const pl = $('.paylink', f), sel = $('select[name=format]', f);
+      // Bandcamp: show upload steps or "what we need", depending on who uploads
+      const ub = $$('input[name=upload_by]', f);
+      if (ub.length) { const showUb = () => { const v = (ub.find(r => r.checked) || {}).value; $$('[data-upload]', f).forEach(d => { d.hidden = !!v && d.dataset.upload !== v; if (v && d.dataset.upload === v) d.open = true; }); const al = $('#bc-assets', f); if (al) al.required = v === 'rrr'; }; ub.forEach(r => r.addEventListener('change', showUb)); showUb(); }
       // Daily slots: check the date is free before booking. First to pay gets it.
       const slotField = { 'bandcamp-release': 'release_date', 'youtube-upload': 'premiere_date' }[f.dataset.kind];
       const dateIn = slotField ? f.querySelector(`input[name=${slotField}]`) : null;

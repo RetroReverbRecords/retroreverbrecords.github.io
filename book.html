@@ -80,6 +80,32 @@
                 <div class="checks">
                   <label><input type="checkbox" id="bc-also-stream" name="also_streaming"> Also release on streaming (no extra fee)</label>
                 </div>
+                <fieldset class="aidecl uploadby"><legend class="label">Who uploads it to Bandcamp? · required</legend>
+                  <label><input type="radio" name="upload_by" value="artist" required> I'll upload it myself (see the steps)</label>
+                  <label><input type="radio" name="upload_by" value="rrr"> Please upload it for me (see what we need)</label>
+                </fieldset>
+                <details class="needs" data-upload="artist"><summary>Uploading it yourself: the steps</summary>
+                  <ol class="safe">
+                    <li>Make sure your Bandcamp is <a href="series.html#linking">linked to the RRR label</a>.</li>
+                    <li>On your Bandcamp page: <b>+ add → album</b> (or track). Upload lossless audio (WAV, AIFF or FLAC) and artwork at least 1400 × 1400 px.</li>
+                    <li>Set it up as a <b>pre-order with your booked release date</b>, so it goes live on the right day by itself. Don't publish it early as a normal release.</li>
+                    <li>In the album's <b>credits</b>, paste exactly: <code>Released through Retro Reverb Records · RRR Community Release</code></li>
+                    <li>Add your genre as the first tag, plus "retro reverb records".</li>
+                    <li>On release day, <b>send a Bandcamp message to your fans</b>.</li>
+                  </ol>
+                  <p class="small">Our robot checks your Bandcamp page (date, credit line, tags) and tells us only if something's missing.</p>
+                </details>
+                <details class="needs" data-upload="rrr"><summary>RRR uploading it for you: what we need</summary>
+                  <ul>
+                    <li><b>Audio:</b> WAV, AIFF or FLAC, 16 or 24-bit, one file per track, named "01 Track title".</li>
+                    <li><b>Artwork:</b> square, at least 1400 × 1400 px (3000 × 3000 is best), JPG or PNG, no blur, no web addresses or logos you don't own.</li>
+                    <li><b>Words:</b> release title, track titles in order, a short description, credits (who wrote, played, produced, mixed, mastered), lyrics if you want them shown.</li>
+                    <li><b>Price:</b> your price for the release (and per track if different), and whether fans can pay more.</li>
+                    <li><b>Tags:</b> up to 5 genre or mood tags.</li>
+                    <li>Put it all in one <b>Google Drive or Dropbox folder</b> and paste the link below, at least 2 weeks before release.</li>
+                  </ul>
+                  <label for="bc-assets" class="wide">Assets folder link<input id="bc-assets" name="assets_link" type="url" placeholder="https://drive.google.com/…"></label>
+                </details>
                 <label class="agree"><input type="checkbox" id="bc-agree" name="agree" required> I'll supply assets at least 2 weeks before release, and RRR may include this release in discount codes, giveaways and offers.</label>
                                 <fieldset class="aidecl"><legend class="label">AI use in this release · required</legend>
                   <label><input type="radio" name="ai_use" value="none" required> No AI usage</label>
@@ -188,6 +214,18 @@
             <form class="panel booking-form" data-kind="merch-listing" novalidate>
               <h2>Sell your merch with us</h2>
               <p class="intro">Your merch goes on your own Bandcamp page, linked to RRR, so it shows on the RRR page too and <b>fans pay you directly</b>. RRR charges a flat <b data-price="merch">€2.00</b> per item listed and takes no share of your sales. Send us the photos and details and we can set the listing up for you. You post the orders and handle refunds and fans' questions, yourself or with a print-on-demand or fulfilment company (<a href="index.html#sell-merch">suggestions</a>).</p>
+              <details class="needs" open><summary>Merch listing guide: send everything ready to copy</summary>
+                <p class="small">If RRR sets up your listing, we copy exactly what you send. We don't write descriptions or set prices for you, so please send it finished.</p>
+                <ul>
+                  <li><b>Title:</b> "What it is · Release or design name", e.g. <i>Cassette · Neon Born (limited 50)</i>.</li>
+                  <li><b>Description</b> (3–5 short lines): what it is, material or format, sizes, what's included (e.g. digital download), edition size, and your posting time.</li>
+                  <li><b>Price:</b> cover your making cost + postage materials + Bandcamp's 10% + about 4% payment fees, then add your profit. Example: a print-on-demand shirt that costs you €13 → sell at €22–25.</li>
+                  <li><b>Postage:</b> weigh one packed item at the post office, then set a price for your country, Europe and the rest of the world.</li>
+                  <li><b>Photos:</b> at least one, 1200 px or bigger, plain background. Best: front, back, a close-up and one being worn or used.</li>
+                  <li><b>Sizes, colours and stock:</b> list each option and how many you have. Print on demand = unlimited.</li>
+                  <li><b>Returns line</b> for the listing, e.g. <i>"Faulty or lost items replaced or refunded. Contact me within 14 days."</i></li>
+                </ul>
+              </details>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
@@ -199,7 +237,7 @@
                   <label for="mc-stock">How many can you sell?<input id="mc-stock" name="stock" type="text" placeholder="e.g. 50, or print on demand"></label>
                   <label for="mc-ship" class="wide">Who ships it?<select id="mc-ship" name="shipping" required><option value="">Choose…</option><option>I post it myself</option><option>A print-on-demand / fulfilment company</option></select></label>
                   <label for="mc-photos" class="wide">Photos (Google Drive link)<input id="mc-photos" name="photos" type="url" required placeholder="https://drive.google.com/… at least 1 clear photo, 1200px or bigger"></label>
-                  <label for="mc-desc" class="wide">Description for the listing<textarea id="mc-desc" name="description" required placeholder="What it is, material, size, what's included (e.g. digital download)"></textarea></label>
+                  <label for="mc-desc" class="wide">Description for the listing<textarea id="mc-desc" name="description" required placeholder="Ready to copy: what it is, material or format, sizes, what's included, edition size, posting time"></textarea></label>
                   <label for="mc-var" class="wide">Sizes / colours (if any)<input id="mc-var" name="variants" type="text" placeholder="e.g. S, M, L, XL · black"></label>
                   <label for="mc-from">Ships from (country)<input id="mc-from" name="ships_from" type="text" required></label>
                   <label for="mc-days">Posted within<select id="mc-days" name="dispatch_days" required><option value="">Choose…</option><option>3 days</option><option>7 days</option><option>14 days (print on demand)</option></select></label>

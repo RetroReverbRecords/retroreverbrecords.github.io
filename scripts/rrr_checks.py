@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE.
+# The AI model file (scripts/models) is third-party open source (MIT) and keeps its own licence.
 """
 RRR robot checks for release submissions: AI flag + basic sound checks.
 

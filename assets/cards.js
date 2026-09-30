@@ -1,3 +1,4 @@
+/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 /* ============================================================
    RRR SYNTH STARS — CARD REGISTER
    This is the list of official cards. A card is genuine only

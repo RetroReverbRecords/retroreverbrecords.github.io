@@ -1,3 +1,4 @@
+/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 /* Feedback form: always on, goes to the Feedback tab and emails the RRR team. */
 (function(){
   const C = window.RRR_CONFIG || {};

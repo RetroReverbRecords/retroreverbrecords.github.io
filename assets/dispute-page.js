@@ -1,3 +1,4 @@
+/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 /* AI false-detection dispute: case number + member ID + proof (links, up to 3 small files). */
 (function(){
   const C = window.RRR_CONFIG || {};

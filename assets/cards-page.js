@@ -1,3 +1,4 @@
+/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 /* Synth Stars card checker and card maker. Uses RRR_CARDS from cards.js. */
 (function(){
   const K = window.RRR_CARDS || {seasons:{},roster:{},editions:{},issued:[]};

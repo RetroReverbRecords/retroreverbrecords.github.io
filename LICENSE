@@ -1,0 +1,23 @@
+Copyright © 2016–2026 Retro Reverb Records. All rights reserved.
+
+This repository and everything in it (website design, text, images, logos,
+artwork, card designs, source code, automation scripts and documentation) is
+proprietary to Retro Reverb Records.
+
+The code is visible here only because the website is hosted on GitHub Pages.
+Being able to see it does NOT give you permission to use it. Without prior
+written permission from Retro Reverb Records you may not copy, modify,
+distribute, sublicense, sell, host, scrape, reverse-engineer or create
+derivative works from any part of this repository, in whole or in part.
+
+Retro Reverb Records™, RRR™, Synth Stars™, the RRR logos, the RRR girl
+illustration and the motto "Welcome to the family" are brands of Retro Reverb
+Records. They may not be used for any other service or product.
+
+Third-party components keep their own licences, including:
+- scripts/models/ai_music_detector.onnx (lofcz/ai-music-detector, MIT licence)
+- Google Fonts loaded by the website (SIL Open Font License)
+
+Artists' music, artwork and names shown on the site belong to the artists.
+
+Permission requests: retroreverbrecords@gmail.com

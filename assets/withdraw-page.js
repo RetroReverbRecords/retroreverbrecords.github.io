@@ -1,3 +1,4 @@
+/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 /* Withdrawal function (EU Directive 2023/2673, Italian Consumer Code art. 54-bis).
    Always available: not switched off in beta, because withdrawal must be possible at any time. */
 (function(){

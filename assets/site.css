@@ -1,3 +1,4 @@
+/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 /* Single deliberate neon world: dark in every theme */
 :root{
   color-scheme: dark;
@@ -39,6 +40,16 @@ nav a:hover{color:var(--pink);text-shadow:var(--glow-pink)}
 .motto{margin:0 0 6px;font-family:var(--display,inherit);font-weight:700;font-size:clamp(15px,2vw,19px);letter-spacing:.14em;text-transform:uppercase;color:var(--cyan,#4ff);text-shadow:var(--glow-cyan,none)}
 .foot-motto{font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--pink)}
 .who .motto{font-size:13px;margin:0 0 2px}
+.neonmotto{margin:0 auto 10px;max-width:min(600px,92vw)}
+.neonmotto video{display:block;width:100%;height:auto;aspect-ratio:1200/160;background:#000;border-radius:8px;mix-blend-mode:screen}
+.contact .mascot{width:100%;height:auto;border-radius:12px;margin-bottom:14px;box-shadow:0 0 40px rgba(255,47,168,.35)}
+.brandkit{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.brandkit figure{margin:0;display:grid;gap:8px}
+.brandkit .sw{position:relative;aspect-ratio:4/3;border-radius:10px;border:1px solid var(--line,#3A2A7C);background:#000;overflow:hidden}
+.brandkit .sw.light{background:#fff}
+.brandkit .sw img{position:absolute;inset:14px;width:calc(100% - 28px);height:calc(100% - 28px);max-width:none;object-fit:contain}
+.brandkit figcaption{font-size:14px;color:var(--muted)}
+.legalline{display:block;font-size:12px;opacity:.75;margin-top:6px}
 .hero .lede{font-size:18px;color:var(--muted);max-width:56ch}
 .ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .btn{display:inline-block;padding:13px 22px;border-radius:4px;font:700 13px var(--head);letter-spacing:.12em;text-transform:uppercase;text-decoration:none}

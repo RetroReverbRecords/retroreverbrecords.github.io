@@ -1,3 +1,4 @@
+/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 /* Member dashboard. Data comes from the RRR automation (Google Apps Script).
    Without it, or with ?id=DEMO, it shows a clearly labelled example. */
 (function(){

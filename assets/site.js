@@ -84,6 +84,8 @@
   // Compare-the-value calculator: membership for a year + 4 singles
   const cy = $('#calc-year'), cm = $('#calc-month');
   if (cy && PR.artist != null && PR.single != null) { const y = PR.artist * 12 + PR.single * 4; cy.textContent = euro(y); if (cm) cm.textContent = euro(y / 12); }
+  // Genre dropdowns from config.genres
+  $$('select[data-genres]').forEach(sel => { if (sel.options.length) return; sel.innerHTML = '<option value="">Choose a genre…</option>' + (C.genres || []).map(g => `<option>${esc(g)}</option>`).join(''); });
   $$('option[data-price-label]').forEach(o => { const v = PR[o.dataset.priceLabel]; if (v != null) o.textContent = o.textContent.replace(/€[\d.,]+/, euro(v)); });
 
   /* ---------- beta mode: ?beta=rrr-beta turns forms on for the tester only ---------- */

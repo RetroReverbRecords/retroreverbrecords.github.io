@@ -115,6 +115,9 @@ window.RRR_CONFIG = {
   // Groover link for The Bandcamp Hour submissions.
   grooverUrl: "https://groover.co/band/signup/referral/influencer/16806/",
 
+  // GENRES RRR RELEASES (owner picks, 30 Sep 2026). Shown in booking and submission forms.
+  genres: ["Synthwave", "Retrowave", "Outrun", "Darksynth", "Cyberpunk", "Dreamwave", "Chillwave", "Vaporwave", "Spacesynth", "Italo Disco", "Synthpop", "New Wave", "Future Funk", "Darkwave", "Coldwave", "Industrial", "Post-punk (electronic)", "Electronica", "Electro", "Drum & Bass", "Nu-Disco", "Electropop", "Ambient", "Downtempo", "Chillout", "Lo-fi", "Experimental", "Chiptune", "Video game music", "Soundtrack / Cinematic", "Synth-rock", "Synth-metal", "Alternative / Indie", "Pop"],
+
   // RRR SELECTED RELEASE SERIES. Add a line to add a series.
   // Keep names and prefixes in step with SERIES in backend/Code.gs.
   // "about" is shown on the Series page: edit freely.

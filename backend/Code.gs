@@ -54,7 +54,8 @@ const TABS = {
   Withdrawals:  ['received','name','email','member_id','contract_date','what','detail','sent_at','acknowledged','refund_by','refund_status'],
   Blocked:      ['email','member_id','standing','since','reason','owner_checklist_sent'],
   Releases:     ['release_id','created','member_id','artist','email','title','bandcamp_url','artwork_url','genre','subgenre','release_date',
-                 'description','why_fit','spotify_url','youtube_url','affiliation','series','catalogue_no','featured','status','approved_on','notified','admin_notes'],
+                 'description','why_fit','spotify_url','youtube_url','affiliation','series','catalogue_no','featured','status','approved_on','notified','admin_notes',
+                 'audio_url','ai_declared','ai_score','ai_result','sound_check','ai_checked'],
   Newsletter:   ['month','created','subject','sent_to','queued','status'],
   Queue:        ['email','month','sent'],
   Settings:     ['key','value'],
@@ -99,6 +100,7 @@ function doPost(e) {
     if (kind === 'claim') return handleClaim_(p);
     if (kind === 'rrr-release') return handleReleaseSubmission_(p);
     if (kind === 'withdrawal') return handleWithdrawal_(p);
+    if (kind === 'ai-result') return handleAiResult_(p);
     if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
     return text_('ok');
@@ -115,6 +117,7 @@ function doGet(e) {
     .map(r => ({ artist: r.artist, outlet: r.outlet, title: r.title, url: r.url, quote: r.quote, date: r.created })) });
   if (q.unsubscribe) return unsubscribe_(q.unsubscribe);
   if (q.series) return json_({ ok: true, series: SERIES, releases: publicSelectedReleases_() });
+  if (q.aiqueue) return aiQueue_(q.key);
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
   const m = findRow_('Members', 'member_id', id);
@@ -602,10 +605,11 @@ function handleReleaseSubmission_(p) {
     artwork_url: p.artwork_url || bandcampArtwork_(url), genre: p.genre, subgenre: p.subgenre, release_date: p.release_date,
     description: String(p.description || '').slice(0, 600), why_fit: String(p.why_fit || '').slice(0, 800),
     spotify_url: p.spotify_url, youtube_url: p.youtube_url, affiliation: affiliation,
-    series: forRrr ? (p.series || '') : '', featured: 'no'
+    series: forRrr ? (p.series || '') : '', featured: 'no',
+    audio_url: String(p.audio_url || '').trim(), ai_declared: p.ai_use || ''
   });
   if (forRrr) notify_('RRR Selected Release submitted: ' + (p.artist || m.artist) + ' – ' + (p.title || ''),
-    'Bandcamp: ' + url + '\nSuggested series: ' + (p.series || '-') + '\nWhy it fits: ' + (p.why_fit || '') +
+    'Bandcamp: ' + url + '\nAI declared: ' + (p.ai_use || '-') + '\nSuggested series: ' + (p.series || '-') + '\nWhy it fits: ' + (p.why_fit || '') +
     '\n\nTo approve: in the Releases tab set affiliation to "RRR Genre Release", choose a series, then RRR menu → Process release decisions now.\n' + sheetUrl_());
   return text_('ok');
 }
@@ -746,6 +750,48 @@ function handleWithdrawal_(p) {
     what: p.what, detail: String(p.detail || '').slice(0, 500), sent_at: p.sent_at, acknowledged: ack, refund_by: refundBy, refund_status: 'to do' });
   notify_('WITHDRAWAL: ' + (p.name || email) + ' – ' + (p.what || ''), 'Refund what is due by ' + refundBy.toDateString() + ' (legal deadline: 14 days).\n' +
     '1. Check the date they joined/booked is within 14 days.\n2. Refund in PayPal (and cancel their subscription if it is the membership).\n3. Set refund_status in the Withdrawals tab.\n\n' + sheetUrl_());
+  return text_('ok');
+}
+
+// ============================================================
+// ROBOT CHECKS (AI flag + sound) — run by GitHub Actions every 30 minutes
+// (.github/workflows/release-checks.yml). Set once: Apps Script → Project Settings →
+// Script properties → AI_CHECK_KEY = the same secret as the GitHub secret AI_CHECK_KEY.
+// The AI score is only a FLAG: a human decides, or the artist declares AI use.
+// ============================================================
+function aiKeyOk_(k) { const want = PropertiesService.getScriptProperties().getProperty('AI_CHECK_KEY'); return !!want && String(k || '') === want; }
+
+function aiQueue_(key) {
+  if (!aiKeyOk_(key)) return json_({ ok: false, error: 'bad key' });
+  const items = rows_('Releases').filter(r => !r.ai_checked && (r.audio_url || r.bandcamp_url) && !/^Rejected$/i.test(String(r.affiliation)))
+    .slice(0, 10).map(r => ({ sheet: 'Releases', id: r.release_id, url: r.audio_url || r.bandcamp_url }));
+  return json_({ ok: true, items: items });
+}
+
+function handleAiResult_(p) {
+  if (!aiKeyOk_(p.key)) { log_('ai-result refused', 'bad key'); return text_('ok'); }
+  const sh = sheet_('Releases'), v = sh.getDataRange().getValues(), h = v[0];
+  const col = k => h.indexOf(k) + 1;
+  for (let i = 1; i < v.length; i++) {
+    if (String(v[i][h.indexOf('release_id')]) !== String(p.id)) continue;
+    const row = i + 1;
+    sh.getRange(row, col('ai_score')).setValue(p.ai_score);
+    sh.getRange(row, col('ai_result')).setValue(p.ai_result);
+    sh.getRange(row, col('sound_check')).setValue([p.sound, p.lufs !== '' && p.lufs !== undefined ? p.lufs + ' LUFS' : '', p.true_peak !== '' && p.true_peak !== undefined ? p.true_peak + ' dBTP peak' : ''].filter(String).join(' · '));
+    sh.getRange(row, col('ai_checked')).setValue(new Date());
+    const declared = String(v[i][h.indexOf('ai_declared')] || 'none');
+    const flagged = /AI/.test(String(p.ai_result)) && !/human/.test(String(p.ai_result));
+    if (flagged && !/generated|heavy/i.test(declared)) {
+      sh.getRange(row, col('admin_notes')).setValue('AI FLAG (' + p.ai_score + ') but declared "' + declared + '": listen, or ask the artist to declare. AI-generated = streaming only.');
+      notify_('AI flag: ' + v[i][h.indexOf('artist')] + ' – ' + v[i][h.indexOf('title')],
+        'The robot check scored this release ' + p.ai_score + ' (' + p.ai_result + '), but the artist declared "' + declared + '".\n\n' +
+        'It is only a flag. Listen to it, or ask the artist to declare AI use. Heavily AI-generated music can go to streaming only (Bandcamp bans it).\n\n' + sheetUrl_());
+    } else if (/sound|clipping|loud|quiet|silence/i.test(String(p.sound)) && String(p.sound) !== 'OK') {
+      sh.getRange(row, col('admin_notes')).setValue('Sound check: ' + p.sound);
+    }
+    return text_('ok');
+  }
+  log_('ai-result: release not found', String(p.id));
   return text_('ok');
 }
 

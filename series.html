@@ -150,10 +150,23 @@
             <label for="sf-aff" class="log-only" hidden>This release is<select id="sf-aff" name="affiliation"><option>Independent</option><option>Other Label</option></select></label>
             <label for="sf-desc" class="wide">Short description<textarea id="sf-desc" name="description" maxlength="600" required placeholder="A couple of lines about the release"></textarea></label>
             <label for="sf-why" class="wide rrr-only">Why does it fit the RRR series?<textarea id="sf-why" name="why_fit" maxlength="800" required></textarea></label>
+            <label for="sf-audio" class="wide">Private listening link (optional)<input id="sf-audio" name="audio_url" type="url" placeholder="Google Drive / Dropbox link to the WAV or MP3, shared as 'anyone with the link'. Leave empty if your Bandcamp page can already be played."></label>
             <label for="sf-art" class="wide">Artwork link (optional)<input id="sf-art" name="artwork_url" type="url" placeholder="Leave empty: we take the cover from your Bandcamp page"></label>
             <label for="sf-sp">Spotify link (optional)<input id="sf-sp" name="spotify_url" type="url"></label>
             <label for="sf-yt">YouTube link (optional)<input id="sf-yt" name="youtube_url" type="url"></label>
           </div>
+          <fieldset class="aidecl wide"><legend class="label">AI use in this release · required</legend>
+            <label><input type="radio" name="ai_use" value="none" required> No AI</label>
+            <label><input type="radio" name="ai_use" value="partial"> AI-assisted (made by me, AI tools helped)</label>
+            <label><input type="radio" name="ai_use" value="heavy"> AI-generated (wholly or mostly)</label>
+            <a class="small" href="terms.html#ai" target="_blank">What counts?</a>
+          </fieldset>
+          <div class="panel aiwarn">
+            <p><b>Robot checks.</b> Every release gets an automatic sound check and an AI check. The AI check only raises a flag: a person listens, or you tell us about AI use. Nobody is turned down by a robot.</p>
+            <p><b>Bandcamp bans music made "wholly or in substantial part" by AI</b> and removes releases it suspects. AI-generated music can be released <b>through streaming only</b>, the one fully safe route. Undeclared AI use is at your own risk: if Bandcamp removes a release, RRR doesn't refund it.</p>
+            <p class="heavy-note" hidden><b>You chose AI-generated:</b> this release can't go on Bandcamp. <a href="book.html#streaming">Book a streaming release</a> instead, or change your answer if it's AI-assisted.</p>
+          </div>
+          <label class="agree"><input type="checkbox" name="ai_policy" value="yes" required> <span>I've declared AI use honestly and understand the Bandcamp AI policy and the no-refund rule above.</span></label>
           <label class="agree rrr-only"><input type="checkbox" id="sf-ok" name="understood" value="yes" required> <span>I understand that only this release would become an RRR release, my other music is unaffected, and Bandcamp payments go directly to me.</span></label>
           <button class="btn primary" type="submit" id="sf-btn">Submit for review</button>
         </fieldset>

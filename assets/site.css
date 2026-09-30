@@ -626,3 +626,5 @@ details.needs b{color:var(--text)}
 @media print{header,footer,.nl,.ctas-left,.betatag,#consent,.consent{display:none!important}body{background:#fff;color:#000}.legal *{color:#000!important}}
 .keypoints{border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:8px 0 12px;background:rgba(0,0,0,.2)}
 .keypoints ul{margin:6px 0 8px;padding-left:18px;display:grid;gap:4px;font-size:15px}
+.aiwarn{padding:14px 16px;margin:10px 0;display:grid;gap:8px;border-color:var(--amber,#FFD66B);font-size:15px}
+.aiwarn b{color:var(--text)}

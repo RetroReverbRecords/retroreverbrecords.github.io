@@ -109,6 +109,12 @@
   }
   if (form) {
     $$('#sel-form input[name=intent]').forEach(r => r.addEventListener('change', mode));
+    // AI-generated can't go to Bandcamp (Bandcamp AI policy, Jan 2026)
+    $$('#sel-form input[name=ai_use]').forEach(r => r.addEventListener('change', () => {
+      const heavy = form.querySelector('input[name=ai_use]:checked').value === 'heavy';
+      form.querySelector('.heavy-note').hidden = !heavy;
+      $('#sf-btn').disabled = heavy && form.querySelector('input[name=intent]:checked').value === 'rrr';
+    }));
     const saved = (() => { try { return localStorage.getItem('rrr-member-id') || ''; } catch (e) { return ''; } })();
     const q = new URLSearchParams(location.search);
     if (q.get('id') || saved) $('#sel-id').value = (q.get('id') || saved).toUpperCase();

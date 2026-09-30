@@ -45,7 +45,7 @@
     membershipActive: true, artistType: 'Member', bandcampLinked: true, eligible: true,
     programme: [
       { title: 'Neon Rain EP', affiliation: 'RRR Genre Release', series: 'RRR SYNTH', catalogue: 'RRSYN-001', date: '2026-11-14' },
-      { title: 'Chrome Hearts', affiliation: 'Pending review', series: 'RRR DARK', catalogue: '', date: '2026-12-05' },
+      { title: 'Chrome Hearts', affiliation: 'Pending review', series: 'RRR DARK', catalogue: '', date: '2026-12-05', aiCase: 'AIC-0001', aiResult: 'possible AI' },
       { title: 'Night Drive', affiliation: 'Independent', date: '2026-07-04' },
       { title: 'Split 12" with Friends', affiliation: 'Other Label', date: '2026-03-20' }
     ],
@@ -123,7 +123,7 @@
     if (!list.length) return '<div class="panel empty"><b>No releases added yet.</b><span><a href="series.html#submit">Add a release or submit one to RRR</a></span></div>';
     return groups.map(([label, test, cls]) => {
       const rows = list.filter(test); if (!rows.length) return '';
-      return `<p class="label" style="margin:14px 0 8px">${label} · ${rows.length}</p><ul class="list">${rows.map(r => `<li class="panel"><div><b>${esc(r.title)}</b><span class="small">${r.series ? esc(r.series) + ' · ' : ''}${r.catalogue ? '<b class="num">' + esc(r.catalogue) + '</b> · ' : ''}${esc(fmt(r.date))}</span></div><em class="aff ${cls}">${cls === 'rrr' ? 'Selected Release' : cls === 'pend' ? 'In review' : cls === 'ind' ? 'Independent' : cls === 'oth' ? 'Other label' : 'Not selected'}</em></li>`).join('')}</ul>`;
+      return `<p class="label" style="margin:14px 0 8px">${label} · ${rows.length}</p><ul class="list">${rows.map(r => `<li class="panel"><div><b>${esc(r.title)}</b><span class="small">${r.series ? esc(r.series) + ' · ' : ''}${r.catalogue ? '<b class="num">' + esc(r.catalogue) + '</b> · ' : ''}${esc(fmt(r.date))}</span></div><span class="affwrap">${r.aiCase && !/cleared/.test(r.aiResult || '') ? `<a class="aff pend" href="dispute.html?case=${encodeURIComponent(r.aiCase)}" title="Our AI check flagged this release. Dispute it with proof.">AI flag ${esc(r.aiCase)} · dispute</a>` : ''}<em class="aff ${cls}">${cls === 'rrr' ? 'Selected Release' : cls === 'pend' ? 'In review' : cls === 'ind' ? 'Independent' : cls === 'oth' ? 'Other label' : 'Not selected'}</em></span></li>`).join('')}</ul>`;
     }).join('');
   }
 

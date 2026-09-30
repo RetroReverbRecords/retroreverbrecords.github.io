@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dispute an AI Flag</title>
+<meta name="theme-color" content="#07061A">
+<link rel="icon" href="assets/rrr-logo-stack.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RRR">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records home"></a>
+    <nav aria-label="Sections">
+      <a href="index.html#membership">Membership</a>
+      <a href="index.html#catalogue">Catalogue</a>
+      <a href="series.html">Series</a>
+      <a href="index.html#merch">Merch</a>
+      <a href="cards.html">Cards</a>
+      <a href="levels.html">Levels</a>
+      <a href="together.html">Together</a>
+      <a href="book.html">Book</a>
+      <a href="member.html">My dashboard</a>
+      <a class="btn primary small-btn" href="index.html#join">Create account</a>
+      <label class="lang" title="Translate this site"><span aria-hidden="true">🌐</span><span class="sr">Language</span><select id="lang-select" aria-label="Language"><option value="en">English</option><option value="it">Italiano</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="sv">Svenska</option><option value="el">Ελληνικά</option><option value="tr">Türkçe</option><option value="ru">Русский</option><option value="uk">Українська</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></label>
+    </nav>
+  </div>
+</header>
+<main>
+  <div class="pagehead">
+    <div class="wrap">
+      <p class="label">AI check · dispute</p>
+      <h1>Flagged by <em>mistake?</em></h1>
+      <p class="lede">Our robot checks every release for signs of AI generation. Robots get it wrong sometimes. If yours was flagged and you made it yourself, send us proof here. A person reviews every dispute within 7 days.</p>
+    </div>
+  </div>
+
+  <section class="side" id="proof">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">A</span><h2>What counts as proof</h2><p>Read this before you send anything. The best proof shows the song being made, with dates, in files an AI tool doesn't produce.</p></div>
+      <div class="grid2">
+        <div class="panel pad">
+          <p class="label">Strong proof</p>
+          <ul class="ticks">
+            <li><b>Your project session:</b> a screenshot or, better, a short screen recording of the DAW project (Ableton, FL Studio, Logic…) with all the tracks, plugins and the song's arrangement.</li>
+            <li><b>Early versions with dates:</b> demos, voice memos, rough mixes or bounce files saved before the final.</li>
+            <li><b>A video of you playing or singing a part</b> of the song.</li>
+            <li><b>MIDI files and dry recordings</b> (vocals or instruments before effects).</li>
+            <li><b>Collaborators:</b> names and contacts of anyone who played, sang, mixed or mastered it.</li>
+            <li><b>Licences</b> for samples, loops or sound packs you used.</li>
+          </ul>
+        </div>
+        <div class="panel pad">
+          <p class="label">Doesn't help much</p>
+          <ul class="ticks no">
+            <li>Only the finished master file again</li>
+            <li>A screenshot from another AI detector saying "human" (detectors disagree with each other)</li>
+            <li>"It's on Spotify already", or likes and comments</li>
+            <li>Lyrics alone, or cover artwork</li>
+            <li>Stems on their own: some AI tools can make stems too, so add a session screenshot or early versions</li>
+            <li>A long explanation with nothing to back it up</li>
+          </ul>
+        </div>
+      </div>
+      <div class="panel pad">
+        <p class="label">Good to know</p>
+        <ul class="ticks">
+          <li><b>Tell us about any AI tools you did use</b>, such as AI mastering, AI stem separation or AI vocal tuning. They can trip the check, and using them doesn't make a song "AI-generated".</li>
+          <li>Big files (project folders, stems, videos): share a <b>Google Drive, Dropbox or WeTransfer link</b>, set to "anyone with the link".</li>
+          <li>Your proof is only used to review this case, and deleted after 90 days.</li>
+          <li>If we can't clear it, you can still release on streaming, or withdraw the booking and get the upload fee back if we haven't uploaded it yet.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="side" id="form">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">B</span><h2>Send your dispute</h2><p>Use the case number from your email. It looks like <b class="num">AIC-0001</b>.</p></div>
+      <form class="panel booking-form" id="dp-form" novalidate>
+        <div class="status" role="status" id="dp-status"></div>
+        <fieldset id="dp-fields">
+          <div class="fields">
+            <label for="dp-case">Case number<input id="dp-case" name="case" type="text" required placeholder="AIC-0001" autocapitalize="characters" autocomplete="off"></label>
+            <label for="dp-id">Your member ID<input id="dp-id" name="member_id" type="text" required placeholder="RRR-XXXXX" autocapitalize="characters" autocomplete="off"></label>
+          </div>
+          <span class="label">What proof are you sending?</span>
+          <div class="checks wdchecks">
+            <label><input type="checkbox" name="proof_types" value="DAW session"> DAW session screenshot or recording</label>
+            <label><input type="checkbox" name="proof_types" value="early versions"> Early versions with dates</label>
+            <label><input type="checkbox" name="proof_types" value="performance video"> Video of me playing or singing</label>
+            <label><input type="checkbox" name="proof_types" value="MIDI or dry recordings"> MIDI or dry recordings</label>
+            <label><input type="checkbox" name="proof_types" value="collaborators"> Collaborators I can name</label>
+            <label><input type="checkbox" name="proof_types" value="licences"> Sample or loop licences</label>
+          </div>
+          <div class="fields">
+            <label for="dp-links" class="wide">Links to your proof<textarea id="dp-links" name="proof_links" placeholder="One per line: Google Drive, Dropbox, WeTransfer, YouTube (unlisted is fine)"></textarea></label>
+            <label for="dp-files" class="wide">Or upload up to 3 small files (screenshots, PDFs, short clips; 8 MB each)<input id="dp-files" type="file" multiple accept="image/*,application/pdf,audio/*,video/*,.mid,.midi,.als,.flp,.logicx,.zip"></label>
+            <label for="dp-tools" class="wide">AI tools you did use, if any<input id="dp-tools" name="used_ai_tools" type="text" placeholder="e.g. AI mastering in LANDR, AI stem separation, none"></label>
+            <label for="dp-why" class="wide">Why is the flag wrong?<textarea id="dp-why" name="reason" required placeholder="How you made the song, who worked on it, and what your proof shows"></textarea></label>
+          </div>
+          <label class="agree"><input type="checkbox" name="honest" value="yes" required> <span>Everything I'm sending is true. I understand that false proof breaks the Code of Conduct.</span></label>
+          <button class="btn primary" type="submit">Send dispute</button>
+        </fieldset>
+      </form>
+    </div>
+  </section>
+</main>
+<section class="nl" id="newsletter">
+  <div class="wrap">
+    <form class="panel newsletter-form" novalidate>
+      <div>
+        <p class="label">Monthly newsletter</p>
+        <h2>New releases, top posts, what's next</h2>
+        <p class="small">One email on the 1st of every month. Unsubscribe any time.</p>
+      </div>
+      <div class="nl-fields">
+        <label for="nl-email-f" class="small">Email<input id="nl-email-f" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label class="agree" for="nl-ok-f"><input type="checkbox" id="nl-ok-f" required> Yes, send me the RRR newsletter.</label>
+        <button class="btn primary" type="submit">Sign up</button>
+        <p class="nl-status small" role="status" aria-live="polite"></p>
+      </div>
+    </form>
+  </div>
+</section>
+<footer>
+  <div class="wrap">
+    <span>© Retro Reverb Records · Since 2016 · A label for the people</span>
+    <span>retroreverbrecords@gmail.com · Prices in euros (€)</span>
+    <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="feedback.html">Feedback</a> · <a href="agreement.html">Member Agreement</a> · <a href="terms.html">Terms</a> · <a href="refunds.html">Refunds</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a> · <a href="withdraw.html">Withdraw from contract here</a></span>
+  </div>
+</footer>
+<script src="assets/config.js"></script>
+<script src="assets/releases.js"></script>
+<script src="assets/levels.js"></script>
+<script src="assets/site.js"></script>
+<script src="assets/dispute-page.js"></script>
+</body>
+</html>

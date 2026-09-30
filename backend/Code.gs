@@ -55,7 +55,9 @@ const TABS = {
   Blocked:      ['email','member_id','standing','since','reason','owner_checklist_sent'],
   Releases:     ['release_id','created','member_id','artist','email','title','bandcamp_url','artwork_url','genre','subgenre','release_date',
                  'description','why_fit','spotify_url','youtube_url','affiliation','series','catalogue_no','featured','status','approved_on','notified','admin_notes',
-                 'audio_url','ai_declared','ai_score','ai_result','sound_check','ai_checked'],
+                 'audio_url','ai_declared','ai_score','ai_result','sound_check','ai_checked','ai_case'],
+  Feedback:     ['created','type','rating','message','page','email','member_id','status'],
+  Disputes:     ['case','created','release_id','member_id','artist','email','title','reason','proof_types','proof_links','files','used_ai_tools','status','decision_notes','notified'],
   Newsletter:   ['month','created','subject','sent_to','queued','status'],
   Queue:        ['email','month','sent'],
   Settings:     ['key','value'],
@@ -101,6 +103,12 @@ function doPost(e) {
     if (kind === 'rrr-release') return handleReleaseSubmission_(p);
     if (kind === 'withdrawal') return handleWithdrawal_(p);
     if (kind === 'ai-result') return handleAiResult_(p);
+    if (kind === 'ai-dispute') return handleDispute_(p);
+    if (kind === 'feedback') {
+      append_('Feedback', { created: new Date(), type: p.type, rating: p.rating || '', message: String(p.message || '').slice(0, 3000), page: String(p.page || '').slice(0, 200), email: p.email || '', member_id: String(p.member_id || '').toUpperCase(), status: 'new' });
+      notify_('RRR feedback (' + (p.type || 'other') + (p.rating ? ', ' + p.rating + '/5' : '') + ')', String(p.message || '') + '\n\nPage: ' + (p.page || '-') + '\nReply to: ' + (p.email || 'no email given') + '\n' + sheetUrl_());
+      return text_('ok');
+    }
     if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
     return text_('ok');
@@ -310,7 +318,7 @@ function publicProfile_(m) {
     artistType: m.type === 'artist' ? (m.artist_type || 'Member') : '',
     bandcampLinked: /^y/i.test(String(m.bandcamp_linked)),
     eligible: isEligible_(m),
-    programme: rows_('Releases').filter(r => r.member_id === id).map(r => ({ title: r.title, affiliation: r.affiliation || 'Unspecified',
+    programme: rows_('Releases').filter(r => r.member_id === id).map(r => ({ title: r.title, affiliation: r.affiliation || 'Unspecified', aiCase: r.ai_case || '', aiResult: r.ai_result || '',
       series: r.series, catalogue: r.catalogue_no, date: r.release_date, url: r.bandcamp_url, artwork: r.artwork_url })),
     achievements: rows_('Achievements').filter(r => r.member_id === id && r.achievement !== 'Points').map(r => ({ title: r.achievement, on: r.earned_on, points: r.points })),
     recentPoints: rows_('Achievements').filter(r => r.member_id === id && r.achievement === 'Points').slice(-10).reverse().map(r => ({ note: r.note, on: r.earned_on, points: r.points })),
@@ -371,6 +379,8 @@ function daily() {
   approveClaims();
   processReleaseDecisions();
   processStanding_();
+  processDisputes_();
+  try { cleanDisputeFiles_(); } catch (e) { log_('dispute cleanup failed', String(e)); }
   updateSongstats();
   newsletterTick_();
   digest_();
@@ -690,6 +700,8 @@ function applyValidations_() {
   set('Members', 'bandcamp_pro', list(['yes', 'no', 'eligible']));
   set('Members', 'link_method', list(['password', 'invite']));
   set('Members', 'standing', list(['good', 'warning', 'suspended', 'removed']));
+  set('Disputes', 'status', list(['open', 'cleared', 'not cleared']));
+  set('Feedback', 'status', list(['new', 'seen', 'doing it', 'done', 'no']));
   set('Withdrawals', 'refund_status', list(['to do', 'refunded', 'not due']));
 }
 
@@ -782,10 +794,21 @@ function handleAiResult_(p) {
     const declared = String(v[i][h.indexOf('ai_declared')] || 'none');
     const flagged = /AI/.test(String(p.ai_result)) && !/human/.test(String(p.ai_result));
     if (flagged && !/generated|heavy/i.test(declared)) {
-      sh.getRange(row, col('admin_notes')).setValue('AI FLAG (' + p.ai_score + ') but declared "' + declared + '": listen, or ask the artist to declare. AI-generated = streaming only.');
+      const caseNo = 'AIC-' + String(rows_('Releases').filter(r => r.ai_case).length + 1).padStart(4, '0');
+      sh.getRange(row, col('ai_case')).setValue(caseNo);
+      sh.getRange(row, col('admin_notes')).setValue(caseNo + ': AI FLAG (' + p.ai_score + ') but declared "' + declared + '". Waiting for the artist to dispute or declare. AI-generated = streaming only.');
+      const email = v[i][h.indexOf('email')], title = v[i][h.indexOf('title')];
+      if (email) try {
+        MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', subject: 'AI check on "' + title + '" · case ' + caseNo,
+          body: 'Hi,\n\nOur automatic check flagged "' + title + '" as possibly AI-generated. This is NOT a rejection: a robot can be wrong.\n\n' +
+            'Case number: ' + caseNo + '\n\nYou have two options:\n' +
+            '1. It is wrong: dispute it here and send proof: ' + SETTINGS.siteUrl + 'dispute.html?case=' + caseNo + '\n' +
+            '2. It is AI-generated: reply to this email. AI-generated music can be released on streaming only (Bandcamp bans it).\n\n' +
+            'We look at every dispute within 7 days. Your release date may move while we check.\n\nRetro Reverb Records' });
+      } catch (e) { log_('ai flag email failed', String(e)); }
       notify_('AI flag: ' + v[i][h.indexOf('artist')] + ' – ' + v[i][h.indexOf('title')],
         'The robot check scored this release ' + p.ai_score + ' (' + p.ai_result + '), but the artist declared "' + declared + '".\n\n' +
-        'It is only a flag. Listen to it, or ask the artist to declare AI use. Heavily AI-generated music can go to streaming only (Bandcamp bans it).\n\n' + sheetUrl_());
+        'Case ' + (sh.getRange(row, col('ai_case')).getValue() || '') + '. The artist has been emailed a dispute link. It is only a flag. Listen to it, or wait for their dispute. Heavily AI-generated music can go to streaming only (Bandcamp bans it).\n\n' + sheetUrl_());
     } else if (/sound|clipping|loud|quiet|silence/i.test(String(p.sound)) && String(p.sound) !== 'OK') {
       sh.getRange(row, col('admin_notes')).setValue('Sound check: ' + p.sound);
     }
@@ -795,12 +818,88 @@ function handleAiResult_(p) {
   return text_('ok');
 }
 
+// ============================================================
+// AI FALSE-DETECTION DISPUTES
+// A flagged artist gets a case number (AIC-0001) and a link to dispute.html.
+// Their proof (links + small files saved to Drive folder "RRR AI disputes") lands in
+// the Disputes tab. You set status to "cleared" or "not cleared" and add a note,
+// then RRR menu → Process AI disputes now (or wait for the daily run): the artist is emailed.
+// ============================================================
+function disputeFolder_() {
+  const it = DriveApp.getFoldersByName('RRR AI disputes');
+  return it.hasNext() ? it.next() : DriveApp.createFolder('RRR AI disputes');
+}
+
+function handleDispute_(p) {
+  const caseNo = String(p.case || '').trim().toUpperCase();
+  const rel = rows_('Releases').find(r => String(r.ai_case).toUpperCase() === caseNo);
+  if (!rel) { log_('dispute refused: unknown case', caseNo); return text_('ok'); }
+  if (String(p.member_id || '').trim().toUpperCase() !== String(rel.member_id).toUpperCase()) { log_('dispute refused: member mismatch', caseNo); return text_('ok'); }
+  const saved = [];
+  for (let k = 1; k <= 3; k++) {
+    const data = p['file' + k], name = p['file' + k + '_name'];
+    if (!data) continue;
+    try {
+      const m = String(data).match(/^data:([^;]+);base64,(.*)$/);
+      if (!m) continue;
+      const blob = Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], caseNo + '-' + String(name || ('proof' + k)).replace(/[^\w.\- ]/g, '_').slice(0, 80));
+      saved.push(disputeFolder_().createFile(blob).getUrl());
+    } catch (e) { log_('dispute file failed', caseNo + ' ' + String(e)); }
+  }
+  append_('Disputes', { case: caseNo, created: new Date(), release_id: rel.release_id, member_id: rel.member_id, artist: rel.artist, email: rel.email,
+    title: rel.title, reason: String(p.reason || '').slice(0, 3000), proof_types: [].concat(p.proof_types || []).join(', '),
+    proof_links: String(p.proof_links || '').slice(0, 2000), files: saved.join('\n'), used_ai_tools: String(p.used_ai_tools || '').slice(0, 500), status: 'open' });
+  notify_('AI dispute ' + caseNo + ': ' + rel.artist + ' – ' + rel.title,
+    'Proof types: ' + [].concat(p.proof_types || []).join(', ') + '\nLinks: ' + (p.proof_links || '-') + '\nFiles: ' + (saved.join(', ') || '-') +
+    '\nAI tools they say they used: ' + (p.used_ai_tools || '-') + '\n\nWhy they think it is wrong:\n' + (p.reason || '') +
+    '\n\nDecide in the Disputes tab: status "cleared" or "not cleared", then RRR menu → Process AI disputes now.\n' + sheetUrl_());
+  if (rel.email) try {
+    MailApp.sendEmail({ to: rel.email, name: 'Retro Reverb Records', subject: 'We received your dispute · case ' + caseNo,
+      body: 'Thanks. We received your dispute for "' + rel.title + '" (case ' + caseNo + ') on ' + new Date().toUTCString() + '.\n\nA person will review your proof within 7 days and email you the decision.\n\nRetro Reverb Records' });
+  } catch (e) { log_('dispute ack failed', String(e)); }
+  return text_('ok');
+}
+
+function processDisputes_() {
+  const sh = sheet_('Disputes'), v = sh.getDataRange().getValues(), h = v[0];
+  const c = k => h.indexOf(k);
+  let n = 0;
+  for (let i = 1; i < v.length; i++) {
+    const st = String(v[i][c('status')]).trim().toLowerCase();
+    if ((st !== 'cleared' && st !== 'not cleared') || v[i][c('notified')]) continue;
+    const caseNo = v[i][c('case')], title = v[i][c('title')], email = v[i][c('email')], note = v[i][c('decision_notes')];
+    const rsh = sheet_('Releases'), rv = rsh.getDataRange().getValues(), rh = rv[0];
+    for (let j = 1; j < rv.length; j++) if (String(rv[j][rh.indexOf('ai_case')]) === String(caseNo)) {
+      rsh.getRange(j + 1, rh.indexOf('ai_result') + 1).setValue(st === 'cleared' ? 'cleared by RRR (' + caseNo + ')' : 'AI confirmed (' + caseNo + '): streaming only');
+    }
+    if (email) MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', subject: 'Decision on case ' + caseNo + ': "' + title + '"',
+      body: (st === 'cleared'
+        ? 'Good news: we reviewed your proof and cleared "' + title + '". The AI flag is removed and your release carries on as booked.'
+        : 'We reviewed your proof for "' + title + '" and could not clear the AI flag.\n\nYour options:\n- Release it on streaming only (the one fully safe route for AI-generated music), or\n- Withdraw the booking: the upload fee is refunded if we have not uploaded it yet.\n\nIf you have new proof, reply to this email within 14 days and we will look again.') +
+        (note ? '\n\nNote from RRR: ' + note : '') + '\n\nRetro Reverb Records' });
+    sh.getRange(i + 1, c('notified') + 1).setValue(new Date());
+    n++;
+  }
+  return n;
+}
+// Proof files are deleted after 90 days (promised on the dispute page)
+function cleanDisputeFiles_() {
+  const it = DriveApp.getFoldersByName('RRR AI disputes'); if (!it.hasNext()) return;
+  const files = it.next().getFiles(), cutoff = Date.now() - 90 * 86400000;
+  while (files.hasNext()) { const f = files.next(); if (f.getDateCreated().getTime() < cutoff) f.setTrashed(true); }
+}
+function processDisputesNow() {
+  const n = processDisputes_();
+  SpreadsheetApp.getUi().alert(n ? n + ' dispute decision(s) sent.' : 'Nothing new. Set status to "cleared" or "not cleared" first.');
+}
+
 // Sheet menu so you don't have to wait for the daily run
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('RRR')
     .addItem('Give approved points now', 'approveClaimsNow')
     .addItem('Process release decisions now', 'processReleasesNow')
     .addItem('Apply suspensions and removals now', 'processStandingNow')
+    .addItem('Process AI disputes now', 'processDisputesNow')
     .addToUi();
   try { applyValidations_(); } catch (e) {}
 }

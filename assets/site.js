@@ -235,6 +235,25 @@
       setStatus(st, open, '<strong>Booking is open.</strong> We confirm every booking by email.',
         '<strong>Coming soon.</strong> Booking opens when RRR membership launches. You can still use the deadline planner.');
       const pl = $('.paylink', f), sel = $('select[name=format]', f);
+      // Daily slots: check the date is free before booking. First to pay gets it.
+      const slotField = { 'bandcamp-release': 'release_date', 'youtube-upload': 'premiere_date' }[f.dataset.kind];
+      const dateIn = slotField ? f.querySelector(`input[name=${slotField}]`) : null;
+      let slotOk = true;
+      if (dateIn && endpoint) {
+        const msg = document.createElement('span'); msg.className = 'slotmsg small'; msg.setAttribute('aria-live', 'polite'); dateIn.insertAdjacentElement('afterend', msg);
+        const check = () => {
+          const d = dateIn.value; if (!d) { msg.textContent = ''; return; }
+          msg.textContent = 'Checking…'; slotOk = false;
+          fetch(endpoint + (endpoint.includes('?') ? '&' : '?') + 'slot=' + encodeURIComponent(f.dataset.kind) + '&date=' + d).then(r => r.json()).then(j => {
+            if (dateIn.value !== d) return;
+            if (!j.ok || j.free) { slotOk = true; dateIn.setCustomValidity(''); msg.innerHTML = '<b class="ok">✓ ' + esc(d) + ' is free.</b> It\'s yours when you pay.'; return; }
+            slotOk = false; dateIn.setCustomValidity('That date is taken. Pick another date.');
+            msg.innerHTML = '<b class="no">Taken.</b> ' + (j.next ? 'Next free day: <button type="button" class="copy">Use ' + esc(j.next) + '</button>' : 'Pick another date.');
+            const b = msg.querySelector('button'); if (b) b.addEventListener('click', () => { dateIn.value = j.next; check(); });
+          }).catch(() => { slotOk = true; dateIn.setCustomValidity(''); msg.textContent = 'Couldn\'t check the date right now. We\'ll confirm it when you pay.'; });
+        };
+        dateIn.addEventListener('change', check);
+      }
       const amount = () => (pl && pl.dataset.amount) ? fees0[pl.dataset.amount] : (sel ? fees0[sel.value] : null);
       f.addEventListener('submit', async e => {
         e.preventDefault();
@@ -243,12 +262,13 @@
         const title = (f.querySelector('[name=title]') || {}).value || '';
         const email = (f.querySelector('[name=email]') || {}).value || '';
         const amt = amount();
-        const ok = await send(f, st, f.dataset.kind);
+        const bookingId = 'BK-' + Array.from(crypto.getRandomValues(new Uint8Array(6)), x => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[x % 31]).join('');
+        const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : {});
         // One-off fee: PayPal button appears after booking, tagged with the member's email
         if (ok) track('Schedule', { content_name: f.dataset.kind });
         if (ok && pl && amt) {
           pl.hidden = false;
-          payButtons(pl, { kind: 'one-off', amount: amt, item: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title}`, custom: email, note: 'Your booking is confirmed once the fee is paid.' });
+          payButtons(pl, { kind: 'one-off', amount: amt, item: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title} (${bookingId})`, custom: bookingId, note: `Booking ${bookingId}. Your date is only confirmed when payment arrives: first to pay gets the date. You'll get a confirmation email.` });
         }
       });
     });

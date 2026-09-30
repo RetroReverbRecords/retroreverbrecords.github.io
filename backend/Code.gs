@@ -36,7 +36,10 @@ const SETTINGS = {
   newsletterMode: 'auto',
   dailySendLimit: 90,  // free Gmail allows ~100 emails a day; the rest go out the next days
   releaseDecisionEmails: true, // email artists when a Selected Release is approved or not selected
-  maxReleasesPerWeek: 0        // release slots per week (Mon–Sun). 0 = no limit. Over the limit, bookings are flagged 'date full' for you
+  maxReleasesPerWeek: 0,       // release slots per week (Mon–Sun). 0 = no limit. Over the limit, bookings are flagged 'date full' for you
+  // Slots per day. A date is only taken once the booking is PAID (first to pay gets it).
+  slotsPerDay: { 'bandcamp-release': 1, 'youtube-upload': 2 },
+  paidKinds: ['bandcamp-release', 'streaming-release', 'youtube-upload', 'merch-listing']
 };
 
 // Sheet tabs and their columns. Created automatically on first run.
@@ -44,7 +47,7 @@ const TABS = {
   Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
-  Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id'],
+  Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id'],
   Achievements: ['member_id','achievement','earned_on','points','note'],
   Posts:        ['member_id','platform','date','link','status','caption','likes','views'],
   Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
@@ -126,6 +129,7 @@ function doGet(e) {
   if (q.unsubscribe) return unsubscribe_(q.unsubscribe);
   if (q.series) return json_({ ok: true, series: SERIES, releases: publicSelectedReleases_() });
   if (q.aiqueue) return aiQueue_(q.key);
+  if (q.slot) return json_(slotInfo_(q.slot, q.date));
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
   const m = findRow_('Members', 'member_id', id);
@@ -202,6 +206,12 @@ function handleBooking_(kind, p) {
   // Release slots: dates are subject to availability
   const full = /release/.test(kind) && date && SETTINGS.maxReleasesPerWeek > 0 &&
     rows_('Bookings').filter(r => /release/.test(r.kind) && !/cancel|full/i.test(String(r.status)) && r.date && weekKey_(r.date) === weekKey_(date)).length >= SETTINGS.maxReleasesPerWeek;
+  // Paid bookings are only confirmed (and take their date) when the PayPal payment arrives
+  if (SETTINGS.paidKinds.indexOf(kind) >= 0 && p.booking_id) {
+    append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email, title: title, format: p.format || '',
+      date: date, details: JSON.stringify(p).slice(0, 1500), status: 'awaiting payment', booking_id: String(p.booking_id).toUpperCase() });
+    return text_('ok');
+  }
   if (date && !full) eventId = addToCalendar_(kind, p, date);
   append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
     title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : 'requested', calendar_event_id: eventId });
@@ -258,6 +268,13 @@ function handlePayPal_(e) {
   }
   // 2. Ignore repeats
   if (p.txn_id && findRow_('Payments', 'txn_id', p.txn_id)) return text_('ok');
+  // Booking payment: custom = booking ID (BK-XXXXXX). Confirms the booking and takes the date.
+  if (/^BK-/i.test(String(p.custom || '')) && /completed/i.test(String(p.payment_status || ''))) {
+    append_('Payments', { received: new Date(), txn_type: p.txn_type, payment_status: p.payment_status, amount: p.mc_gross || '', currency: p.mc_currency,
+      item_name: p.item_name, payer_email: p.payer_email, member_id: '', txn_id: p.txn_id || '', subscr_id: '', raw: raw.slice(0, 2000) });
+    confirmBooking_(String(p.custom).toUpperCase(), p.mc_gross, p.txn_id);
+    return text_('ok');
+  }
   // custom = member ID (subscriptions) or the member's email (one-off fees)
   let memberId = String(p.custom || '').trim();
   if (memberId.indexOf('@') > 0) { const m = findRow_('Members', 'email', memberId); memberId = m ? m.member_id : ''; }
@@ -380,6 +397,7 @@ function daily() {
   processReleaseDecisions();
   processStanding_();
   processDisputes_();
+  expireUnpaidBookings_();
   try { cleanDisputeFiles_(); } catch (e) { log_('dispute cleanup failed', String(e)); }
   updateSongstats();
   newsletterTick_();
@@ -891,6 +909,70 @@ function cleanDisputeFiles_() {
 function processDisputesNow() {
   const n = processDisputes_();
   SpreadsheetApp.getUi().alert(n ? n + ' dispute decision(s) sent.' : 'Nothing new. Set status to "cleared" or "not cleared" first.');
+}
+
+// ============================================================
+// BOOKING SLOTS: first to pay gets the date
+// The booking form asks ?slot=<kind>&date=YYYY-MM-DD before sending, so artists
+// only book free dates. The date is taken when PayPal confirms the payment.
+// ============================================================
+function slotsTaken_(kind, iso) {
+  return rows_('Bookings').filter(r => r.kind === kind && /^confirmed/i.test(String(r.status)) && isoDate_(r.date) === iso).length;
+}
+function isoDate_(d) { if (!d) return ''; if (d instanceof Date) return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); return String(d).slice(0, 10); }
+function slotFree_(kind, iso) { const cap = SETTINGS.slotsPerDay[kind]; return !cap || slotsTaken_(kind, iso) < cap; }
+function nextFreeDate_(kind, iso) {
+  const d = new Date(iso + 'T12:00:00');
+  for (let i = 0; i < 366; i++) { const t = isoDate_(d); if (slotFree_(kind, t)) return t; d.setDate(d.getDate() + 1); }
+  return '';
+}
+function slotInfo_(kind, iso) {
+  iso = String(iso || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return { ok: false, error: 'bad date' };
+  if (!SETTINGS.slotsPerDay[kind]) return { ok: true, free: true, limited: false };
+  const free = slotFree_(kind, iso);
+  return { ok: true, free: free, limited: true, next: free ? iso : nextFreeDate_(kind, iso) };
+}
+
+function confirmBooking_(bookingId, amount, txnId) {
+  const sh = sheet_('Bookings'), v = sh.getDataRange().getValues(), h = v[0];
+  const c = k => h.indexOf(k);
+  for (let i = 1; i < v.length; i++) {
+    if (String(v[i][c('booking_id')]).toUpperCase() !== bookingId) continue;
+    const row = i + 1, status = String(v[i][c('status')]);
+    if (/^confirmed/i.test(status)) return;          // already done (PayPal can repeat)
+    const kind = v[i][c('kind')], p = JSON.parse(v[i][c('details')] || '{}');
+    let date = isoDate_(v[i][c('date')]), moved = '';
+    if (date && !slotFree_(kind, date)) { const nd = nextFreeDate_(kind, date); moved = date; date = nd; sh.getRange(row, c('date') + 1).setValue(date); }
+    const eventId = date ? addToCalendar_(kind, Object.assign({}, p, { title: v[i][c('title')], artist: v[i][c('artist')] }), date) : '';
+    sh.getRange(row, c('status') + 1).setValue(moved ? 'confirmed (moved from ' + moved + ')' : 'confirmed');
+    sh.getRange(row, c('calendar_event_id') + 1).setValue(eventId);
+    sh.getRange(row, c('paid_amount') + 1).setValue(amount || '');
+    sh.getRange(row, c('txn_id') + 1).setValue(txnId || '');
+    const memberId = v[i][c('member_id')], title = v[i][c('title')];
+    if (memberId) {
+      if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title); }
+      if (kind === 'youtube-upload') { award_(memberId, 'firstVideo'); addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title); }
+    }
+    const email = v[i][c('email')];
+    if (email) try {
+      MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', subject: 'Booking confirmed: "' + title + '" on ' + date + ' (' + bookingId + ')',
+        body: 'Payment received, thank you. Your booking is confirmed.\n\nBooking: ' + bookingId + '\nWhat: ' + kind.replace('-', ' ') + '\nTitle: ' + title + '\nDate: ' + date +
+          (moved ? '\n\nSomeone paid for ' + moved + ' just before you, so your booking moved to the next free day, ' + date + '. If that doesn\'t work for you, reply to this email and we\'ll move it or refund you.' : '') +
+          '\n\nYour checklist and deadlines: ' + SETTINGS.siteUrl + 'release-policy.html\nBandcamp assets: at least ' + SETTINGS.bandcampAssetsDays + ' days before. Streaming assets: at least ' + SETTINGS.streamingAssetsDays + ' days before.\n\nRetro Reverb Records' });
+    } catch (e) { log_('booking confirm email failed', String(e)); }
+    notify_('Booking PAID + confirmed: ' + kind + ' – ' + v[i][c('artist')] + ' – ' + title + ' – ' + date + (moved ? ' (moved from ' + moved + ')' : ''), 'Booking ' + bookingId + '\n' + sheetUrl_());
+    return;
+  }
+  log_('payment for unknown booking', bookingId);
+  notify_('Payment for an unknown booking: ' + bookingId, 'Check PayPal and the Bookings tab.\n' + sheetUrl_());
+}
+
+// Unpaid bookings don't hold anything; they're marked expired after 7 days
+function expireUnpaidBookings_() {
+  const sh = sheet_('Bookings'), v = sh.getDataRange().getValues(), h = v[0], cutoff = Date.now() - 7 * 86400000;
+  for (let i = 1; i < v.length; i++) if (v[i][h.indexOf('status')] === 'awaiting payment' && new Date(v[i][h.indexOf('created')]).getTime() < cutoff)
+    sh.getRange(i + 1, h.indexOf('status') + 1).setValue('expired (not paid)');
 }
 
 // Sheet menu so you don't have to wait for the daily run

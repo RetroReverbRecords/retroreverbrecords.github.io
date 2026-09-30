@@ -631,3 +631,5 @@ details.needs b{color:var(--text)}
 .affwrap{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 a.aff{text-decoration:none}
 #proof .grid2 + .panel{margin-top:18px}
+.slotmsg{display:block;margin-top:6px}
+.slotmsg .ok{color:#2ED47A}.slotmsg .no{color:#ff8a8a}

@@ -43,7 +43,8 @@ const SETTINGS = {
   releaseDecisionEmails: true, // email artists when a Selected Release is approved or not selected
   maxReleasesPerWeek: 0,       // release slots per week (Mon–Sun). 0 = no limit. Over the limit, bookings are flagged 'date full' for you
   // Slots per day. A date is only taken once the booking is PAID (first to pay gets it).
-  slotsPerDay: { 'bandcamp-release': 1, 'youtube-upload': 2 },
+  // How many bookings each day can take. Change the numbers any time.
+  slotsPerDay: { 'bandcamp-release': 1, 'streaming-release': 3, 'youtube-upload': 2, 'social-post': 2 },
   paidKinds: ['bandcamp-release', 'streaming-release', 'youtube-upload', 'merch-listing']
 };
 
@@ -255,6 +256,9 @@ function handleBooking_(kind, p) {
     if (isDemo_(p.email)) confirmBooking_(String(p.booking_id).toUpperCase(), 'demo', 'DEMO');
     return text_('ok');
   }
+  const dayFull = !!(date && SETTINGS.slotsPerDay[kind] && !slotFree_(kind, isoDate_(date)));
+  if (dayFull) { append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email, title: title, date: date, details: JSON.stringify(p).slice(0, 1500), status: 'date full – suggest another date' });
+    notify_('Booking date full: ' + kind + ' – ' + (p.artist || ''), date + ' was already full. Reply with the next free day: ' + nextFreeDate_(kind, isoDate_(date)) + '\n' + sheetUrl_()); return text_('ok'); }
   if (date && !full) eventId = addToCalendar_(kind, p, date);
   append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
     title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : 'requested', calendar_event_id: eventId });
@@ -1029,8 +1033,14 @@ function processDisputesNow() {
 // The booking form asks ?slot=<kind>&date=YYYY-MM-DD before sending, so artists
 // only book free dates. The date is taken when PayPal confirms the payment.
 // ============================================================
+// A day is taken by paid bookings once paid, and by free bookings (social posts) once requested
+function holdsSlot_(r) {
+  const st = String(r.status);
+  if (/^confirmed/i.test(st)) return true;
+  return SETTINGS.paidKinds.indexOf(r.kind) < 0 && /^requested/i.test(st);
+}
 function slotsTaken_(kind, iso) {
-  return rows_('Bookings').filter(r => r.kind === kind && /^confirmed/i.test(String(r.status)) && isoDate_(r.date) === iso).length;
+  return rows_('Bookings').filter(r => r.kind === kind && holdsSlot_(r) && isoDate_(r.date) === iso).length;
 }
 function isoDate_(d) { if (!d) return ''; if (d instanceof Date) return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); return String(d).slice(0, 10); }
 function slotFree_(kind, iso) { const cap = SETTINGS.slotsPerDay[kind]; return !cap || slotsTaken_(kind, iso) < cap; }
@@ -1043,7 +1053,7 @@ function nextFreeDate_(kind, iso) {
 function slotsFull_(kind) {
   const cap = SETTINGS.slotsPerDay[kind] || 0, counts = {};
   if (!cap) return { ok: true, kind: kind, cap: 0, full: [] };
-  rows_('Bookings').forEach(r => { if (r.kind === kind && /^confirmed/i.test(String(r.status))) { const d = isoDate_(r.date); if (d) counts[d] = (counts[d] || 0) + 1; } });
+  rows_('Bookings').forEach(r => { if (r.kind === kind && holdsSlot_(r)) { const d = isoDate_(r.date); if (d) counts[d] = (counts[d] || 0) + 1; } });
   return { ok: true, kind: kind, cap: cap, full: Object.keys(counts).filter(d => counts[d] >= cap) };
 }
 function slotInfo_(kind, iso) {

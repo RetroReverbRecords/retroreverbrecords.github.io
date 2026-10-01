@@ -365,7 +365,7 @@
       const ub = $$('input[name=upload_by]', f);
       if (ub.length) { const showUb = () => { const v = (ub.find(r => r.checked) || {}).value; $$('[data-upload]', f).forEach(d => { d.hidden = !!v && d.dataset.upload !== v; if (v && d.dataset.upload === v) d.open = true; }); const al = $('#bc-assets', f); if (al) al.required = v === 'rrr'; }; ub.forEach(r => r.addEventListener('change', showUb)); showUb(); }
       // Daily slots: check the date is free before booking. First to pay gets it.
-      const slotField = { 'bandcamp-release': 'release_date', 'youtube-upload': 'premiere_date' }[f.dataset.kind];
+      const slotField = { 'bandcamp-release': 'release_date', 'streaming-release': 'release_date', 'youtube-upload': 'premiere_date', 'social-post': 'preferred_date' }[f.dataset.kind];
       const dateIn = slotField ? f.querySelector(`input[name=${slotField}]`) : null;
       let slotOk = true;
       if (dateIn && endpoint) {
@@ -383,7 +383,7 @@
         };
         dateIn.addEventListener('change', check);
         // Availability calendar: free days in green, taken in red, too soon in grey. Click a free day to pick it.
-        const lead = f.dataset.kind === 'bandcamp-release' ? ((C.deadlines || {}).bandcampAssetsDays ?? 14) : 3;
+        const DL = C.deadlines || {}, lead = { 'bandcamp-release': DL.bandcampAssetsDays ?? 14, 'streaming-release': DL.streamingAssetsDays ?? 21, 'youtube-upload': 3, 'social-post': 2 }[f.dataset.kind] ?? 3;
         const isoOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         const first = new Date(); first.setHours(12, 0, 0, 0); first.setDate(first.getDate() + lead);
         dateIn.min = isoOf(first);

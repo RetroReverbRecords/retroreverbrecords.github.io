@@ -691,3 +691,5 @@ html.a11y-contrast .horizon, html.a11y-contrast .floor{display:none}
 /* Stop animations */
 html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+#link-form button[type=submit]{justify-self:start;width:auto;padding:10px 22px;font-size:13px}
+.linkdone{max-width:620px;margin:0 auto;text-align:center;display:grid;gap:14px;justify-items:center}

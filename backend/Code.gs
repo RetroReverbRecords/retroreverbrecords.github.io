@@ -137,7 +137,7 @@ function doGet(e) {
   if (q.series) return json_({ ok: true, series: SERIES, releases: publicSelectedReleases_() });
   if (q.aiqueue) return aiQueue_(q.key);
   if (q.slot) return json_(slotInfo_(q.slot, q.date));
-  if (q.linkready) return linkReady_(q.linkready);
+  if (q.linkready) return linkReady_(q.linkready, q.json);
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
   const m = findRow_('Members', 'member_id', id);
@@ -1247,13 +1247,13 @@ function handleLinkRequest_(p) {
   }
   append_('Links', { created: new Date(), member_id: id, artist: m.artist || m.name, email: m.email, bandcamp_url: String(p.bandcamp_url || m.bandcamp || '').trim(),
     method: method, temp_password: pw, token: token, status: 'requested' });
-  const u = SETTINGS.siteUrl, done = ScriptApp.getService().getUrl() + '?linkready=' + token;
+  const u = SETTINGS.siteUrl, done = u + 'linked.html?t=' + token;
   const wrap = inner => '<div style="font:15px/1.55 Arial,sans-serif;color:#222;max-width:560px">' + inner + '<p>Questions? Just reply to this email.</p><p>Retro Reverb Records<br><span style="color:#888">Welcome to the family</span></p></div>';
   const html = method === 'password' ? wrap(
     '<p>Hi ' + (m.name || '') + ',</p><p>Here is your <b>placeholder password</b> for linking your Bandcamp to RRR. It was made just for you and is only used for a few minutes.</p>' +
     '<p style="font:700 20px Courier New,monospace;background:#f4f1fb;border:2px dashed #FF2FA8;padding:12px 14px;border-radius:8px;text-align:center">' + pw + '</p>' +
     '<ol><li>On Bandcamp, go to <b>Settings → Account</b> (bandcamp.com/settings) and change your password to the placeholder above.</li>' +
-    '<li>Press this button: <a href="' + done + '" style="display:inline-block;background:#FF2FA8;color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:8px">DONE, I\'VE SET IT</a></li>' +
+    '<li>Press this button: <a href="' + done + '" style="display:inline-block;background:#FF2FA8;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:6px 12px;border-radius:6px">Done, I\'ve set it</a></li>' +
     '<li>We link your page, usually within a few hours, and email you <b>"Linked ✓"</b>.</li>' +
     '<li>Then <b>change your password straight away</b> to a new private one. Your page stays linked.</li></ol>' +
     '<p style="background:#f7f7f9;padding:10px 12px;border-radius:8px;font-size:13px;color:#555"><b>What linking changes:</b> only your RRR releases. Your other releases, collaborators, other labels and your payment settings stay yours and untouched. Bandcamp pays you directly. You can unlink any time. RRR never asks for your real password.</p>')
@@ -1263,9 +1263,9 @@ function handleLinkRequest_(p) {
   if (method === 'invite') notify_('Bandcamp INVITE to send: ' + (m.artist || m.name) + ' (' + id + ')', 'Bandcamp → Add → Existing Artist → request access.\nTheir page: ' + (p.bandcamp_url || m.bandcamp || '?') + '\nWhen they accept, set status "linked" in the Links tab.\n' + sheetUrl_());
   return text_('ok');
 }
-function linkReady_(token) {
+function linkReady_(token, asJson) {
   const sh = sheet_('Links'), v = sh.getDataRange().getValues(), h = v[0];
-  const page = (title, body) => HtmlService.createHtmlOutput('<div style="font:16px/1.6 Arial,sans-serif;max-width:520px;margin:40px auto;padding:24px;background:#07061A;color:#F3EEFF;border-radius:14px;text-align:center"><h2 style="color:#FF2FA8">' + title + '</h2><p>' + body + '</p><p><a style="color:#3FD0FF" href="' + SETTINGS.siteUrl + '">Back to Retro Reverb Records</a></p></div>').setTitle('RRR · Bandcamp linking');
+  const page = (title, body) => asJson ? json_({ ok: true, title: title, body: body }) : HtmlService.createHtmlOutput('<div style="font:16px/1.6 Arial,sans-serif;max-width:520px;margin:40px auto;padding:24px;background:#07061A;color:#F3EEFF;border-radius:14px;text-align:center"><h2 style="color:#FF2FA8">' + title + '</h2><p>' + body + '</p><p><a style="color:#3FD0FF" href="' + SETTINGS.siteUrl + '">Back to Retro Reverb Records</a></p></div>').setTitle('RRR · Bandcamp linking');
   for (let i = 1; i < v.length; i++) {
     if (v[i][h.indexOf('token')] !== token) continue;
     const st = v[i][h.indexOf('status')];

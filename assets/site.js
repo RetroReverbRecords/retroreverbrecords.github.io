@@ -153,18 +153,33 @@
     }).catch(fallback);
   }
 
-  // Short neon chime when something is sent (no sound file needed)
+  // Short 80s synthwave sting when something is sent (no sound file needed):
+  // detuned saw arpeggio through a sweeping low-pass filter, a sub bass and an echo.
   function chime(){
     try {
       const A = window.AudioContext || window.webkitAudioContext; if (!A) return;
-      const ctx = new A(), t = ctx.currentTime;
-      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
-        const o = ctx.createOscillator(), g = ctx.createGain(), s0 = t + i * 0.09;
-        o.type = 'triangle'; o.frequency.value = f;
-        g.gain.setValueAtTime(0.0001, s0); g.gain.exponentialRampToValueAtTime(0.16, s0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, s0 + 0.5);
-        o.connect(g).connect(ctx.destination); o.start(s0); o.stop(s0 + 0.55);
-      });
-      setTimeout(() => ctx.close(), 1500);
+      const ctx = new A(), t = ctx.currentTime + 0.02;
+      const out = ctx.createGain(); out.gain.value = 0.22;
+      const echo = ctx.createDelay(); echo.delayTime.value = 0.19;
+      const fb = ctx.createGain(); fb.gain.value = 0.38;
+      const wet = ctx.createGain(); wet.gain.value = 0.5;
+      const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 2600;
+      echo.connect(tone).connect(fb).connect(echo); echo.connect(wet).connect(out);
+      out.connect(ctx.destination);
+      const note = (freq, start, len, type, detunes, peak, cutFrom, cutTo) => {
+        const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 7;
+        f.frequency.setValueAtTime(cutFrom, start); f.frequency.exponentialRampToValueAtTime(cutTo, start + len * 0.6);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(peak, start + 0.015);
+        g.gain.exponentialRampToValueAtTime(peak * 0.5, start + len * 0.5); g.gain.exponentialRampToValueAtTime(0.0001, start + len);
+        detunes.forEach(d => { const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq; o.detune.value = d; o.connect(f); o.start(start); o.stop(start + len + 0.05); });
+        f.connect(g); g.connect(out); g.connect(echo);
+      };
+      // A minor arpeggio up to the octave: A3 C4 E4 A4, then a held E5 shimmer
+      [220, 261.63, 329.63, 440].forEach((fq, k) => note(fq, t + k * 0.11, 0.42, 'sawtooth', [-9, 9], 0.5, 600, 4200));
+      note(659.25, t + 0.44, 1.1, 'sawtooth', [-12, 0, 12], 0.32, 900, 5200);
+      note(55, t, 0.9, 'square', [0], 0.45, 220, 120);   // sub bass A1
+      setTimeout(() => ctx.close(), 3000);
     } catch (e) {}
   }
   window.rrrChime = chime;

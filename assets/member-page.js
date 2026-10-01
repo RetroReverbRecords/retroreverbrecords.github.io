@@ -166,7 +166,11 @@
         <div class="panel"><span class="label">Artist type</span><b>${esc(m.artistType || 'Member')}</b></div>
         <div class="panel"><span class="label">Eligible for RRR release</span><b class="${m.eligible ? 'ok' : 'todo'}">${m.eligible ? 'Yes' : (m.bandcampLinked ? 'Not yet' : 'After linking')}</b></div>
       </div>
-      ${m.bandcampLinked ? '' : '<div class="panel nextstep"><span class="label">Your next step</span><p><b>Link your Bandcamp to RRR.</b> It unlocks Bandcamp releases and gets you free Bandcamp VIP. Usually done the same day.</p><a class="btn primary" href="series.html#linking">How to link</a></div>'}
+      ${m.bandcampLinked ? '' : (() => { const ls = m.linkStatus || {}, link = 'series.html' + (demo ? '' : '?id=' + encodeURIComponent(m.id)) + '#link-form';
+        if (ls.status === 'requested' && ls.method === 'password') return '<div class="panel nextstep"><span class="label">Linking in progress</span><p><b>Check your email.</b> Set the placeholder password we sent you on Bandcamp, then press <b>"Done, I\'ve set it"</b> in that email.</p><a class="copy" href="' + link + '">Didn\'t get it? Ask again</a></div>';
+        if (ls.status === 'requested') return '<div class="panel nextstep"><span class="label">Linking in progress</span><p><b>Watch for our Bandcamp invite</b> and press accept. We send it within a day.</p></div>';
+        if (ls.status === 'ready') return '<div class="panel nextstep"><span class="label">Linking in progress</span><p><b>We\'re linking your page now.</b> You\'ll get a "Linked ✓" email. Then change your Bandcamp password.</p></div>';
+        return '<div class="panel nextstep"><span class="label">Your next step</span><p><b>Link your Bandcamp to RRR.</b> It unlocks Bandcamp releases and gets you free Bandcamp VIP. It only affects your RRR releases: everything else stays yours.</p><a class="btn primary" href="' + link + '">Link my Bandcamp</a> <a class="small" href="series.html#linking">How linking works</a></div>'; })()}
       <h3 class="subhead">My releases <span class="small"><a href="series.html${demo ? '' : '?id=' + encodeURIComponent(m.id)}#submit">Submit or add a release</a></span></h3>
       ${progTable(m.programme || [])}` : ''}
 

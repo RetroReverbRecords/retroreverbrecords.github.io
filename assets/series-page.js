@@ -154,4 +154,32 @@
       }
     });
   }
+
+  /* ---------- Link my Bandcamp (placeholder password or invite) ---------- */
+  const lf = $('#link-form');
+  if (lf) {
+    const ls = $('#link-status'), lid = $('#lf-id');
+    const q = new URLSearchParams(location.search);
+    try { lid.value = (q.get('id') || localStorage.getItem('rrr-member-id') || '').toUpperCase(); } catch (e) { lid.value = (q.get('id') || '').toUpperCase(); }
+    const say = (ok, html) => { ls.classList.toggle('open', ok); ls.innerHTML = `<span class="dot"></span><span>${html}</span>`; };
+    if (!formsOpen) { $('#link-fields').disabled = true; say(false, '<strong>Coming soon.</strong> Linking requests open when RRR membership launches.'); }
+    lf.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (!formsOpen) return;
+      lid.value = lid.value.trim().toUpperCase();
+      lid.setCustomValidity(/^RRR-[A-Z0-9]{4,8}$/.test(lid.value) ? '' : 'Your member ID looks like RRR-7KX2P');
+      if (!lf.checkValidity()) { lf.reportValidity(); return; }
+      const data = new URLSearchParams(); new FormData(lf).forEach((v, k) => data.append(k, v)); data.append('form', 'link-request');
+      const method = (lf.querySelector('input[name=method]:checked') || {}).value;
+      try {
+        await fetch(url, { method: 'POST', mode: 'no-cors', body: data });
+        say(true, method === 'invite'
+          ? '<strong>Done ✓</strong> We\'ll send you a Bandcamp invite within a day. Watch for an email from Bandcamp and press accept.'
+          : '<strong>Check your email ✓</strong> We\'ve sent your placeholder password and the next steps to the address on your membership. Not there in a few minutes? Check spam.');
+        $('#link-fields').disabled = true;
+        if (window.rrrChime) window.rrrChime();
+        try { ls.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+      } catch (err) { say(false, `<strong>That didn't send.</strong> Try again, or email ${esc(C.email)}.`); }
+    });
+  }
 })();

@@ -209,6 +209,43 @@
     }
   }
 
+
+  /* ---------- reading and accessibility options (saved on this device only) ---------- */
+  (function(){
+    const root = document.documentElement, btn = $('#a11y-btn'), panel = $('#a11y-panel');
+    const mainEl = document.querySelector('main'); if (mainEl && !document.getElementById('content')) mainEl.id = mainEl.id || 'content';
+    const skip = $('.skip'); if (skip && mainEl) skip.href = '#' + mainEl.id;
+    const load = () => { try { return JSON.parse(localStorage.getItem('rrr-a11y') || '{}'); } catch (e) { return {}; } };
+    const save = o => { try { localStorage.setItem('rrr-a11y', JSON.stringify(o)); } catch (e) {} };
+    const font = () => { if (!$('#a11y-font')) { const l = document.createElement('link'); l.id = 'a11y-font'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap'; document.head.appendChild(l); } };
+    const apply = o => {
+      ['easy', 'big', 'contrast', 'still'].forEach(k => root.classList.toggle('a11y-' + k, !!o[k]));
+      if (o.easy) font();
+      $$('video').forEach(v => { try { o.still ? v.pause() : (v.autoplay && v.play().catch(() => {})); } catch (e) {} });
+    };
+    let st = load(); apply(st);
+    if (!btn || !panel) return;
+    $$('[data-a11y]', panel).forEach(c => { c.checked = !!st[c.dataset.a11y]; c.addEventListener('change', () => { st[c.dataset.a11y] = c.checked; save(st); apply(st); }); });
+    const close = () => { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+    const place = () => { const r = btn.getBoundingClientRect(), w = panel.offsetWidth || 300; panel.style.top = Math.round(r.bottom + 8) + 'px'; panel.style.left = Math.round(Math.max(16, Math.min(innerWidth - w - 16, r.right - w))) + 'px'; };
+    btn.addEventListener('click', e => { e.stopPropagation(); const open = panel.hidden; panel.hidden = !open; btn.setAttribute('aria-expanded', String(open)); if (open) { place(); const f = panel.querySelector('input'); if (f) f.focus(); } });
+    addEventListener('resize', () => { if (!panel.hidden) place(); }); addEventListener('scroll', () => { if (!panel.hidden) close(); }, { passive: true });
+    document.addEventListener('click', e => { if (!panel.hidden && !panel.contains(e.target)) close(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) { close(); btn.focus(); } });
+    // Read aloud with the browser's own voice (selected text, or the main page text)
+    const rd = $('#a11y-read'), synth = window.speechSynthesis;
+    if (!rd) return;
+    if (!synth) { rd.hidden = true; return; }
+    rd.addEventListener('click', () => {
+      if (synth.speaking) { synth.cancel(); rd.textContent = '🔊 Read this page aloud'; return; }
+      const sel = String(window.getSelection ? window.getSelection() : '').trim();
+      const txt = (sel || (mainEl ? mainEl.innerText : document.body.innerText)).replace(/\s+/g, ' ').slice(0, 30000);
+      const lang = (document.documentElement.lang || 'en').slice(0, 2);
+      const chunks = txt.match(/[^.!?]+[.!?]*/g) || [txt];
+      chunks.forEach((c, i) => { const u = new SpeechSynthesisUtterance(c.trim()); u.lang = lang; u.rate = 0.95; if (i === chunks.length - 1) u.onend = () => { rd.textContent = '🔊 Read this page aloud'; }; synth.speak(u); });
+      rd.textContent = '⏹ Stop reading';
+    });
+  })();
   /* ---------- sign-up → member ID → PayPal subscription ---------- */
   const signup = $('#signup');
   const isDemoEmail = e => { const x = String(e || '').trim().toLowerCase(); return !!C.demoEmailPrefix && x.indexOf(C.demoEmailPrefix) === 0 && /@gmail\.com$/.test(x); };

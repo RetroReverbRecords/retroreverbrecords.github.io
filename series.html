@@ -17,9 +17,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261001d">
+<link rel="stylesheet" href="assets/site.css?v=20261001f">
 </head>
 <body>
+<a class="skip" href="#content">Skip to content</a>
 <header>
   <div class="wrap">
     <a class="brand" href="index.html"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records home"></a>
@@ -35,6 +36,17 @@
       <a href="member.html">My dashboard</a>
       <a class="btn primary small-btn" href="index.html#join">Create account</a>
       <label class="lang" title="Translate this site"><span aria-hidden="true">🌐</span><span class="sr">Language</span><select id="lang-select" aria-label="Language"><option value="en">English</option><option value="it">Italiano</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="sv">Svenska</option><option value="el">Ελληνικά</option><option value="tr">Türkçe</option><option value="ru">Русский</option><option value="uk">Українська</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></label>
+      <div class="a11y"><button type="button" class="a11y-btn" id="a11y-btn" aria-expanded="false" aria-controls="a11y-panel" title="Reading and accessibility options"><span aria-hidden="true">Aa</span><span class="sr">Reading and accessibility options</span></button>
+        <div class="a11y-panel panel" id="a11y-panel" hidden>
+          <p class="label">Make it easier to read</p>
+          <label><input type="checkbox" data-a11y="easy"> <span>Easy-read text<small>Dyslexia-friendly font and spacing</small></span></label>
+          <label><input type="checkbox" data-a11y="big"> Bigger text</label>
+          <label><input type="checkbox" data-a11y="contrast"> High contrast</label>
+          <label><input type="checkbox" data-a11y="still"> Stop animations</label>
+          <button type="button" class="btn ghost" id="a11y-read">🔊 Read this page aloud</button>
+          <p class="small">Selected some text? It reads just that.</p>
+        </div>
+      </div>
     </nav>
   </div>
 </header>
@@ -91,29 +103,66 @@
 
       <div class="panel pad linkcmp" id="linking">
         <p class="label">Linking your Bandcamp</p>
-        <h3>Password linking or invite: which is right for you?</h3>
-        <p class="small">Both are official Bandcamp options for adding an artist to a label. Both keep your Bandcamp payments going directly to you, and neither makes you exclusive.</p>
+        <h3>What linking means, and what it doesn't</h3>
+        <div class="grid2 linkwhy">
+          <div>
+            <p class="label">What linking does</p>
+            <ul class="ticks">
+              <li>Your RRR releases appear on <b>your</b> Bandcamp page <b>and</b> the RRR label page, in front of RRR's followers.</li>
+              <li>Bandcamp pays you <b>directly</b>. RRR never touches your money.</li>
+              <li>You get <b>free Bandcamp VIP</b>.</li>
+              <li>With password linking, RRR can also use Bandcamp's promotion tools for your RRR releases: promo codes, features and page help.</li>
+            </ul>
+          </div>
+          <div>
+            <p class="label">What it doesn't change</p>
+            <ul class="ticks">
+              <li><b>Only your RRR releases are affected.</b> All your other releases stay exactly as they are.</li>
+              <li>Keep releasing on your own, with <b>collaborators</b> and with <b>other labels</b>. Bandcamp lets an artist link to any number of labels.</li>
+              <li>Your <b>payment settings</b> stay yours. RRR never views or changes them.</li>
+              <li>You can <b>unlink any time</b>: just ask.</li>
+            </ul>
+          </div>
+        </div>
         <div class="tablewrap">
           <table class="cmp">
             <thead><tr><th scope="col"></th><th scope="col" class="us">Password linking · recommended</th><th scope="col">Bandcamp invite</th></tr></thead>
             <tbody>
-              <tr><th scope="row">How it works</th><td class="us">You set a temporary password and share it with RRR privately. We link your page, then you change your password back.</td><td>RRR sends an invite from the RRR label. You accept it by email.</td></tr>
-              <tr><th scope="row">What RRR can do</th><td class="us">Full access, in Bandcamp's words: add RRR releases, promote them properly (promo links, codes, page features) and help with page design and profile.</td><td>Add releases to your page. Nothing else.</td></tr>
-              <tr><th scope="row">Stats</th><td class="us">RRR can see your Bandcamp stats, so we can show you more advanced stats and plan promotion around them.</td><td>Your stats stay private to you. RRR only sees its own releases.</td></tr>
-              <tr><th scope="row">Payments</th><td class="us">Still paid directly to you. RRR never views or changes your payment settings.</td><td>Still paid directly to you.</td></tr>
-              <tr><th scope="row">Your login</th><td class="us">Yours. Once linked, change your password back and keep it private.</td><td>Yours, never shared.</td></tr>
-              <tr><th scope="row">Best for</th><td class="us">Artists who want RRR's full promotion and stats support.</td><td>Artists who want RRR to have as little access as possible.</td></tr>
+              <tr><th scope="row">How it works</th><td class="us">We email you a one-off <b>placeholder password</b>. You set it on Bandcamp for a few minutes, we link your page, then you change your password to a new private one.</td><td>RRR sends you an invite from the RRR label on Bandcamp. You accept it.</td></tr>
+              <tr><th scope="row">What RRR can do</th><td class="us">In Bandcamp's words, "full access": add RRR releases, promote them (codes, features), and help with your page design and profile when you ask.</td><td>Add releases to your page. Nothing else.</td></tr>
+              <tr><th scope="row">What RRR promises</th><td class="us">We only use it for your RRR releases and things you ask for. Never your payments, your other releases or messages to your fans. It's in the <a href="terms.html#t3">Terms</a>.</td><td>Not needed: access is limited.</td></tr>
+              <tr><th scope="row">Payments</th><td class="us">Paid directly to you.</td><td>Paid directly to you.</td></tr>
+              <tr><th scope="row">Your real password</th><td class="us">Never shared. You only ever use our placeholder, then change it.</td><td>Never shared.</td></tr>
+              <tr><th scope="row">Best for</th><td class="us">Artists who want RRR's full promotion support.</td><td>Artists who want RRR to have as little access as possible.</td></tr>
             </tbody>
           </table>
         </div>
-        <h3 style="margin-top:18px">Password linking, safely</h3>
+        <h3 style="margin-top:18px">How password linking works</h3>
         <ol class="safe">
-          <li>Change your Bandcamp password to a <b>temporary one</b> you've never used anywhere else.</li>
-          <li>Send it to RRR <b>privately</b>: by phone or a message you delete afterwards. <b>Never</b> put it in a form on this site or in an email.</li>
-          <li>RRR links your page and tells you when it's done, usually the same day.</li>
+          <li>Ask below. We email you a <b>placeholder password</b> made just for you.</li>
+          <li>On Bandcamp, set your password to the placeholder (Settings → Account), then press <b>"Done, I've set it"</b> in the email.</li>
+          <li>We link your page, usually within a few hours, and email you <b>"Linked ✓"</b>.</li>
           <li><b>Change your password</b> to a new private one straight away. Your page stays linked.</li>
-          <li>Changed your mind? Ask us and we remove the link, or switch to the invite option.</li>
         </ol>
+        <p class="small">RRR will never ask for your real password, by email, message or on this website.</p>
+
+        <form class="panel booking-form" id="link-form" novalidate>
+          <div class="status" role="status" id="link-status"></div>
+          <fieldset id="link-fields">
+            <p class="label">Link my Bandcamp</p>
+            <div class="fields">
+              <label for="lf-id">Your member ID<input id="lf-id" name="member_id" type="text" required placeholder="RRR-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+              <label for="lf-bc">Your Bandcamp page<input id="lf-bc" name="bandcamp_url" type="url" required placeholder="https://yourname.bandcamp.com"></label>
+            </div>
+            <div class="radios" role="radiogroup" aria-label="How do you want to link?">
+              <label><input type="radio" name="method" value="password" checked> Password linking with a placeholder (recommended)</label>
+              <label><input type="radio" name="method" value="invite"> Bandcamp invite</label>
+            </div>
+            <label class="agree"><input type="checkbox" name="understood" value="yes" required> <span>I understand linking only affects my RRR releases. My other releases, collaborations, other labels and payments stay mine.</span></label>
+            <button class="btn primary" type="submit">Send me the next step</button>
+            <p class="small">We email the next step to the address on your membership.</p>
+          </fieldset>
+        </form>
       </div>
 
       <div class="grid2">
@@ -200,10 +249,10 @@
     <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="feedback.html">Feedback</a> · <a href="agreement.html">Member Agreement</a> · <a href="terms.html">Terms</a> · <a href="refunds.html">Refunds</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a> · <a href="withdraw.html">Withdraw from contract here</a></span>
   </div>
 </footer>
-<script src="assets/config.js?v=20261001d"></script>
-<script src="assets/releases.js?v=20261001d"></script>
-<script src="assets/levels.js?v=20261001d"></script>
-<script src="assets/site.js?v=20261001d"></script>
-<script src="assets/series-page.js?v=20261001d"></script>
+<script src="assets/config.js?v=20261001f"></script>
+<script src="assets/releases.js?v=20261001f"></script>
+<script src="assets/levels.js?v=20261001f"></script>
+<script src="assets/site.js?v=20261001f"></script>
+<script src="assets/series-page.js?v=20261001f"></script>
 </body>
 </html>

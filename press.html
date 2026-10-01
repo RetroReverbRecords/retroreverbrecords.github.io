@@ -17,9 +17,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261001d">
+<link rel="stylesheet" href="assets/site.css?v=20261001f">
 </head>
 <body>
+<a class="skip" href="#content">Skip to content</a>
 <header>
   <div class="wrap">
     <a class="brand" href="index.html"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records home"></a>
@@ -35,6 +36,17 @@
       <a href="member.html">My dashboard</a>
       <a class="btn primary small-btn" href="index.html#join">Create account</a>
       <label class="lang" title="Translate this site"><span aria-hidden="true">🌐</span><span class="sr">Language</span><select id="lang-select" aria-label="Language"><option value="en">English</option><option value="it">Italiano</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="sv">Svenska</option><option value="el">Ελληνικά</option><option value="tr">Türkçe</option><option value="ru">Русский</option><option value="uk">Українська</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></label>
+      <div class="a11y"><button type="button" class="a11y-btn" id="a11y-btn" aria-expanded="false" aria-controls="a11y-panel" title="Reading and accessibility options"><span aria-hidden="true">Aa</span><span class="sr">Reading and accessibility options</span></button>
+        <div class="a11y-panel panel" id="a11y-panel" hidden>
+          <p class="label">Make it easier to read</p>
+          <label><input type="checkbox" data-a11y="easy"> <span>Easy-read text<small>Dyslexia-friendly font and spacing</small></span></label>
+          <label><input type="checkbox" data-a11y="big"> Bigger text</label>
+          <label><input type="checkbox" data-a11y="contrast"> High contrast</label>
+          <label><input type="checkbox" data-a11y="still"> Stop animations</label>
+          <button type="button" class="btn ghost" id="a11y-read">🔊 Read this page aloud</button>
+          <p class="small">Selected some text? It reads just that.</p>
+        </div>
+      </div>
     </nav>
   </div>
 </header>
@@ -128,9 +140,9 @@
     <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="feedback.html">Feedback</a> · <a href="agreement.html">Member Agreement</a> · <a href="terms.html">Terms</a> · <a href="refunds.html">Refunds</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a> · <a href="withdraw.html">Withdraw from contract here</a></span>
   </div>
 </footer>
-<script src="assets/config.js?v=20261001d"></script>
-<script src="assets/releases.js?v=20261001d"></script>
-<script src="assets/levels.js?v=20261001d"></script>
-<script src="assets/site.js?v=20261001d"></script>
+<script src="assets/config.js?v=20261001f"></script>
+<script src="assets/releases.js?v=20261001f"></script>
+<script src="assets/levels.js?v=20261001f"></script>
+<script src="assets/site.js?v=20261001f"></script>
 </body>
 </html>

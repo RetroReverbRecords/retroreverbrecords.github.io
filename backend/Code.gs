@@ -65,6 +65,7 @@ const TABS = {
                  'description','why_fit','spotify_url','youtube_url','affiliation','series','catalogue_no','featured','status','approved_on','notified','admin_notes',
                  'audio_url','ai_declared','ai_score','ai_result','sound_check','ai_checked','ai_case'],
   Feedback:     ['created','type','rating','message','page','email','member_id','status'],
+  Links:        ['created','member_id','artist','email','bandcamp_url','method','temp_password','token','status','ready_at','linked_at','notified'],
   Disputes:     ['case','created','release_id','member_id','artist','email','title','reason','proof_types','proof_links','files','used_ai_tools','status','decision_notes','notified'],
   Newsletter:   ['month','created','subject','sent_to','queued','status'],
   Queue:        ['email','month','sent'],
@@ -117,6 +118,7 @@ function doPost(e) {
       notify_('RRR feedback (' + (p.type || 'other') + (p.rating ? ', ' + p.rating + '/5' : '') + ')', String(p.message || '') + '\n\nPage: ' + (p.page || '-') + '\nReply to: ' + (p.email || 'no email given') + '\n' + sheetUrl_());
       return text_('ok');
     }
+    if (kind === 'link-request') return handleLinkRequest_(p);
     if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
     return text_('ok');
@@ -135,6 +137,7 @@ function doGet(e) {
   if (q.series) return json_({ ok: true, series: SERIES, releases: publicSelectedReleases_() });
   if (q.aiqueue) return aiQueue_(q.key);
   if (q.slot) return json_(slotInfo_(q.slot, q.date));
+  if (q.linkready) return linkReady_(q.linkready);
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
   const m = findRow_('Members', 'member_id', id);
@@ -380,6 +383,7 @@ function publicProfile_(m) {
     standing: standing_(m),
     artistType: m.type === 'artist' ? (m.artist_type || 'Member') : '',
     bandcampLinked: /^y/i.test(String(m.bandcamp_linked)),
+    linkStatus: linkStatus_(m.member_id),
     eligible: isEligible_(m),
     programme: rows_('Releases').filter(r => r.member_id === id).map(r => ({ title: r.title, affiliation: r.affiliation || 'Unspecified', aiCase: r.ai_case || '', aiResult: r.ai_result || '',
       series: r.series, catalogue: r.catalogue_no, date: r.release_date, url: r.bandcamp_url, artwork: r.artwork_url })),
@@ -443,6 +447,7 @@ function daily() {
   processReleaseDecisions();
   processStanding_();
   processDisputes_();
+  processLinks_();
   expireUnpaidBookings_();
   paymentChase_();
   try { cleanDisputeFiles_(); } catch (e) { log_('dispute cleanup failed', String(e)); }
@@ -767,6 +772,7 @@ function applyValidations_() {
   set('Members', 'standing', list(['good', 'warning', 'suspended', 'removed']));
   set('Disputes', 'status', list(['open', 'cleared', 'not cleared']));
   set('Feedback', 'status', list(['new', 'seen', 'doing it', 'done', 'no']));
+  set('Links', 'status', list(['requested', 'ready', 'linked', 'cancelled']));
   set('Withdrawals', 'refund_status', list(['to do', 'refunded', 'not due']));
 }
 
@@ -1065,6 +1071,7 @@ function onOpen() {
     .addItem('Process release decisions now', 'processReleasesNow')
     .addItem('Apply suspensions and removals now', 'processStandingNow')
     .addItem('Process AI disputes now', 'processDisputesNow')
+    .addItem('Confirm Bandcamp links now', 'processLinksNow')
     .addSeparator()
     .addItem('Remove demo test data', 'removeDemoData')
     .addToUi();
@@ -1189,7 +1196,7 @@ function sendQueued_() {
 // ============================================================
 function removeDemoData() {
   const ids = rows_('Members').filter(m => isDemo_(m.email)).map(m => String(m.member_id).toUpperCase());
-  const tabs = ['Members', 'Bookings', 'Releases', 'Claims', 'Achievements', 'Posts', 'Agreements', 'Withdrawals', 'Disputes', 'Feedback', 'PointsLog'];
+  const tabs = ['Members', 'Bookings', 'Releases', 'Claims', 'Achievements', 'Posts', 'Agreements', 'Withdrawals', 'Disputes', 'Feedback', 'Links', 'PointsLog'];
   let removed = 0;
   tabs.forEach(name => {
     const sh = ss_().getSheetByName(name); if (!sh) return;
@@ -1202,4 +1209,99 @@ function removeDemoData() {
   log_('demo data removed', removed + ' rows, members ' + ids.join(', '));
   try { SpreadsheetApp.getUi().alert('Removed ' + removed + ' demo rows (' + (ids.join(', ') || 'no demo members') + ').'); } catch (e) {}
   return removed;
+}
+
+
+// ============================================================
+// BANDCAMP LINKING (placeholder password or invite)
+// 1. Artist asks on the website (no password ever typed on the site).
+// 2. Password linking: we email them a one-off placeholder password to set on Bandcamp,
+//    plus a "Done, I've set it" button. Invite: we tell them to watch for Bandcamp's invite.
+// 3. When they press Done you get an email with their page and the placeholder password:
+//    Bandcamp → Add → Existing Artist → password option.
+// 4. Set status to "linked" in the Links tab (or for invites when they accept).
+//    Daily, or RRR menu → Confirm Bandcamp links now: Members updated, placeholder deleted,
+//    artist emailed "Linked ✓ – change your password now".
+// ============================================================
+function placeholderPassword_() {
+  const a = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const part = n => Array.from({ length: n }, () => a[Math.floor(Math.random() * a.length)]).join('');
+  return 'RRR-' + part(5) + '-' + part(5) + '-' + part(4) + '!';
+}
+function linkStatus_(memberId) {
+  const r = rows_('Links').filter(x => String(x.member_id).toUpperCase() === String(memberId).toUpperCase() && x.status !== 'cancelled').pop();
+  return r ? { status: r.status, method: r.method } : null;
+}
+function handleLinkRequest_(p) {
+  const id = String(p.member_id || '').trim().toUpperCase();
+  const m = findRow_('Members', 'member_id', id);
+  if (!m || m.type !== 'artist' || !inGoodStanding_(m)) { log_('link request refused', id); return text_('ok'); }
+  if (/^y/i.test(String(m.bandcamp_linked))) return text_('ok');
+  const method = p.method === 'invite' ? 'invite' : 'password';
+  const token = Utilities.getUuid().replace(/-/g, '');
+  const pw = method === 'password' ? placeholderPassword_() : '';
+  // one open request per member
+  const sh = sheet_('Links'), v = sh.getDataRange().getValues(), h = v[0];
+  for (let i = 1; i < v.length; i++) if (String(v[i][h.indexOf('member_id')]).toUpperCase() === id && /requested|ready/.test(v[i][h.indexOf('status')])) {
+    sh.getRange(i + 1, h.indexOf('status') + 1).setValue('cancelled'); sh.getRange(i + 1, h.indexOf('temp_password') + 1).setValue('');
+  }
+  append_('Links', { created: new Date(), member_id: id, artist: m.artist || m.name, email: m.email, bandcamp_url: String(p.bandcamp_url || m.bandcamp || '').trim(),
+    method: method, temp_password: pw, token: token, status: 'requested' });
+  const u = SETTINGS.siteUrl, done = ScriptApp.getService().getUrl() + '?linkready=' + token;
+  const wrap = inner => '<div style="font:15px/1.55 Arial,sans-serif;color:#222;max-width:560px">' + inner + '<p>Questions? Just reply to this email.</p><p>Retro Reverb Records<br><span style="color:#888">Welcome to the family</span></p></div>';
+  const html = method === 'password' ? wrap(
+    '<p>Hi ' + (m.name || '') + ',</p><p>Here is your <b>placeholder password</b> for linking your Bandcamp to RRR. It was made just for you and is only used for a few minutes.</p>' +
+    '<p style="font:700 20px Courier New,monospace;background:#f4f1fb;border:2px dashed #FF2FA8;padding:12px 14px;border-radius:8px;text-align:center">' + pw + '</p>' +
+    '<ol><li>On Bandcamp, go to <b>Settings → Account</b> (bandcamp.com/settings) and change your password to the placeholder above.</li>' +
+    '<li>Press this button: <a href="' + done + '" style="display:inline-block;background:#FF2FA8;color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:8px">DONE, I\'VE SET IT</a></li>' +
+    '<li>We link your page, usually within a few hours, and email you <b>"Linked ✓"</b>.</li>' +
+    '<li>Then <b>change your password straight away</b> to a new private one. Your page stays linked.</li></ol>' +
+    '<p style="background:#f7f7f9;padding:10px 12px;border-radius:8px;font-size:13px;color:#555"><b>What linking changes:</b> only your RRR releases. Your other releases, collaborators, other labels and your payment settings stay yours and untouched. Bandcamp pays you directly. You can unlink any time. RRR never asks for your real password.</p>')
+    : wrap('<p>Hi ' + (m.name || '') + ',</p><p>Thanks! We\'ll send you a <b>Bandcamp invite</b> from the Retro Reverb Records label within a day. Look for an email from Bandcamp and press <b>accept</b>. That\'s it.</p>' +
+      '<p style="background:#f7f7f9;padding:10px 12px;border-radius:8px;font-size:13px;color:#555">With an invite RRR can only add releases to your page. If you\'d like full promotion support and stats later, you can switch to password linking from your dashboard.</p>');
+  try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: method === 'password' ? 'Your placeholder password for linking Bandcamp to RRR' : 'Linking your Bandcamp to RRR: watch for our invite', htmlBody: html }); } catch (e) { log_('link email failed', String(e)); }
+  if (method === 'invite') notify_('Bandcamp INVITE to send: ' + (m.artist || m.name) + ' (' + id + ')', 'Bandcamp → Add → Existing Artist → request access.\nTheir page: ' + (p.bandcamp_url || m.bandcamp || '?') + '\nWhen they accept, set status "linked" in the Links tab.\n' + sheetUrl_());
+  return text_('ok');
+}
+function linkReady_(token) {
+  const sh = sheet_('Links'), v = sh.getDataRange().getValues(), h = v[0];
+  const page = (title, body) => HtmlService.createHtmlOutput('<div style="font:16px/1.6 Arial,sans-serif;max-width:520px;margin:40px auto;padding:24px;background:#07061A;color:#F3EEFF;border-radius:14px;text-align:center"><h2 style="color:#FF2FA8">' + title + '</h2><p>' + body + '</p><p><a style="color:#3FD0FF" href="' + SETTINGS.siteUrl + '">Back to Retro Reverb Records</a></p></div>').setTitle('RRR · Bandcamp linking');
+  for (let i = 1; i < v.length; i++) {
+    if (v[i][h.indexOf('token')] !== token) continue;
+    const st = v[i][h.indexOf('status')];
+    if (st === 'linked') return page('Already linked ✓', 'Your Bandcamp is linked. Remember to change your password.');
+    if (st === 'cancelled' || !v[i][h.indexOf('temp_password')]) return page('This link has expired', 'Please request linking again from your dashboard.');
+    if (st !== 'ready') {
+      sh.getRange(i + 1, h.indexOf('status') + 1).setValue('ready'); sh.getRange(i + 1, h.indexOf('ready_at') + 1).setValue(new Date());
+      notify_('🔗 Link Bandcamp NOW: ' + v[i][h.indexOf('artist')] + ' (' + v[i][h.indexOf('member_id')] + ')',
+        'They have set the placeholder password.\n\nTheir Bandcamp: ' + v[i][h.indexOf('bandcamp_url')] + '\nPlaceholder password: ' + v[i][h.indexOf('temp_password')] +
+        '\n\nBandcamp → Add → Existing Artist → link with password. Then set status "linked" in the Links tab and use RRR menu → Confirm Bandcamp links now (the artist is emailed to change their password, and the placeholder is deleted).\n' + sheetUrl_());
+    }
+    return page('Thanks! 🎉', 'We\'ve been told you\'ve set the placeholder password. We\'ll link your page soon and email you <b>"Linked ✓"</b>. Then change your password to a new private one.');
+  }
+  return page('Link not found', 'Please request linking again from your dashboard.');
+}
+function processLinks_() {
+  const sh = sheet_('Links'), v = sh.getDataRange().getValues(), h = v[0], c = k => h.indexOf(k);
+  let n = 0;
+  for (let i = 1; i < v.length; i++) {
+    const row = i + 1, st = v[i][c('status')];
+    // placeholders never sit around: expire unused requests after 7 days
+    if (/requested|ready/.test(st) && Date.now() - new Date(v[i][c('created')]).getTime() > 7 * 86400000) { sh.getRange(row, c('status') + 1).setValue('cancelled'); sh.getRange(row, c('temp_password') + 1).setValue(''); continue; }
+    if (st !== 'linked' || v[i][c('notified')]) continue;
+    const id = v[i][c('member_id')], method = v[i][c('method')];
+    updateRow_('Members', 'member_id', id, { bandcamp_linked: 'yes', link_method: method });
+    sh.getRange(row, c('temp_password') + 1).setValue('');
+    sh.getRange(row, c('linked_at') + 1).setValue(new Date());
+    sh.getRange(row, c('notified') + 1).setValue(new Date());
+    try { MailApp.sendEmail({ to: v[i][c('email')], name: 'Retro Reverb Records', subject: 'Linked ✓ Your Bandcamp is now linked to RRR',
+      htmlBody: '<div style="font:15px/1.55 Arial,sans-serif;color:#222;max-width:560px"><p>Great news: your Bandcamp is now linked to the Retro Reverb Records label. 🎉</p>' +
+        (method === 'password' ? '<p style="background:#fff3c4;padding:12px;border-radius:8px"><b>Change your Bandcamp password now</b> to a new private one (bandcamp.com/settings). Your page stays linked.</p>' : '') +
+        '<p>You now get <b>free Bandcamp VIP</b>, and you can book Bandcamp releases and submit releases for an RRR series.</p><p><a href="' + SETTINGS.siteUrl + 'member.html?id=' + id + '">Open your dashboard</a> · <a href="' + SETTINGS.siteUrl + 'book.html">Book a release</a></p><p>Retro Reverb Records<br><span style="color:#888">Welcome to the family</span></p></div>' }); n++; } catch (e) { log_('linked email failed', String(e)); }
+  }
+  return n;
+}
+function processLinksNow() {
+  const n = processLinks_();
+  try { SpreadsheetApp.getUi().alert(n + ' artist(s) told they are linked.'); } catch (e) {}
 }

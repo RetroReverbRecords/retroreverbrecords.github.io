@@ -662,3 +662,32 @@ a.aff{text-decoration:none}
 #proof .grid2 + .panel{margin-top:18px}
 .slotmsg{display:block;margin-top:6px}
 .slotmsg .ok{color:#2ED47A}.slotmsg .no{color:#ff8a8a}
+
+/* ---------- Reading and accessibility options ---------- */
+.skip{position:absolute;left:12px;top:-60px;z-index:200;background:var(--pink);color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;text-decoration:none}
+.skip:focus{top:12px}
+.a11y{position:relative}
+.a11y-btn{font:700 14px var(--body);color:var(--text);background:transparent;border:1px solid var(--line);border-radius:999px;padding:7px 12px;cursor:pointer;line-height:1}
+.a11y-btn:hover,.a11y-btn[aria-expanded=true]{border-color:var(--cyan);color:var(--cyan)}
+.a11y-panel{position:fixed;width:min(300px,calc(100vw - 32px));max-height:calc(100vh - 24px);overflow:auto;padding:16px;display:grid;gap:10px;z-index:120;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.a11y-panel label{display:flex;gap:10px;align-items:flex-start;font-size:15px;cursor:pointer;text-transform:none;letter-spacing:0}
+.a11y-panel small{display:block;color:var(--muted);font-size:13px}
+.a11y-panel .btn{width:100%}
+/* Easy-read: dyslexia-friendly font, more spacing, no shouting capitals, no glow */
+html.a11y-easy body, html.a11y-easy h1, html.a11y-easy h2, html.a11y-easy h3, html.a11y-easy nav a, html.a11y-easy .label, html.a11y-easy .btn, html.a11y-easy input, html.a11y-easy select, html.a11y-easy textarea, html.a11y-easy button{font-family:"Atkinson Hyperlegible", Verdana, Tahoma, sans-serif!important}
+html.a11y-easy body{letter-spacing:.03em;word-spacing:.12em;line-height:1.8}
+html.a11y-easy h1, html.a11y-easy h2, html.a11y-easy h3, html.a11y-easy .label, html.a11y-easy nav a, html.a11y-easy .btn{text-transform:none!important;letter-spacing:.02em!important}
+html.a11y-easy *{text-shadow:none!important}
+html.a11y-easy p, html.a11y-easy li{max-width:70ch;text-align:left}
+/* Bigger text */
+html.a11y-big body{zoom:1.18}
+/* High contrast */
+html.a11y-contrast{--muted:#ffffff;--line:#ffffff}
+html.a11y-contrast body{background:#000;color:#fff}
+html.a11y-contrast .panel, html.a11y-contrast header{background:#000!important;border-color:#fff!important;box-shadow:none!important}
+html.a11y-contrast a{color:#7fe3ff!important;text-decoration:underline!important}
+html.a11y-contrast *{text-shadow:none!important}
+html.a11y-contrast .horizon, html.a11y-contrast .floor{display:none}
+/* Stop animations */
+html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}

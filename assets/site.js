@@ -359,6 +359,8 @@
       setStatus(st, open, '<strong>Booking is open.</strong> We confirm every booking by email.',
         '<strong>Coming soon.</strong> Booking opens when RRR membership launches. You can still use the deadline planner.');
       const pl = $('.paylink', f), sel = $('select[name=format]', f);
+      $$('[data-year]', f).forEach(x => { x.textContent = new Date().getFullYear(); });
+      const an = f.querySelector('[name=artist]'); if (an) an.addEventListener('input', () => $$('[data-artistname]', f).forEach(x => { x.textContent = an.value.trim() || 'your artist name'; }));
       // Bandcamp: show upload steps or "what we need", depending on who uploads
       const ub = $$('input[name=upload_by]', f);
       if (ub.length) { const showUb = () => { const v = (ub.find(r => r.checked) || {}).value; $$('[data-upload]', f).forEach(d => { d.hidden = !!v && d.dataset.upload !== v; if (v && d.dataset.upload === v) d.open = true; }); const al = $('#bc-assets', f); if (al) al.required = v === 'rrr'; }; ub.forEach(r => r.addEventListener('change', showUb)); showUb(); }
@@ -386,18 +388,37 @@
         e.preventDefault();
         if (!open) return;
         if (!f.checkValidity()) { f.reportValidity(); return; }
-        const title = (f.querySelector('[name=title]') || {}).value || '';
-        const email = (f.querySelector('[name=email]') || {}).value || '';
+        const val = n => ((f.querySelector(`[name=${n}]`) || {}).value || '').trim();
+        const title = val('title'), email = val('email');
+        const date = val('release_date') || val('premiere_date') || val('preferred_date') || val('date');
+        const selfUpload = !!f.querySelector('input[name=upload_by][value=artist]:checked');
         const amt = amount();
         const bookingId = 'BK-' + Array.from(crypto.getRandomValues(new Uint8Array(6)), x => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[x % 31]).join('');
         const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : {});
-        // One-off fee: PayPal button appears after booking, tagged with the member's email
-        if (ok) track('Schedule', { content_name: f.dataset.kind });
-        if (ok && pl && amt && isDemoEmail(email)) { pl.hidden = false; pl.innerHTML = `<p class="paid"><strong>Demo booking ${esc(bookingId)}:</strong> no payment needed. It confirms automatically; check your inbox for the [DEMO] confirmation email.</p>`; return; }
-        if (ok && pl && amt) {
-          pl.hidden = false;
-          payButtons(pl, { kind: 'one-off', amount: amt, item: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title} (${bookingId})`, custom: bookingId, note: `Booking ${bookingId}. Your date is only confirmed when payment arrives: first to pay gets the date. You'll get a confirmation email.` });
-        }
+        if (!ok) return;
+        track('Schedule', { content_name: f.dataset.kind });
+        const demo = isDemoEmail(email), kindName = (($('[role=tab][aria-selected=true]') || {}).textContent || f.dataset.kind.replace('-', ' ')).trim();
+        const D = C.deadlines || {}, nice = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+        const minus = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - n); return d; };
+        const steps = [];
+        if (amt && !demo) steps.push('<b>Pay below to confirm your date.</b> First to pay gets it.');
+        if (date && /bandcamp/.test(f.dataset.kind)) steps.push((selfUpload ? 'Set up your release on Bandcamp as a pre-order' : 'Send us your files (audio, artwork, words)') + ' by <b>' + esc(nice(minus(date, D.bandcampAssetsDays ?? 14))) + '</b>.');
+        if (date && /streaming/.test(f.dataset.kind)) steps.push('Send your streaming files by <b>' + esc(nice(minus(date, D.streamingAssetsDays ?? 21))) + '</b>.');
+        steps.push('Watch your email: we confirm everything there.');
+        const done = document.createElement('div'); done.className = 'signup-done'; done.setAttribute('role', 'status');
+        done.innerHTML = `<h3>${demo || !amt ? 'Booked! 🎉' : 'Almost there! 🎉'}</h3>
+          <div class="idbox"><span class="small">Booking</span><b class="num">${esc(amt ? bookingId : kindName)}</b></div>
+          <p><b>${esc(kindName)}</b>${title ? ': ' + esc(title) : ''}${date ? ' · ' + esc(nice(new Date(date + 'T12:00:00'))) : ''}</p>
+          ${demo && amt ? '<p class="paid"><strong>Demo booking:</strong> no payment needed. It confirms automatically and you get a [DEMO] confirmation email.</p>' : ''}
+          <div class="done-pay"></div>
+          <p class="label" style="margin-top:6px">What next</p>
+          <ol class="nextsteps">${steps.map(x => '<li>' + x + '</li>').join('')}</ol>
+          <div class="ctas-left"><button type="button" class="btn ghost" data-again>Book something else</button> <a class="btn ghost" href="release-policy.html">Release checklist</a></div>`;
+        const fs = $('fieldset', f); fs.hidden = true; fs.insertAdjacentElement('beforebegin', done); st.innerHTML = ''; st.classList.remove('open');
+        if (pl && amt && !demo) { done.querySelector('.done-pay').appendChild(pl); pl.hidden = false;
+          payButtons(pl, { kind: 'one-off', amount: amt, item: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title} (${bookingId})`, custom: bookingId, note: `Booking ${bookingId}. Your date is only confirmed when payment arrives: first to pay gets the date. You'll get a confirmation email.` }); }
+        done.querySelector('[data-again]').addEventListener('click', () => { if (pl && pl.parentNode !== f) { pl.hidden = true; pl.innerHTML = ''; fs.appendChild(pl); } done.remove(); fs.hidden = false; f.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+        try { done.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
       });
     });
 

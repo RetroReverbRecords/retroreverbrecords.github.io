@@ -153,35 +153,63 @@
     }).catch(fallback);
   }
 
-  // Short 80s synthwave sting when something is sent (no sound file needed):
-  // detuned saw arpeggio through a sweeping low-pass filter, a sub bass and an echo.
-  function chime(){
+  // Tron-style sounds, made in the browser (no sound files). Off with Aa → "Button sounds".
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let actx = null;
+  const muted = () => { try { return !!JSON.parse(localStorage.getItem('rrr-a11y') || '{}').mute; } catch (e) { return false; } };
+  function audio(){ if (!AC || muted()) return null; if (!actx) actx = new AC(); if (actx.state === 'suspended') actx.resume(); return actx; }
+  function echoBus(ctx, time, fbk, level){
+    const out = ctx.createGain(); out.gain.value = level; out.connect(ctx.destination);
+    const d = ctx.createDelay(); d.delayTime.value = time; const fb = ctx.createGain(); fb.gain.value = fbk;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 500;
+    d.connect(hp).connect(fb).connect(d); d.connect(out);
+    return { out, send: d };
+  }
+  // Button click: a short digital "zip" with a grid echo
+  function blip(){
     try {
-      const A = window.AudioContext || window.webkitAudioContext; if (!A) return;
-      const ctx = new A(), t = ctx.currentTime + 0.02;
-      const out = ctx.createGain(); out.gain.value = 0.22;
-      const echo = ctx.createDelay(); echo.delayTime.value = 0.19;
-      const fb = ctx.createGain(); fb.gain.value = 0.38;
-      const wet = ctx.createGain(); wet.gain.value = 0.5;
-      const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 2600;
-      echo.connect(tone).connect(fb).connect(echo); echo.connect(wet).connect(out);
-      out.connect(ctx.destination);
-      const note = (freq, start, len, type, detunes, peak, cutFrom, cutTo) => {
-        const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 7;
-        f.frequency.setValueAtTime(cutFrom, start); f.frequency.exponentialRampToValueAtTime(cutTo, start + len * 0.6);
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(peak, start + 0.015);
-        g.gain.exponentialRampToValueAtTime(peak * 0.5, start + len * 0.5); g.gain.exponentialRampToValueAtTime(0.0001, start + len);
-        detunes.forEach(d => { const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq; o.detune.value = d; o.connect(f); o.start(start); o.stop(start + len + 0.05); });
-        f.connect(g); g.connect(out); g.connect(echo);
-      };
-      // A minor arpeggio up to the octave: A3 C4 E4 A4, then a held E5 shimmer
-      [220, 261.63, 329.63, 440].forEach((fq, k) => note(fq, t + k * 0.11, 0.42, 'sawtooth', [-9, 9], 0.5, 600, 4200));
-      note(659.25, t + 0.44, 1.1, 'sawtooth', [-12, 0, 12], 0.32, 900, 5200);
-      note(55, t, 0.9, 'square', [0], 0.45, 220, 120);   // sub bass A1
-      setTimeout(() => ctx.close(), 3000);
+      const ctx = audio(); if (!ctx) return; const t = ctx.currentTime + 0.005;
+      const bus = echoBus(ctx, 0.07, 0.28, 0.5);
+      const o = ctx.createOscillator(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(2100, t); o.frequency.exponentialRampToValueAtTime(520, t + 0.07);
+      bp.type = 'bandpass'; bp.frequency.value = 1700; bp.Q.value = 3;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      o.connect(bp).connect(g); g.connect(ctx.destination); g.connect(bus.send); o.start(t); o.stop(t + 0.1);
+      const s = ctx.createOscillator(), sg = ctx.createGain(); s.type = 'sine';
+      s.frequency.setValueAtTime(180, t); s.frequency.exponentialRampToValueAtTime(90, t + 0.08);
+      sg.gain.setValueAtTime(0.0001, t); sg.gain.exponentialRampToValueAtTime(0.07, t + 0.004); sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+      s.connect(sg).connect(ctx.destination); s.start(t); s.stop(t + 0.12);
     } catch (e) {}
   }
+  // Success: light-cycle power-up sweep, then two bright confirm tones over a sub thump
+  function chime(){
+    try {
+      const ctx = audio(); if (!ctx) return; const t = ctx.currentTime + 0.02;
+      const bus = echoBus(ctx, 0.16, 0.4, 0.45);
+      const sw = ctx.createOscillator(), sw2 = ctx.createOscillator(), lp = ctx.createBiquadFilter(), sg = ctx.createGain();
+      sw.type = 'sawtooth'; sw2.type = 'sawtooth'; sw2.detune.value = 14;
+      [sw, sw2].forEach(o => { o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(880, t + 0.38); o.connect(lp); o.start(t); o.stop(t + 0.45); });
+      lp.type = 'lowpass'; lp.Q.value = 12; lp.frequency.setValueAtTime(250, t); lp.frequency.exponentialRampToValueAtTime(7000, t + 0.38);
+      sg.gain.setValueAtTime(0.0001, t); sg.gain.exponentialRampToValueAtTime(0.12, t + 0.05); sg.gain.setValueAtTime(0.12, t + 0.3); sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.44);
+      lp.connect(sg); sg.connect(ctx.destination); sg.connect(bus.send);
+      [[659.25, 0.42], [987.77, 0.56]].forEach(([f, at]) => {
+        const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), bp = ctx.createBiquadFilter();
+        o.type = 'square'; o2.type = 'square'; o2.frequency.value = f * 2; o.frequency.value = f; o2.detune.value = 6;
+        bp.type = 'lowpass'; bp.frequency.value = 3800;
+        g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(0.1, t + at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + at + (at > 0.5 ? 0.7 : 0.16));
+        [o, o2].forEach(x => { x.connect(bp); x.start(t + at); x.stop(t + at + 0.75); }); bp.connect(g); g.connect(ctx.destination); g.connect(bus.send);
+      });
+      const k = ctx.createOscillator(), kg = ctx.createGain(); k.type = 'sine';
+      k.frequency.setValueAtTime(110, t + 0.42); k.frequency.exponentialRampToValueAtTime(42, t + 0.7);
+      kg.gain.setValueAtTime(0.0001, t + 0.42); kg.gain.exponentialRampToValueAtTime(0.35, t + 0.43); kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+      k.connect(kg).connect(ctx.destination); k.start(t + 0.42); k.stop(t + 0.85);
+    } catch (e) {}
+  }
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest && e.target.closest('.btn, button, [role=tab], .copy');
+    if (b && !b.disabled && !b.closest('fieldset[disabled]') && b.type !== 'submit') blip();
+  }, true);
+  document.addEventListener('submit', () => blip(), true);
   window.rrrChime = chime;
   async function send(form, statusEl, kind, extra){
     const data = new URLSearchParams();
@@ -219,7 +247,7 @@
     const save = o => { try { localStorage.setItem('rrr-a11y', JSON.stringify(o)); } catch (e) {} };
     const font = () => { if (!$('#a11y-font')) { const l = document.createElement('link'); l.id = 'a11y-font'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap'; document.head.appendChild(l); } };
     const apply = o => {
-      ['easy', 'big', 'contrast', 'still'].forEach(k => root.classList.toggle('a11y-' + k, !!o[k]));
+      ['easy', 'big', 'contrast', 'still', 'mute'].forEach(k => root.classList.toggle('a11y-' + k, !!o[k]));
       if (o.easy) font();
       $$('video').forEach(v => { try { o.still ? v.pause() : (v.autoplay && v.play().catch(() => {})); } catch (e) {} });
     };

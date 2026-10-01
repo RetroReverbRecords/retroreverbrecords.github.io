@@ -162,11 +162,11 @@
       <h3 class="subhead">RRR status <span class="small"><a href="series.html">about Selected Releases</a></span></h3>
       <div class="statusgrid">
         <div class="panel"><span class="label">RRR membership</span><b class="${m.membershipActive ? 'ok' : 'no'}">${m.membershipActive ? 'Active' : 'Inactive'}</b></div>
-        <div class="panel"><span class="label">Bandcamp linked</span><b class="${m.bandcampLinked ? 'ok' : 'no'}">${m.bandcampLinked ? 'Yes' : 'No'}</b></div>
+        <div class="panel"><span class="label">Bandcamp linked</span><b class="${m.bandcampLinked ? 'ok' : 'todo'}">${m.bandcampLinked ? 'Yes' : 'Not yet'}</b></div>
         <div class="panel"><span class="label">Artist type</span><b>${esc(m.artistType || 'Member')}</b></div>
-        <div class="panel"><span class="label">Eligible for RRR release</span><b class="${m.eligible ? 'ok' : 'no'}">${m.eligible ? 'Yes' : 'No'}</b></div>
+        <div class="panel"><span class="label">Eligible for RRR release</span><b class="${m.eligible ? 'ok' : 'todo'}">${m.eligible ? 'Yes' : (m.bandcampLinked ? 'Not yet' : 'After linking')}</b></div>
       </div>
-      ${m.bandcampLinked ? '' : '<p class="small">Link your Bandcamp to the RRR Bandcamp to submit RRR releases and get free Bandcamp VIP membership. <a href="series.html#submit">How to link</a></p>'}
+      ${m.bandcampLinked ? '' : '<div class="panel nextstep"><span class="label">Your next step</span><p><b>Link your Bandcamp to RRR.</b> It unlocks Bandcamp releases and gets you free Bandcamp VIP. Usually done the same day.</p><a class="btn primary" href="series.html#linking">How to link</a></div>'}
       <h3 class="subhead">My releases <span class="small"><a href="series.html${demo ? '' : '?id=' + encodeURIComponent(m.id)}#submit">Submit or add a release</a></span></h3>
       ${progTable(m.programme || [])}` : ''}
 
@@ -181,7 +181,7 @@
         <div class="panel tile"><span class="label">Playlists</span><b class="num">${num(s.playlists)}</b></div>
         <div class="panel tile"><span class="label">YouTube views</span><b class="num">${num(s.youtubeViews)}</b></div>
         <div class="panel tile"><span class="label">TikTok views</span><b class="num">${num(s.tiktokViews)}</b></div>
-      </div>` : `<div class="panel empty"><b>No stats yet.</b><span>Stats appear once your artist profile is linked to Songstats.</span></div>`}
+      </div>` : `<div class="panel empty"><b>No stats yet.</b><span>Your streaming stats appear here once RRR connects your artist profile. We do this for you after your first release.</span></div>`}
 
       <h3 class="subhead">Achievements <span class="small">${earned.size} of ${CATALOGUE.length}</span></h3>
       <div class="achs">${CATALOGUE.map(a => {

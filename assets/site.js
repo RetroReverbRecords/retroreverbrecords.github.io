@@ -127,6 +127,7 @@
     return sdkPromise;
   }
   // o: { kind: 'one-off' | 'sub', amount, item, custom, plan, linkParams, note }
+  window.rrrPay = (box, o) => payButtons(box, o); // used by other pages (RRR Submit)
   function payButtons(box, o){
     const fallback = () => {
       const params = o.kind === 'sub'

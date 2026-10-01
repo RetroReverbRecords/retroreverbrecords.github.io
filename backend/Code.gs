@@ -120,6 +120,7 @@ function doPost(e) {
       return text_('ok');
     }
     if (kind === 'link-request') return handleLinkRequest_(p);
+    if (/^submit-/.test(kind) && typeof handleSubmitForm_ === 'function') return handleSubmitForm_(kind, p); // RRR Submit (Submit.gs)
     if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
     return text_('ok');
@@ -140,6 +141,7 @@ function doGet(e) {
   if (q.slot) return json_(slotInfo_(q.slot, q.date));
   if (q.slots) return json_(slotsFull_(q.slots));
   if (q.linkready) return linkReady_(q.linkready, q.json);
+  if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
   const m = findRow_('Members', 'member_id', id);
@@ -322,6 +324,13 @@ function handlePayPal_(e) {
     confirmBooking_(String(p.custom).toUpperCase(), p.mc_gross, p.txn_id);
     return text_('ok');
   }
+  // RRR Submit payment (Submit.gs): custom = submission ID (SUB-XXXXXX)
+  if (/^SUB-/i.test(String(p.custom || '')) && /completed/i.test(String(p.payment_status || '')) && typeof confirmSubmissionPayment_ === 'function') {
+    append_('Payments', { received: new Date(), txn_type: p.txn_type, payment_status: p.payment_status, amount: p.mc_gross || '', currency: p.mc_currency,
+      item_name: p.item_name, payer_email: p.payer_email, member_id: '', txn_id: p.txn_id || '', subscr_id: '', raw: raw.slice(0, 2000) });
+    confirmSubmissionPayment_(String(p.custom).toUpperCase(), p.mc_gross, p.txn_id);
+    return text_('ok');
+  }
   // custom = member ID (subscriptions) or the member's email (one-off fees)
   let memberId = String(p.custom || '').trim();
   if (memberId.indexOf('@') > 0) { const m = findRow_('Members', 'email', memberId); memberId = m ? m.member_id : ''; }
@@ -453,6 +462,7 @@ function daily() {
   processStanding_();
   processDisputes_();
   processLinks_();
+  if (typeof submitDaily_ === 'function') submitDaily_(); // RRR Submit (Submit.gs)
   expireUnpaidBookings_();
   paymentChase_();
   try { cleanDisputeFiles_(); } catch (e) { log_('dispute cleanup failed', String(e)); }

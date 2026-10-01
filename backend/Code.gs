@@ -54,7 +54,7 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded'],
@@ -420,6 +420,7 @@ function publicProfile_(m) {
     recentPoints: rows_('Achievements').filter(r => r.member_id === id && r.achievement === 'Points').slice(-10).reverse().map(r => ({ note: r.note, on: r.earned_on, points: r.points })),
     releases: rows_('Bookings').filter(r => r.member_id === id && /release/.test(r.kind)).map(r => ({ title: r.title, kind: r.kind, format: r.format, date: r.date, status: r.status })),
     posts: rows_('Posts').filter(r => r.member_id === id).map(r => ({ platform: r.platform, date: r.date, link: r.link, status: r.status })),
+    links: { bandcamp: /^https:\/\//.test(String(m.bandcamp)) ? m.bandcamp : '', spotify: /^https:\/\/open\.spotify\.com\//.test(String(m.spotify)) ? m.spotify : '' },
     stats: stats ? { updated: stats.updated, spotifyListeners: stats.spotify_monthly_listeners, spotifyStreams: stats.spotify_streams, playlists: stats.playlists, youtubeViews: stats.youtube_views, tiktokViews: stats.tiktok_views, source: stats.source } : null
     // Note: email, address and payment details are never included.
   };
@@ -684,18 +685,28 @@ function approveClaims() {
 // Safe to run again: it never adds anyone twice.
 // ============================================================
 const FOUNDERS = [
-  { member_id: 'RRR-00001', artist: 'Cybertronix', name: 'Cybertronix', email: SETTINGS.ownerEmail, role: 'Founder', points: 20000, status: 'active (founder)' }
+  { member_id: 'RRR-00001', artist: 'Cybertronix', name: 'Cybertronix', email: SETTINGS.ownerEmail, role: 'Sifu', points: 20000, status: 'active (owner)',
+    bandcamp: 'https://cybertronix.bandcamp.com/album/la-leil-the-machine-remembers', spotify: 'https://open.spotify.com/artist/7Mey7ykUYNoMi7LfYxZS8a' }
   // Eden Future signs up himself, then: RRR menu → Make a member an Administrator.
 ];
 function setupFounders() {
   FOUNDERS.forEach(f => {
     if (!findRow_('Members', 'member_id', f.member_id))
       append_('Members', { member_id: f.member_id, created: new Date(), type: 'artist', name: f.name, artist: f.artist, email: f.email, status: f.status, plan: 'honorary', public: 'yes' });
-    if (!rows_('Achievements').some(r => r.member_id === f.member_id && r.achievement === f.role))
-      append_('Achievements', { member_id: f.member_id, achievement: f.role, earned_on: new Date(), points: f.points, note: f.role + ' starting rank' });
+    const m = findRow_('Members', 'member_id', f.member_id) || {};
+    // Owner: all permissions (moderation page too), 10th Dan, Sifu badge, profile links
+    updateRow_('Members', 'member_id', f.member_id, { name: f.name, artist: f.artist, email: f.email, status: f.status, plan: 'honorary', role: 'Owner', standing: 'good',
+      admin_key: m.admin_key || Utilities.getUuid().replace(/-/g, ''), bandcamp: f.bandcamp || '', spotify: f.spotify || '', bandcamp_linked: 'yes', artist_type: 'Signed' });
+    if (!rows_('Achievements').some(r => r.member_id === f.member_id && r.achievement === f.role)) {
+      recalcPoints_(f.member_id);
+      const now = Number((findRow_('Members', 'member_id', f.member_id) || {}).points) || 0;
+      append_('Achievements', { member_id: f.member_id, achievement: f.role, earned_on: new Date(), points: Math.max(0, f.points - now), note: f.role + ': 10th Dan, owner of RRR' });
+    }
     recalcPoints_(f.member_id);
   });
-  return 'Founder ready: RRR-00001 Cybertronix (10th Dan).';
+  const o = findRow_('Members', 'member_id', 'RRR-00001') || {};
+  try { MailApp.sendEmail(SETTINGS.ownerEmail, 'Your RRR owner account (RRR-00001)', 'Dashboard: ' + SETTINGS.siteUrl + 'member.html?id=RRR-00001\nModeration page (keep private): ' + SETTINGS.siteUrl + 'mod.html?k=' + o.admin_key); } catch (e) {}
+  return 'Owner ready: RRR-00001 Cybertronix, 10th Dan Sifu. Links emailed to you.';
 }
 
 // ============================================================
@@ -1457,7 +1468,7 @@ function makeAdmin() {
 }
 function adminByKey_(key) {
   if (!key || String(key).length < 20) return null;
-  return rows_('Members').find(m => m.admin_key && m.admin_key === key && /administrator/i.test(String(m.role)) && inGoodStanding_(m)) || null;
+  return rows_('Members').find(m => m.admin_key && m.admin_key === key && /administrator|owner/i.test(String(m.role)) && inGoodStanding_(m)) || null;
 }
 function modList_(key) {
   const a = adminByKey_(key); if (!a) return json_({ ok: false, error: 'not allowed' });

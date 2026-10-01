@@ -145,7 +145,8 @@
           <p class="label">${esc(m.type === 'artist' ? 'Artist member' : 'Fan member')} · ${esc(m.id)}</p>
           <p class="motto">Welcome to the family</p>
           <h2>${esc(m.name)}</h2>
-          ${(m.achievements || []).filter(x => /^(Founder|Ambassador|Moderator|Administrator)$/.test(x.title)).map(x => `<b class="rolechip">${x.title === 'Founder' ? '👑' : x.title === 'Administrator' ? '🛡' : '🌟'} RRR ${esc(x.title)}</b>`).join(' ')}
+          ${(m.achievements || []).filter(x => /^(Sifu|Founder|Ambassador|Moderator|Administrator)$/.test(x.title)).map(x => `<b class="rolechip">${x.title === 'Sifu' ? '🥋 RRR Sifu · Owner of RRR' : (x.title === 'Founder' ? '👑' : x.title === 'Administrator' ? '🛡' : '🌟') + ' RRR ' + esc(x.title)}</b>`).join(' ')}
+          ${m.links && (m.links.bandcamp || m.links.spotify) ? `<p class="small proflinks">${m.links.bandcamp ? `<a href="${esc(m.links.bandcamp)}" target="_blank" rel="noopener">Bandcamp ↗</a>` : ''}${m.links.bandcamp && m.links.spotify ? ' · ' : ''}${m.links.spotify ? `<a href="${esc(m.links.spotify)}" target="_blank" rel="noopener">Spotify ↗</a>` : ''}</p>` : ''}
           <p class="small">Member since ${esc(fmt(m.since))} · ${esc(m.status || '')}</p>
         </div>
         <div class="panel rankbox">

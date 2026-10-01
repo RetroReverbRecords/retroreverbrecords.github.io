@@ -219,8 +219,18 @@
     Object.entries(extra || {}).forEach(([k, v]) => data.append(k, v));
     try {
       if (/script\.google(usercontent)?\.com/.test(endpoint)) {
-        // Google Apps Script: response can't be read cross-site, the request still arrives.
-        await fetch(endpoint, { method: 'POST', mode: 'no-cors', body: data });
+        // Google Apps Script: the response can't be read cross-site and the script takes a few seconds
+        // (it writes the sheet and sends emails). Show the confirmation as soon as the request is on its way;
+        // keepalive lets it finish even if the person leaves the page. Only a network failure is reported.
+        const btn = form.querySelector('[type=submit]'); if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Sending…'; }
+        const req = fetch(endpoint, { method: 'POST', mode: 'no-cors', body: data, keepalive: data.toString().length < 60000 });
+        req.catch(() => {
+          statusEl.classList.remove('open');
+          statusEl.innerHTML = `<span class="dot"></span><span><strong>That didn't send.</strong> Check your connection and try again, or email ${esc(C.email)}.</span>`;
+          try { statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+        });
+        await Promise.race([req, new Promise(r => setTimeout(r, 350))]);
+        if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || btn.textContent; }
       } else {
         const res = await fetch(endpoint, { method: 'POST', body: data, headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error(res.status);
@@ -439,7 +449,7 @@
           <div class="done-pay"></div>
           <p class="label" style="margin-top:6px">What next</p>
           <ol class="nextsteps">${steps.map(x => '<li>' + x + '</li>').join('')}</ol>
-          <div class="ctas-left"><button type="button" class="btn ghost" data-again>Book something else</button> <a class="btn ghost" href="release-policy.html">Release checklist</a></div>`;
+          <div class="ctas-left"><button type="button" class="btn ghost" data-again>Book something else</button> ${/release/.test(f.dataset.kind) ? '<a class="btn ghost" href="release-policy.html">Release checklist</a>' : '<a class="btn ghost" href="member.html">My dashboard</a>'}</div>`;
         const fs = $('fieldset', f); fs.hidden = true; fs.insertAdjacentElement('beforebegin', done); st.innerHTML = ''; st.classList.remove('open');
         if (pl && amt && !demo) { done.querySelector('.done-pay').appendChild(pl); pl.hidden = false;
           payButtons(pl, { kind: 'one-off', amount: amt, item: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title} (${bookingId})`, custom: bookingId, note: `Booking ${bookingId}. Your date is only confirmed when payment arrives: first to pay gets the date. You'll get a confirmation email.` }); }

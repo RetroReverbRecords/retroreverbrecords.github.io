@@ -18,7 +18,7 @@
     const mail = `mailto:${encodeURIComponent(C.email || '')}?subject=${encodeURIComponent('I withdraw from my contract')}&body=${encodeURIComponent('I withdraw from: ' + data.get('what') + '\nName: ' + data.get('name') + '\nEmail: ' + data.get('email') + '\nMember ID: ' + (data.get('member_id') || ''))}`;
     if (!url) { say(false, `<strong>Please send it by email instead:</strong> <a href="${mail}">email your withdrawal</a>.`); return; }
     try {
-      await fetch(url, { method: 'POST', mode: 'no-cors', body: data });
+      await Promise.race([fetch(url, { method: 'POST', mode: 'no-cors', body: data, keepalive: true }), new Promise(r => setTimeout(r, 350))]);
       say(true, `<strong>Withdrawal sent</strong> on ${esc(new Date().toLocaleString('en-GB'))}. We email ${esc(data.get('email'))} to confirm we've received it. No email within a day? <a href="${mail}">Send it by email</a> as well.`);
       form.querySelector('fieldset').disabled = true;
     } catch (err) {

@@ -144,7 +144,7 @@
       data.append('form', 'rrr-release'); data.append('member_id', form.dataset.member || '');
       const fs = $('#sel-form-status'), rrr = data.get('intent') === 'rrr';
       try {
-        await fetch(url, { method: 'POST', mode: 'no-cors', body: data });
+        await Promise.race([fetch(url, { method: 'POST', mode: 'no-cors', body: data, keepalive: true }), new Promise(r => setTimeout(r, 350))]);
         fs.classList.add('open');
         fs.innerHTML = `<span class="dot"></span><span>${rrr ? '<strong>Submitted.</strong> RRR reviews it and emails you the decision. Only this release is affected.' : '<strong>Added.</strong> It shows on your dashboard as ' + esc(data.get('affiliation') || 'Independent') + '.'}</span>`;
         form.reset(); mode(); window.scrollTo({ top: form.offsetTop - 120, behavior: 'smooth' });
@@ -172,7 +172,7 @@
       const data = new URLSearchParams(); new FormData(lf).forEach((v, k) => data.append(k, v)); data.append('form', 'link-request');
       const method = (lf.querySelector('input[name=method]:checked') || {}).value;
       try {
-        await fetch(url, { method: 'POST', mode: 'no-cors', body: data });
+        await Promise.race([fetch(url, { method: 'POST', mode: 'no-cors', body: data, keepalive: true }), new Promise(r => setTimeout(r, 350))]);
         say(true, method === 'invite'
           ? '<strong>Done ✓</strong> We\'ll send you a Bandcamp invite within a day. Watch for an email from Bandcamp and press accept.'
           : '<strong>Check your email ✓</strong> We\'ve sent your placeholder password and the next steps to the address on your membership. Not there in a few minutes? Check spam.');

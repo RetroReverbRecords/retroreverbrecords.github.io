@@ -712,3 +712,11 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after{animation
 .callegend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .callegend .free::before{background:#2ED47A}.callegend .taken::before{background:#ff5a6e}.callegend .soon::before{background:#55507a}
 .callegend em{font-style:normal}
+/* Moderation page */
+.modtable td{vertical-align:top}
+.modact{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;min-width:420px}
+.modact select,.modact input{font:400 14px var(--body);color:var(--text);background:var(--void);border:1px solid var(--line);border-radius:4px;padding:8px}
+.modact .btn{padding:8px 14px;font-size:12px}
+.standing{font:600 12px var(--mono);padding:3px 8px;border-radius:999px;border:1px solid var(--line)}
+.s-good{color:#2ED47A}.s-warning{color:#FFC94D}.s-suspended{color:#ff8a8a}.s-removed{color:#ff5a6e;text-decoration:line-through}
+.modlog{list-style:none;margin:0;padding:0;display:grid;gap:8px}

@@ -39,4 +39,6 @@ Disallow: /
 User-agent: Timpibot
 Disallow: /
 User-agent: *
+Disallow: /mod.html
+Disallow: /linked.html
 Allow: /

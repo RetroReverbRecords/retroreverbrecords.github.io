@@ -54,7 +54,7 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded'],
@@ -70,6 +70,7 @@ const TABS = {
                  'description','why_fit','spotify_url','youtube_url','affiliation','series','catalogue_no','featured','status','approved_on','notified','admin_notes',
                  'audio_url','ai_declared','ai_score','ai_result','sound_check','ai_checked','ai_case'],
   Feedback:     ['created','type','rating','message','page','email','member_id','status'],
+  ModLog:       ['when','admin_id','admin_name','member_id','member_name','action','reason'],
   Links:        ['created','member_id','artist','email','bandcamp_url','method','temp_password','token','status','ready_at','linked_at','notified'],
   Disputes:     ['case','created','release_id','member_id','artist','email','title','reason','proof_types','proof_links','files','used_ai_tools','status','decision_notes','notified'],
   Newsletter:   ['month','created','subject','sent_to','queued','status'],
@@ -124,6 +125,7 @@ function doPost(e) {
       return text_('ok');
     }
     if (kind === 'link-request') return handleLinkRequest_(p);
+    if (kind === 'mod-action') return handleModAction_(p);
     if (/^submit-/.test(kind) && typeof handleSubmitForm_ === 'function') return handleSubmitForm_(kind, p); // RRR Submit (Submit.gs)
     if (kind === 'payment') return handleCardPayment_(p);
     log_('unknown form', JSON.stringify(p).slice(0, 500));
@@ -145,6 +147,7 @@ function doGet(e) {
   if (q.slot) return json_(slotInfo_(q.slot, q.date));
   if (q.slots) return json_(slotsFull_(q.slots));
   if (q.linkready) return linkReady_(q.linkready, q.json);
+  if (q.mod) return modList_(q.mod);
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
@@ -680,8 +683,8 @@ function approveClaims() {
 // Safe to run again: it never adds anyone twice.
 // ============================================================
 const FOUNDERS = [
-  { member_id: 'RRR-00001', artist: 'Cybertronix', name: 'Cybertronix', email: SETTINGS.ownerEmail, role: 'Founder', points: 20000, status: 'active (founder)' },
-  { member_id: 'RRR-00002', artist: 'Eden Future', name: 'Eden Future', email: '', role: 'Ambassador', points: 4200, status: 'active (ambassador)' }
+  { member_id: 'RRR-00001', artist: 'Cybertronix', name: 'Cybertronix', email: SETTINGS.ownerEmail, role: 'Founder', points: 20000, status: 'active (founder)' }
+  // Eden Future signs up himself, then: RRR menu → Make a member an Administrator.
 ];
 function setupFounders() {
   FOUNDERS.forEach(f => {
@@ -691,7 +694,7 @@ function setupFounders() {
       append_('Achievements', { member_id: f.member_id, achievement: f.role, earned_on: new Date(), points: f.points, note: f.role + ' starting rank' });
     recalcPoints_(f.member_id);
   });
-  return 'Founders ready: RRR-00001 Cybertronix (10th Dan), RRR-00002 Eden Future (3rd Dan). Add Eden Future\'s email in the Members tab.';
+  return 'Founder ready: RRR-00001 Cybertronix (10th Dan).';
 }
 
 // ============================================================
@@ -825,6 +828,7 @@ function applyValidations_() {
   set('Disputes', 'status', list(['open', 'cleared', 'not cleared']));
   set('Feedback', 'status', list(['new', 'seen', 'doing it', 'done', 'no']));
   set('Bookings', 'uploaded', list(['yes', 'no']));
+  set('Members', 'role', list(['', 'Administrator']));
   set('Links', 'status', list(['requested', 'ready', 'linked', 'cancelled']));
   set('Withdrawals', 'refund_status', list(['to do', 'refunded', 'not due']));
 }
@@ -1138,6 +1142,7 @@ function onOpen() {
     .addItem('Apply suspensions and removals now', 'processStandingNow')
     .addItem('Process AI disputes now', 'processDisputesNow')
     .addItem('Confirm Bandcamp links now', 'processLinksNow')
+    .addItem('Make a member an Administrator', 'makeAdmin')
     .addSeparator()
     .addItem('Remove demo test data', 'removeDemoData')
     .addToUi();
@@ -1412,4 +1417,62 @@ function morningJobs_() {
     'When done, type yes in the Bookings "uploaded" column.\n' + sheetUrl_();
   notify_(subject, body);
   if (n) phonePush_(subject, [].concat(j.overdue, j.today).map(x => x.what + ': ' + x.r.artist + ' – ' + x.r.title).join('\n'));
+}
+
+
+// ============================================================
+// ADMINISTRATORS (moderators): free black-belt account + moderation page
+// They can warn, suspend or remove members (with a reason, logged, you're emailed every time).
+// They can't edit the website, prices, money or the sheet. Only you have full access.
+// RRR menu → Make a member an Administrator (after they've signed up themselves).
+// ============================================================
+function makeAdmin() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('Make a member an Administrator', 'Their member ID (e.g. RRR-7KX2P). They must have signed up first.', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const id = String(r.getResponseText() || '').trim().toUpperCase();
+  const m = findRow_('Members', 'member_id', id);
+  if (!m) { ui.alert('No member with ID ' + id); return; }
+  const key = Utilities.getUuid().replace(/-/g, '');
+  updateRow_('Members', 'member_id', id, { role: 'Administrator', admin_key: key, status: 'active (honorary)', plan: 'honorary', standing: 'good' });
+  if (!rows_('Achievements').some(x => x.member_id === id && x.achievement === 'Administrator')) {
+    recalcPoints_(id);
+    const now = Number((findRow_('Members', 'member_id', id) || {}).points) || 0;
+    append_('Achievements', { member_id: id, achievement: 'Administrator', earned_on: new Date(), points: Math.max(0, 2000 - now), note: 'Administrator: black belt starting rank' });
+    recalcPoints_(id);
+  }
+  const u = SETTINGS.siteUrl, mod = u + 'mod.html?k=' + key;
+  try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: 'You\'re an RRR Administrator 🛡',
+    htmlBody: '<div style="font:15px/1.55 Arial,sans-serif;color:#222;max-width:560px"><p>Hi ' + (m.name || '') + ',</p><p>You\'re now an <b>RRR Administrator</b>, with a black belt and a free (honorary) membership. Welcome to the team!</p>' +
+      '<p><b>Your private moderation page</b> (bookmark it, don\'t share it):<br><a href="' + mod + '">' + mod + '</a></p>' +
+      '<p>From there you can give a warning, suspend or remove a member, always with a reason. Every action is logged and Cybertronix is told. Members get an email with the reason and how to appeal.</p>' +
+      '<p>Follow the <a href="' + u + 'code-of-conduct.html#enforcement">Code of Conduct steps</a>: friendly word → warning → suspension → removal. Zero-tolerance cases can go straight to removal.</p>' +
+      '<p>Your dashboard: <a href="' + u + 'member.html?id=' + id + '">' + u + 'member.html?id=' + id + '</a></p><p>Retro Reverb Records<br><span style="color:#888">Welcome to the family</span></p></div>' }); } catch (e) { log_('admin email failed', String(e)); }
+  ui.alert(id + ' is now an Administrator (black belt, honorary). Their moderation link was emailed to ' + m.email + '.\n\nAlso give them the Moderator role on Discord.');
+}
+function adminByKey_(key) {
+  if (!key || String(key).length < 20) return null;
+  return rows_('Members').find(m => m.admin_key && m.admin_key === key && /administrator/i.test(String(m.role)) && inGoodStanding_(m)) || null;
+}
+function modList_(key) {
+  const a = adminByKey_(key); if (!a) return json_({ ok: false, error: 'not allowed' });
+  const members = rows_('Members').filter(m => !isDemo_(m.email) || /demo/.test(String(m.status))).map(m => ({ id: m.member_id, name: m.name, artist: m.artist, type: m.type, status: m.status,
+    standing: standing_(m), since: m.created, role: m.role || '', protected: m.member_id === 'RRR-00001' || /administrator/i.test(String(m.role)) }));
+  const log = rows_('ModLog').slice(-30).reverse();
+  return json_({ ok: true, admin: { id: a.member_id, name: a.artist || a.name }, members: members, log: log });
+}
+function handleModAction_(p) {
+  const a = adminByKey_(p.key); if (!a) { log_('mod action refused (bad key)', JSON.stringify(p).slice(0, 300)); return text_('ok'); }
+  const id = String(p.member_id || '').toUpperCase(), action = String(p.standing || ''), reason = String(p.reason || '').trim().slice(0, 1000);
+  if (['good', 'warning', 'suspended', 'removed'].indexOf(action) < 0 || reason.length < 5) return text_('ok');
+  const m = findRow_('Members', 'member_id', id);
+  if (!m || id === 'RRR-00001' || /administrator/i.test(String(m.role))) { log_('mod action refused (protected)', id); return text_('ok'); }
+  updateRow_('Members', 'member_id', id, { standing: action, admin_notes: (m.admin_notes ? m.admin_notes + ' | ' : '') + new Date().toISOString().slice(0, 10) + ' ' + action + ' by ' + (a.artist || a.name) + ': ' + reason });
+  append_('ModLog', { when: new Date(), admin_id: a.member_id, admin_name: a.artist || a.name, member_id: id, member_name: m.artist || m.name, action: action, reason: reason });
+  if (action === 'suspended' || action === 'removed') processStanding_();
+  const words = { good: 'Your RRR membership is back in good standing.', warning: 'This is a formal warning about your behaviour in the RRR community.', suspended: 'Your RRR membership is suspended for up to 30 days. Bookings, claims and submissions are paused, and your membership fee is paused too.', removed: 'Your RRR membership has been ended and you have been removed from the community.' };
+  if (m.email) try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: 'About your RRR membership',
+    body: 'Hi ' + (m.name || '') + ',\n\n' + words[action] + '\n\nReason: ' + reason + '\n\nOur Code of Conduct: ' + SETTINGS.siteUrl + 'code-of-conduct.html' + (action !== 'good' ? '\n\nIf you think this is wrong, reply to this email within 14 days to appeal. A different person will look at it.' : '') + '\n\nRetro Reverb Records' }); } catch (e) { log_('mod email failed', String(e)); }
+  notify_('Moderation: ' + (a.artist || a.name) + ' set ' + (m.artist || m.name) + ' (' + id + ') to ' + action.toUpperCase(), 'Reason: ' + reason + '\n\nUndo: set standing back in the Members tab.\n' + sheetUrl_());
+  return text_('ok');
 }

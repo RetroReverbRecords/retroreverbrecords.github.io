@@ -41,4 +41,5 @@ Disallow: /
 User-agent: *
 Disallow: /mod.html
 Disallow: /linked.html
+Disallow: /curator.html
 Allow: /

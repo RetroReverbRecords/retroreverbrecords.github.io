@@ -538,7 +538,8 @@ function onEditRRR(e) {
       Releases: { affiliation: processReleaseDecisions, series: processReleaseDecisions },
       Claims: { approved: approveClaims },
       Disputes: { status: processDisputes_ },
-      Members: { standing: processStanding_ }
+      Members: { standing: processStanding_ },
+      Curators: { status: typeof processCurators_ === 'function' ? processCurators_ : null }
     };
     const job = (jobs[name] || {})[head];
     if (!job) return;
@@ -1143,6 +1144,7 @@ function onOpen() {
     .addItem('Process AI disputes now', 'processDisputesNow')
     .addItem('Confirm Bandcamp links now', 'processLinksNow')
     .addItem('Make a member an Administrator', 'makeAdmin')
+    .addItem('Curator payouts list (RRR Submit)', 'curatorPayouts')
     .addSeparator()
     .addItem('Remove demo test data', 'removeDemoData')
     .addToUi();
@@ -1267,7 +1269,7 @@ function sendQueued_() {
 // ============================================================
 function removeDemoData() {
   const ids = rows_('Members').filter(m => isDemo_(m.email)).map(m => String(m.member_id).toUpperCase());
-  const tabs = ['Members', 'Bookings', 'Releases', 'Claims', 'Achievements', 'Posts', 'Agreements', 'Withdrawals', 'Disputes', 'Feedback', 'Links', 'PointsLog'];
+  const tabs = ['Members', 'Bookings', 'Releases', 'Claims', 'Achievements', 'Posts', 'Agreements', 'Withdrawals', 'Disputes', 'Feedback', 'Links', 'Submissions', 'Reviews', 'PointsLog'];
   let removed = 0;
   tabs.forEach(name => {
     const sh = ss_().getSheetByName(name); if (!sh) return;

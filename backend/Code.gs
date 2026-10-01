@@ -489,7 +489,31 @@ function setup() {
   getCalendar_();
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'daily') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('daily').timeBased().everyDays(1).atHour(8).create();
+  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'onEditRRR') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('onEditRRR').forSpreadsheet(ss_()).onEdit().create();
   log_('setup', 'done');
+}
+
+// Instant actions: when you change a decision cell in the sheet, the follow-up happens straight away
+// (emails, points, dashboard updates). No menu clicks needed. Installed by setup().
+function onEditRRR(e) {
+  try {
+    if (!e || !e.range) return;
+    const sh = e.range.getSheet(), name = sh.getName(), col = e.range.getColumn(), row = e.range.getRow();
+    if (row < 2) return;
+    const head = String(sh.getRange(1, col).getValue());
+    const jobs = {
+      Links: { status: processLinks_ },
+      Releases: { affiliation: processReleaseDecisions, series: processReleaseDecisions },
+      Claims: { approved: approveClaims },
+      Disputes: { status: processDisputes_ },
+      Members: { standing: processStanding_ }
+    };
+    const job = (jobs[name] || {})[head];
+    if (!job) return;
+    const lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return;
+    try { job(); } finally { lock.releaseLock(); }
+  } catch (err) { log_('onEditRRR error', String(err && err.stack || err)); }
 }
 
 // ============================================================

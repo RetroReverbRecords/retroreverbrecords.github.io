@@ -70,6 +70,13 @@ window.RRR_CONFIG = {
   // new sign-ups then sign the new version.
   termsVersion: "2026-10-01-beta6",
 
+  // DISCORD. Paste a permanent invite (discord.gg/...) into invite to replace
+  // the Disboard page. Members-only channels unlock once they link their ID.
+  discord: {
+    invite: "https://disboard.org/server/1466285984772526244",
+    linkChannel: "#link-your-account"
+  },
+
   // YouTube community
   youtube: {
     channel: "https://www.youtube.com/@RetroReverbRecords",

@@ -656,3 +656,6 @@
     });
   }
 })();
+
+// Discord links follow RRR_CONFIG.discord.invite (one place to change it)
+document.querySelectorAll('[data-discord]').forEach(a => { const c = window.RRR_CONFIG && RRR_CONFIG.discord; if (c && c.invite) a.href = c.invite; });

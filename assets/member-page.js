@@ -175,6 +175,8 @@
       <h3 class="subhead">My releases <span class="small"><a href="series.html${demo ? '' : '?id=' + encodeURIComponent(m.id)}#submit">Submit or add a release</a></span></h3>
       ${progTable(m.programme || [])}` : ''}
 
+      ${C.discord && C.discord.invite ? `<div class="panel nextstep discordbox"><span class="label">RRR Discord · optional</span><p><b>Hang out with the family on Discord.</b> 1. Join the server. 2. Accept the rules. 3. Post your member ID <b class="num">${esc(m.id)}</b> in <b>${esc(C.discord.linkChannel || '#link-your-account')}</b>: within the hour you get your belt colour and the members' channels.</p><a class="btn primary" href="${esc(C.discord.invite)}" target="_blank" rel="noopener">Join the RRR Discord ↗</a></div>` : ''}
+
       <h3 class="subhead">Points history <span class="small"><a href="${demo ? 'levels.html#claim' : 'levels.html?id=' + encodeURIComponent(m.id) + '#claim'}">Claim points</a> · <a href="levels.html#points-table">what earns points</a></span></h3>
       ${(m.recentPoints || []).length ? `<ul class="list ptlog">${m.recentPoints.map(r => `<li class="panel"><div><b>${esc(String(r.note || 'Points').replace(/^Claim: /, ''))}</b><span class="small">${esc(fmt(r.on))}${/^Claim: /.test(r.note || '') ? ' · checked by RRR' : ''}</span></div><em class="num pts">+${num(r.points)}</em></li>`).join('')}</ul>`
         : `<div class="panel empty"><b>No points yet beyond your badges.</b><span>Support another member's release, then <a href="levels.html#claim">claim your points</a>.</span></div>`}

@@ -171,12 +171,7 @@ function handleSignup_(p) {
   let emailed = 'no';
   try {
     MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Welcome to the family, ' + (p.artist || p.name || '') + '! Your RRR member ID ' + id,
-      htmlBody: '<p>Hi ' + (p.name || '') + ',</p><p><b>Welcome to the family.</b> You are now part of the RRR Community. This is your copy of what you agreed to when you signed up.</p>' +
-        '<ul><li><b>Signed by:</b> ' + (p.signature || '') + '</li><li><b>Date and time:</b> ' + new Date().toUTCString() + '</li><li><b>Member ID:</b> ' + id + '</li><li><b>Terms version:</b> ' + version + '</li>' +
-        '<li>Agreed to the RRR Member Agreement (Membership Terms, Code of Conduct, Refund Policy, Privacy Policy): ' + (p.agree_terms === 'yes' ? 'yes' : 'no') + '</li>' +
-        (isArtist ? '<li>Agreed to the AI-Generated Music Policy and Release Policy: ' + (p.agree_ai === 'yes' ? 'yes' : 'no') + '</li><li>Understands Bandcamp linking is needed for Bandcamp sales to be paid straight to them: ' + (p.agree_link === 'yes' ? 'yes' : 'no') + '</li>' : '') +
-        '</ul><p>Your agreement: <a href="' + SETTINGS.siteUrl + 'agreement.html">' + SETTINGS.siteUrl + 'agreement.html</a> (with the <a href="' + SETTINGS.siteUrl + SETTINGS.termsUrl + '">Membership Terms</a>, <a href="' + SETTINGS.siteUrl + 'code-of-conduct.html">Code of Conduct</a>, <a href="' + SETTINGS.siteUrl + 'refunds.html">Refund Policy</a> and <a href="' + SETTINGS.siteUrl + 'privacy.html">Privacy Policy</a>).</p>' +
-        '<p><b>14 days to change your mind:</b> you can withdraw within 14 days of joining for a full refund of your membership. Use <a href="' + SETTINGS.siteUrl + 'withdraw.html">Withdraw from contract here</a> or reply to this email.</p><p>Your dashboard: <a href="' + SETTINGS.siteUrl + 'member.html?id=' + id + '">' + SETTINGS.siteUrl + 'member.html?id=' + id + '</a></p><p>Retro Reverb Records</p>' });
+      htmlBody: welcomeEmail_(p, id, version, isArtist) });
     emailed = 'yes';
   } catch (err) { log_('agreement email failed', String(err)); }
   append_('Agreements', { member_id: id, signed_at_server: new Date(), signed_at_client: p.signed_at || '', signature_name: p.signature || '', email: p.email, type: p.type,
@@ -201,6 +196,44 @@ function handleSignup_(p) {
 // ============================================================
 // BOOKINGS → sheet + calendar
 // ============================================================
+// Welcome email: friendly first, the signed-agreement record underneath
+function welcomeEmail_(p, id, version, isArtist) {
+  const u = SETTINGS.siteUrl, dash = u + 'member.html?id=' + id, demo = isDemo_(p.email);
+  const when = Utilities.formatDate(new Date(), 'Europe/Rome', "d MMMM yyyy 'at' HH:mm 'Italy time'");
+  const yes = v => v === 'yes' ? 'yes' : 'no';
+  const btn = (href, text) => '<a href="' + href + '" style="display:inline-block;background:#FF2FA8;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px;letter-spacing:.04em">' + text + '</a>';
+  const step = (n, html) => '<tr><td style="vertical-align:top;padding:6px 12px 6px 0;font:700 18px Arial,sans-serif;color:#3FD0FF">' + n + '</td><td style="padding:6px 0;font:15px/1.5 Arial,sans-serif;color:#222">' + html + '</td></tr>';
+  const steps = [];
+  if (!demo) steps.push('<b>Set up your monthly payment</b> if you haven\'t yet: your account goes live when it arrives.');
+  steps.push('<b><a href="' + dash + '" style="color:#E0068A">Open your member dashboard</a></b>: your belt, points and releases. Save it to your phone\'s home screen.');
+  if (isArtist) {
+    steps.push('<b><a href="' + u + 'series.html#linking" style="color:#E0068A">Link your Bandcamp to RRR</a></b>: needed for Bandcamp releases, and it gets you free Bandcamp VIP.');
+    steps.push('<b><a href="' + u + 'book.html" style="color:#E0068A">Book your first release</a></b>: pick a free date, from €2 a single.');
+  } else {
+    steps.push('<b><a href="' + u + 'cards.html" style="color:#E0068A">Start collecting Synth Stars cards</a></b> and support the artists you love.');
+  }
+  return '<div style="background:#f4f1fb;padding:24px 12px"><div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e3dcf5">' +
+    '<div style="background:#07061A;padding:22px;text-align:center"><img src="' + u + 'assets/rrr-wordmark.png" alt="Retro Reverb Records" width="260" style="max-width:80%;height:auto"><br>' +
+    '<img src="' + u + 'assets/welcome-neon.jpg" alt="Welcome to the Family!" width="420" style="max-width:100%;height:auto;margin-top:10px"></div>' +
+    '<div style="padding:24px 24px 8px;font:15px/1.55 Arial,sans-serif;color:#222">' +
+    '<p style="margin:0 0 12px">Hi ' + (p.name || '') + ',</p>' +
+    '<p style="margin:0 0 16px"><b>Welcome to the family!</b> You\'re now part of the RRR Community' + (p.artist ? ' as <b>' + p.artist + '</b>' : '') + '. We\'re really glad you\'re here.</p>' +
+    '<div style="border:2px solid #3FD0FF;border-radius:10px;padding:14px 16px;margin:0 0 18px;text-align:center"><div style="font-size:12px;letter-spacing:.14em;color:#666">YOUR MEMBER ID</div><div style="font:700 28px/1.3 Courier New,monospace;letter-spacing:.1em;color:#07061A">' + id + '</div><div style="font-size:13px;color:#666">Keep it safe: it opens your dashboard and forms.</div></div>' +
+    (demo ? '<p style="background:#fff3c4;padding:10px 12px;border-radius:8px;margin:0 0 16px"><b>Demo account:</b> payment skipped. This is a test account.</p>' : '') +
+    '<p style="margin:0 0 6px;font-weight:700">What next</p><table role="presentation" style="border-collapse:collapse;margin:0 0 18px">' + steps.map((h, i) => step(i + 1, h)).join('') + '</table>' +
+    '<p style="text-align:center;margin:0 0 22px">' + btn(dash, 'OPEN MY DASHBOARD') + '</p>' +
+    '<p style="margin:0 0 18px">Questions? Just reply to this email.</p>' +
+    '<p style="margin:0 0 4px">See you in the community,<br><b>Retro Reverb Records</b></p></div>' +
+    '<div style="margin:12px 24px 24px;padding:14px 16px;background:#f7f7f9;border-radius:10px;font:13px/1.5 Arial,sans-serif;color:#555">' +
+    '<b style="color:#333">Your signed agreement (keep this email)</b><br>' +
+    'Signed by: ' + (p.signature || '') + ' · ' + when + ' · Member ID ' + id + ' · Version ' + version + '<br>' +
+    'Agreed to the RRR Member Agreement (Membership Terms, Code of Conduct, Refund Policy, Privacy Policy): ' + yes(p.agree_terms) +
+    (isArtist ? '<br>Agreed to the AI-Generated Music Policy and Release Policy: ' + yes(p.agree_ai) + '<br>Understands Bandcamp linking is needed for Bandcamp sales to be paid straight to them: ' + yes(p.agree_link) : '') +
+    '<br><a href="' + u + 'agreement.html" style="color:#555">Member Agreement</a> · <a href="' + u + SETTINGS.termsUrl + '" style="color:#555">Terms</a> · <a href="' + u + 'code-of-conduct.html" style="color:#555">Code of Conduct</a> · <a href="' + u + 'refunds.html" style="color:#555">Refunds</a> · <a href="' + u + 'privacy.html" style="color:#555">Privacy</a>' +
+    '<br><b>14 days to change your mind:</b> withdraw within 14 days of joining for a full refund of your membership: <a href="' + u + 'withdraw.html" style="color:#555">Withdraw from contract here</a>, or reply to this email.</div>' +
+    '</div><p style="text-align:center;font:12px Arial,sans-serif;color:#888;margin:14px 0 0">© Retro Reverb Records · Welcome to the family</p></div>';
+}
+
 function handleBooking_(kind, p) {
   const date = p.release_date || p.preferred_date || p.premiere_date || '';
   const member = p.email ? findRow_('Members', 'email', p.email) : null;

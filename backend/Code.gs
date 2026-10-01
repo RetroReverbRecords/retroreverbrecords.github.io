@@ -170,7 +170,7 @@ function handleSignup_(p) {
   const version = p.terms_version || '';
   let emailed = 'no';
   try {
-    MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Your RRR membership agreement (' + version + ')',
+    MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Welcome to the family, ' + (p.artist || p.name || '') + '! Your RRR member ID ' + id,
       htmlBody: '<p>Hi ' + (p.name || '') + ',</p><p><b>Welcome to the family.</b> You are now part of the RRR Community. This is your copy of what you agreed to when you signed up.</p>' +
         '<ul><li><b>Signed by:</b> ' + (p.signature || '') + '</li><li><b>Date and time:</b> ' + new Date().toUTCString() + '</li><li><b>Member ID:</b> ' + id + '</li><li><b>Terms version:</b> ' + version + '</li>' +
         '<li>Agreed to the RRR Member Agreement (Membership Terms, Code of Conduct, Refund Policy, Privacy Policy): ' + (p.agree_terms === 'yes' ? 'yes' : 'no') + '</li>' +

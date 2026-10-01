@@ -73,7 +73,7 @@ window.RRR_CONFIG = {
   // DISCORD. Paste a permanent invite (discord.gg/...) into invite to replace
   // the Disboard page. Members-only channels unlock once they link their ID.
   discord: {
-    invite: "https://disboard.org/server/1466285984772526244",
+    invite: "https://discord.gg/P2sjDBEtN",
     linkChannel: "#link-your-account"
   },
 

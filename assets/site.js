@@ -153,6 +153,21 @@
     }).catch(fallback);
   }
 
+  // Short neon chime when something is sent (no sound file needed)
+  function chime(){
+    try {
+      const A = window.AudioContext || window.webkitAudioContext; if (!A) return;
+      const ctx = new A(), t = ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(), s0 = t + i * 0.09;
+        o.type = 'triangle'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, s0); g.gain.exponentialRampToValueAtTime(0.16, s0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, s0 + 0.5);
+        o.connect(g).connect(ctx.destination); o.start(s0); o.stop(s0 + 0.55);
+      });
+      setTimeout(() => ctx.close(), 1500);
+    } catch (e) {}
+  }
+  window.rrrChime = chime;
   async function send(form, statusEl, kind, extra){
     const data = new URLSearchParams();
     new FormData(form).forEach((v, k) => data.append(k, v));
@@ -167,8 +182,10 @@
         if (!res.ok) throw new Error(res.status);
       }
       statusEl.classList.add('open');
-      statusEl.innerHTML = `<span class="dot"></span><span><strong>Sent.</strong> We'll reply by email to confirm.</span>`;
+      statusEl.innerHTML = `<span class="dot"></span><span><strong>Sent ✓</strong> Check your email: we confirm everything there.</span>`;
       form.reset();
+      chime();
+      try { statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
       return true;
     } catch (e) {
       statusEl.classList.remove('open');
@@ -197,11 +214,34 @@
       if (!open) return;
       if (!signup.checkValidity()) { signup.reportValidity(); return; }
       const id = newMemberId(), fan = isFan(), amt = price();
+      const em = ((signup.querySelector('[name=email]') || {}).value || '').trim();
+      const who = ((signup.querySelector('[name=artist]') || {}).value || (signup.querySelector('[name=name]') || {}).value || '').trim();
       const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist',
         terms_version: C.termsVersion || '', signed_at: new Date().toISOString(), user_agent: navigator.userAgent.slice(0, 250), signed_on_page: location.href.split('?')[0] });
-      const em = (signup.querySelector('[name=email]') || {}).value;
-      if (ok && isDemoEmail(em)) { $('#pay-note').hidden = true; $('#paypal-buttons').innerHTML = `<div class="welcome"><p class="motto">Welcome to the family.</p><p><strong>Demo account: payment skipped.</strong> Your account is active straight away.</p><p class="small">Your member ID is <b class="num">${esc(id)}</b>. Open your <a href="member.html?id=${encodeURIComponent(id)}">member dashboard</a>.</p></div>`; return; }
-      if (ok) { renderPay(id, fan, amt); track('CompleteRegistration', { content_name: fan ? 'fan' : 'artist' }); }
+      if (!ok) return;
+      try { localStorage.setItem('rrr-member-id', id); } catch (e) {}
+      const demo = isDemoEmail(em), dash = `member.html?id=${encodeURIComponent(id)}`;
+      const done = document.createElement('div'); done.className = 'signup-done'; done.setAttribute('role', 'status');
+      done.innerHTML = `
+        <div class="neonmotto"><video src="assets/welcome-neon.mp4" poster="assets/welcome-neon.jpg" autoplay muted loop playsinline aria-hidden="true"></video><span class="sr">Welcome to the family.</span></div>
+        <h3>You're in${who ? ', ' + esc(who) : ''}! 🎉</h3>
+        <div class="idbox"><span class="small">Your member ID</span><b class="num" id="new-id">${esc(id)}</b><button type="button" class="copy" data-copy="new-id">Copy</button></div>
+        <p>We've emailed <b>${esc(em)}</b> your welcome email and a copy of your signed agreement. Not there in a few minutes? Check spam.</p>
+        ${demo ? '<p class="paid"><strong>Demo account: payment skipped.</strong> Your account is active straight away.</p>' : '<div class="done-pay"></div>'}
+        <p class="label" style="margin-top:14px">What next</p>
+        <ol class="nextsteps">
+          ${demo ? '' : '<li><b>Set up your monthly payment</b> with the button above. Your account goes live when it arrives.</li>'}
+          <li><a href="${esc(dash)}"><b>Open your member dashboard</b></a>: your belt, points and releases. Save it to your home screen.</li>
+          ${fan ? '<li><a href="cards.html"><b>Start collecting Synth Stars cards</b></a></li>' : '<li><a href="series.html#linking"><b>Link your Bandcamp to RRR</b></a>: needed for Bandcamp releases, and it gets you free Bandcamp VIP.</li><li><a href="book.html"><b>Book your first release</b></a></li>'}
+        </ol>
+        <div class="ctas-left"><a class="btn primary" href="${esc(dash)}">Open my dashboard</a></div>`;
+      const fields = $('#signup-fields'); fields.hidden = true;
+      fields.insertAdjacentElement('beforebegin', done);
+      $('#signup-status').innerHTML = '';
+      const cp = done.querySelector('.copy'); if (cp) cp.addEventListener('click', () => { try { navigator.clipboard.writeText(id); cp.textContent = 'Copied ✓'; } catch (e) {} });
+      if (!demo) { const pay = $('.pay', signup); if (pay) done.querySelector('.done-pay').appendChild(pay); renderPay(id, fan, amt); }
+      try { done.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+      track('CompleteRegistration', { content_name: fan ? 'fan' : 'artist' });
     });
   }
   function renderPay(memberId, fan, amt){
@@ -213,7 +253,7 @@
     if (P.membershipVia === 'bandcamp' && P.bandcampSubscribeUrl) {
       btn = `<a class="btn primary" href="${esc(P.bandcampSubscribeUrl)}" target="_blank" rel="noopener">Subscribe on Bandcamp</a>`;
     }
-    box.innerHTML = `<div class="welcome"><p class="motto">Welcome to the family.</p><p><strong>Step 2: set up your monthly payment.</strong></p><div class="paybox">${btn}</div>
+    box.innerHTML = `<div class="welcome"><p><strong>Set up your monthly payment.</strong></p><div class="paybox">${btn}</div>
       <p class="small">Your member ID is <b class="num">${esc(memberId)}</b>. Keep it: it opens your <a href="${esc(dash)}">member dashboard</a>.</p></div>`;
     if (!btn && amt) payButtons(box.querySelector('.paybox'), { kind: 'sub', amount: amt, item: `RRR ${fan ? 'Fan' : 'Artist'} Membership`, custom: memberId,
       plan: ((PP.plans || {})[fan ? 'fan' : 'artist']) || '', returnUrl: (C.siteUrl || '') + dash });

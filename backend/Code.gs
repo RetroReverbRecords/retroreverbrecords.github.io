@@ -690,6 +690,7 @@ const FOUNDERS = [
   // Eden Future signs up himself, then: RRR menu → Make a member an Administrator.
 ];
 function setupFounders() {
+  try { applyValidations_(); } catch (e) {}
   FOUNDERS.forEach(f => {
     if (!findRow_('Members', 'member_id', f.member_id))
       append_('Members', { member_id: f.member_id, created: new Date(), type: 'artist', name: f.name, artist: f.artist, email: f.email, status: f.status, plan: 'honorary', public: 'yes' });
@@ -827,7 +828,11 @@ function publicSelectedReleases_() {
 // Dropdowns in the sheet so choices are always spelled right
 function applyValidations_() {
   const list = (vals) => SpreadsheetApp.newDataValidation().requireValueInList(vals, true).setAllowInvalid(false).build();
-  const set = (tab, colName, rule) => { const sh = sheet_(tab), h = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0], ci = h.indexOf(colName);
+  // Start clean each time, so a dropdown never sits on the wrong column after new columns are added
+  const cleared = {};
+  const set = (tab, colName, rule) => { const sh = sheet_(tab);
+    if (!cleared[tab]) { cleared[tab] = true; if (sh.getMaxRows() > 1) sh.getRange(2, 1, sh.getMaxRows() - 1, sh.getMaxColumns()).clearDataValidations(); }
+    const h = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0], ci = h.indexOf(colName);
     if (ci >= 0) sh.getRange(2, ci + 1, 999, 1).setDataValidation(rule); };
   set('Releases', 'affiliation', list(AFFILIATIONS));
   set('Releases', 'series', list(SERIES.map(s => s.name)));
@@ -840,7 +845,7 @@ function applyValidations_() {
   set('Disputes', 'status', list(['open', 'cleared', 'not cleared']));
   set('Feedback', 'status', list(['new', 'seen', 'doing it', 'done', 'no']));
   set('Bookings', 'uploaded', list(['yes', 'no']));
-  set('Members', 'role', list(['', 'Administrator']));
+  set('Members', 'role', list(['', 'Owner', 'Administrator']));
   set('Links', 'status', list(['requested', 'ready', 'linked', 'cancelled']));
   set('Withdrawals', 'refund_status', list(['to do', 'refunded', 'not due']));
 }

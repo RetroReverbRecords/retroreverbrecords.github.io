@@ -1,6 +1,6 @@
 /* RRR app: works offline for pages already visited; always tries the network first
    so members see fresh data. Bump VERSION when you change files. */
-const VERSION = 'rrr-v1';
+const VERSION = 'rrr-v2';
 const CORE = ['./', 'index.html', 'member.html', 'book.html', 'cards.html', 'how-it-works.html', 'press.html', 'history.html',
   'assets/site.css', 'assets/site.js', 'assets/config.js', 'assets/releases.js', 'assets/member-page.js', 'assets/cards.js', 'assets/cards-page.js',
   'assets/rrr-logo-long.png', 'assets/rrr-logo-stack.png', 'assets/icon-192.png'];

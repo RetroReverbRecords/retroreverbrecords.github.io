@@ -153,7 +153,7 @@
           <p class="label">Belt · <a href="levels.html">how to level up</a></p>
           <div class="rankline"><b class="rankname beltchip" style="--belt:${belt.color}"><i></i>${esc(belt.name)}</b><span class="num pts">${num(pts)} pts</span></div>
           <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Progress to next belt"><i style="width:${pct}%"></i></div>
-          <p class="small">${to ? `${num(to - pts)} points to <b>${esc(nb.name)}</b>` : 'Highest Dan reached. Legend.'}</p>
+          <p class="small">${to ? `${num(to - pts)} points to <b>${esc(nb.name)}</b>` : (() => { const ev = (window.RRR_LEVELS && RRR_LEVELS.starEvery) || 2000, top = BELTS[BELTS.length - 1].min, st = Math.floor((pts - top) / ev); return `Grandmaster ${st > 0 ? '<b class="gmstars">' + '★'.repeat(Math.min(st, 20)) + '</b>' : ''} · ${num(ev - ((pts - top) % ev))} points to your next star`; })()}</p>
           <div class="beltstrip">${BELTS.slice(0, 8).map(b => `<span title="${esc(b.name)} · ${b.min} pts" class="${pts >= b.min ? 'on' : ''}" style="--belt:${b.color}"></span>`).join('')}<em>${pts >= 2000 ? esc(belt.name) : 'then 10 Dans'}</em></div>
           ${demo ? '<button type="button" class="copy" id="try-levelup">Preview a level-up 🎉</button>' : ''}
         </div>

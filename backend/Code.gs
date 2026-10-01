@@ -83,10 +83,10 @@ const TABS = {
 const RANKS = [
   { name: 'White belt', min: 0 }, { name: 'Yellow belt', min: 100 }, { name: 'Orange belt', min: 250 },
   { name: 'Green belt', min: 450 }, { name: 'Blue belt', min: 700 }, { name: 'Purple belt', min: 1000 },
-  { name: 'Brown belt', min: 1400 }, { name: 'Black belt · 1st Dan', min: 2000 }, { name: '2nd Dan', min: 3000 },
-  { name: '3rd Dan', min: 4200 }, { name: '4th Dan', min: 5600 }, { name: '5th Dan', min: 7200 },
-  { name: '6th Dan', min: 9000 }, { name: '7th Dan', min: 11000 }, { name: '8th Dan', min: 13500 },
-  { name: '9th Dan', min: 16500 }, { name: '10th Dan', min: 20000 }
+  { name: 'Brown belt', min: 1400 }, { name: 'Black belt · 1st Dan', min: 2000 }, { name: '2nd Dan', min: 2700 },
+  { name: '3rd Dan', min: 3400 }, { name: '4th Dan', min: 4200 }, { name: '5th Dan', min: 5000 },
+  { name: '6th Dan', min: 5900 }, { name: '7th Dan', min: 6900 }, { name: '8th Dan', min: 7900 },
+  { name: '9th Dan', min: 9000 }, { name: '10th Dan', min: 10000 }
 ];
 // One-off badges (awarded once). Repeatable points use addPoints_().
 const AUTO_ACHIEVEMENTS = {

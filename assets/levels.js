@@ -13,16 +13,18 @@ window.RRR_LEVELS = {
     { name: "Purple belt", min: 1000,  color: "#9B5CFF" },
     { name: "Brown belt",  min: 1400,  color: "#8B5A2B" },
     { name: "Black belt · 1st Dan", min: 2000,  color: "#0B0B0F", dan: 1 },
-    { name: "2nd Dan",  min: 3000,  color: "#0B0B0F", dan: 2 },
-    { name: "3rd Dan",  min: 4200,  color: "#0B0B0F", dan: 3 },
-    { name: "4th Dan",  min: 5600,  color: "#0B0B0F", dan: 4 },
-    { name: "5th Dan",  min: 7200,  color: "#0B0B0F", dan: 5 },
-    { name: "6th Dan",  min: 9000,  color: "#0B0B0F", dan: 6 },
-    { name: "7th Dan",  min: 11000, color: "#0B0B0F", dan: 7 },
-    { name: "8th Dan",  min: 13500, color: "#0B0B0F", dan: 8 },
-    { name: "9th Dan",  min: 16500, color: "#0B0B0F", dan: 9 },
-    { name: "10th Dan", min: 20000, color: "#0B0B0F", dan: 10 }
+    { name: "2nd Dan",  min: 2700,  color: "#0B0B0F", dan: 2 },
+    { name: "3rd Dan",  min: 3400,  color: "#0B0B0F", dan: 3 },
+    { name: "4th Dan",  min: 4200,  color: "#0B0B0F", dan: 4 },
+    { name: "5th Dan",  min: 5000,  color: "#0B0B0F", dan: 5 },
+    { name: "6th Dan",  min: 5900,  color: "#0B0B0F", dan: 6 },
+    { name: "7th Dan",  min: 6900, color: "#0B0B0F", dan: 7 },
+    { name: "8th Dan",  min: 7900, color: "#0B0B0F", dan: 8 },
+    { name: "9th Dan",  min: 9000, color: "#0B0B0F", dan: 9 },
+    { name: "10th Dan", min: 10000, color: "#0B0B0F", dan: 10 }
   ],
+  // Grandmaster stars: after 10th Dan, one ★ for every extra 2,000 points
+  starEvery: 2000,
   // how: "auto" = the system awards it; "checked" = RRR confirms it (send proof)
   points: [
     { group: "Support other artists", items: [

@@ -137,6 +137,7 @@ function doGet(e) {
   if (q.series) return json_({ ok: true, series: SERIES, releases: publicSelectedReleases_() });
   if (q.aiqueue) return aiQueue_(q.key);
   if (q.slot) return json_(slotInfo_(q.slot, q.date));
+  if (q.slots) return json_(slotsFull_(q.slots));
   if (q.linkready) return linkReady_(q.linkready, q.json);
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
@@ -1037,6 +1038,13 @@ function nextFreeDate_(kind, iso) {
   const d = new Date(iso + 'T12:00:00');
   for (let i = 0; i < 366; i++) { const t = isoDate_(d); if (slotFree_(kind, t)) return t; d.setDate(d.getDate() + 1); }
   return '';
+}
+// Every date that is already full for this kind (for the booking calendar)
+function slotsFull_(kind) {
+  const cap = SETTINGS.slotsPerDay[kind] || 0, counts = {};
+  if (!cap) return { ok: true, kind: kind, cap: 0, full: [] };
+  rows_('Bookings').forEach(r => { if (r.kind === kind && /^confirmed/i.test(String(r.status))) { const d = isoDate_(r.date); if (d) counts[d] = (counts[d] || 0) + 1; } });
+  return { ok: true, kind: kind, cap: cap, full: Object.keys(counts).filter(d => counts[d] >= cap) };
 }
 function slotInfo_(kind, iso) {
   iso = String(iso || '').slice(0, 10);

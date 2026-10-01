@@ -375,13 +375,38 @@
           msg.textContent = 'Checking…'; slotOk = false;
           fetch(endpoint + (endpoint.includes('?') ? '&' : '?') + 'slot=' + encodeURIComponent(f.dataset.kind) + '&date=' + d).then(r => r.json()).then(j => {
             if (dateIn.value !== d) return;
-            if (!j.ok || j.free) { slotOk = true; dateIn.setCustomValidity(''); msg.innerHTML = '<b class="ok">✓ ' + esc(d) + ' is free.</b> It\'s yours when you pay.'; return; }
+            if (!j.ok || j.free) { slotOk = true; dateIn.setCustomValidity(''); msg.innerHTML = '<b class="ok">✓ ' + esc(new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })) + ' is free.</b> It\'s yours when you pay.'; return; }
             slotOk = false; dateIn.setCustomValidity('That date is taken. Pick another date.');
             msg.innerHTML = '<b class="no">Taken.</b> ' + (j.next ? 'Next free day: <button type="button" class="copy">Use ' + esc(j.next) + '</button>' : 'Pick another date.');
             const b = msg.querySelector('button'); if (b) b.addEventListener('click', () => { dateIn.value = j.next; check(); });
           }).catch(() => { slotOk = true; dateIn.setCustomValidity(''); msg.textContent = 'Couldn\'t check the date right now. We\'ll confirm it when you pay.'; });
         };
         dateIn.addEventListener('change', check);
+        // Availability calendar: free days in green, taken in red, too soon in grey. Click a free day to pick it.
+        const lead = f.dataset.kind === 'bandcamp-release' ? ((C.deadlines || {}).bandcampAssetsDays ?? 14) : 3;
+        const isoOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        const first = new Date(); first.setHours(12, 0, 0, 0); first.setDate(first.getDate() + lead);
+        dateIn.min = isoOf(first);
+        const cal = document.createElement('div'); cal.className = 'slotcal'; msg.insertAdjacentElement('afterend', cal);
+        let full = new Set(), loaded = false, month = new Date(first.getFullYear(), first.getMonth(), 1);
+        const minMonth = new Date(first.getFullYear(), first.getMonth(), 1);
+        const draw = () => {
+          const y = month.getFullYear(), m = month.getMonth(), days = new Date(y, m + 1, 0).getDate(), off = (new Date(y, m, 1).getDay() + 6) % 7;
+          let h = `<div class="calhead"><button type="button" data-nav="-1" aria-label="Previous month"${month <= minMonth ? ' disabled' : ''}>‹</button><b>${month.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</b><button type="button" data-nav="1" aria-label="Next month">›</button></div>`;
+          h += '<div class="calgrid">' + ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(x => `<span class="dow">${x}</span>`).join('') + '<span></span>'.repeat(off);
+          for (let d = 1; d <= days; d++) {
+            const dt = new Date(y, m, d, 12), k = isoOf(dt), soon = dt < first, taken = full.has(k), sel = dateIn.value === k;
+            const state = soon ? 'too soon' : taken ? 'taken' : 'free';
+            h += `<button type="button" class="day ${soon ? 'soon' : taken ? 'taken' : 'free'}${sel ? ' sel' : ''}" data-d="${k}"${soon || taken ? ' disabled' : ''} aria-label="${dt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}: ${state}">${d}</button>`;
+          }
+          h += `</div><div class="callegend"><span class="free">Free</span><span class="taken">Taken</span><span class="soon">Too soon</span>${loaded ? '' : '<em>checking dates…</em>'}</div>`;
+          cal.innerHTML = h;
+          cal.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => { const n = new Date(month); n.setMonth(n.getMonth() + Number(b.dataset.nav)); if (n < minMonth) return; month = n; draw(); }));
+          cal.querySelectorAll('.day.free').forEach(b => b.addEventListener('click', () => { dateIn.value = b.dataset.d; check(); draw(); }));
+        };
+        draw();
+        fetch(endpoint + (endpoint.includes('?') ? '&' : '?') + 'slots=' + encodeURIComponent(f.dataset.kind)).then(r => r.json()).then(j => { full = new Set(j.full || []); loaded = true; draw(); }).catch(() => { loaded = true; draw(); });
+        dateIn.addEventListener('change', () => { if (dateIn.value) { const d = new Date(dateIn.value + 'T12:00:00'); month = new Date(d.getFullYear(), d.getMonth(), 1); } draw(); });
       }
       const amount = () => (pl && pl.dataset.amount) ? fees0[pl.dataset.amount] : (sel ? fees0[sel.value] : null);
       f.addEventListener('submit', async e => {

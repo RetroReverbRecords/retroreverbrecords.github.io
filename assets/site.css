@@ -249,7 +249,7 @@ nav a.btn.primary:hover{color:#fff;text-shadow:none}
 .steps li::before{counter-increment:step;content:counter(step,decimal-leading-zero);font:800 28px/1 var(--head);color:var(--cyan);text-shadow:var(--glow-cyan)}
 .steps h3{font-size:17px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
 .steps p{color:var(--muted);max-width:62ch}
-.steps a{white-space:nowrap}
+.steps a{white-space:normal}
 .faq{display:grid;gap:12px}
 .faq details{padding:18px 22px}
 .faq summary{cursor:pointer;font-weight:600}
@@ -752,3 +752,6 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after{animation
 .cqmsg,.cqfb{margin:0;color:var(--text)}
 @media (max-width:640px){.cqhead{grid-template-columns:1fr}}
 .status:empty{display:none}
+.bookgrid>*,.grid2>*,.joingrid>*{min-width:0}.panel{overflow-wrap:break-word}.facts a,.box a{overflow-wrap:anywhere}
+.steps li>div{min-width:0}
+.mgrid,.rgrid{overflow:hidden}.mcard>*{max-width:100%}

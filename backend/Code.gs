@@ -1143,7 +1143,7 @@ function onOpen() {
     .addItem('Apply suspensions and removals now', 'processStandingNow')
     .addItem('Process AI disputes now', 'processDisputesNow')
     .addItem('Confirm Bandcamp links now', 'processLinksNow')
-    .addItem('Make a member an Administrator', 'makeAdmin')
+    .addItem('Make a member an Administrator or Ambassador', 'makeAdmin')
     .addItem('Curator payouts list (RRR Submit)', 'curatorPayouts')
     .addSeparator()
     .addItem('Remove demo test data', 'removeDemoData')
@@ -1430,27 +1430,30 @@ function morningJobs_() {
 // ============================================================
 function makeAdmin() {
   const ui = SpreadsheetApp.getUi();
-  const r = ui.prompt('Make a member an Administrator', 'Their member ID (e.g. RRR-7KX2P). They must have signed up first.', ui.ButtonSet.OK_CANCEL);
+  const r = ui.prompt('Make a member an Administrator or Ambassador', 'Their member ID (e.g. RRR-7KX2P). They must have signed up first.', ui.ButtonSet.OK_CANCEL);
   if (r.getSelectedButton() !== ui.Button.OK) return;
   const id = String(r.getResponseText() || '').trim().toUpperCase();
   const m = findRow_('Members', 'member_id', id);
   if (!m) { ui.alert('No member with ID ' + id); return; }
+  const t = ui.prompt('Badge on their profile', 'Type Administrator or Ambassador (same moderation rights either way).', ui.ButtonSet.OK_CANCEL);
+  if (t.getSelectedButton() !== ui.Button.OK) return;
+  const badge = /^amb/i.test(String(t.getResponseText()).trim()) ? 'Ambassador' : 'Administrator';
   const key = Utilities.getUuid().replace(/-/g, '');
   updateRow_('Members', 'member_id', id, { role: 'Administrator', admin_key: key, status: 'active (honorary)', plan: 'honorary', standing: 'good' });
-  if (!rows_('Achievements').some(x => x.member_id === id && x.achievement === 'Administrator')) {
+  if (!rows_('Achievements').some(x => x.member_id === id && /^(Administrator|Ambassador)$/.test(x.achievement))) {
     recalcPoints_(id);
     const now = Number((findRow_('Members', 'member_id', id) || {}).points) || 0;
-    append_('Achievements', { member_id: id, achievement: 'Administrator', earned_on: new Date(), points: Math.max(0, 2000 - now), note: 'Administrator: black belt starting rank' });
+    append_('Achievements', { member_id: id, achievement: badge, earned_on: new Date(), points: Math.max(0, 2000 - now), note: badge + ': black belt starting rank' });
     recalcPoints_(id);
   }
   const u = SETTINGS.siteUrl, mod = u + 'mod.html?k=' + key;
-  try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: 'You\'re an RRR Administrator 🛡',
-    htmlBody: '<div style="font:15px/1.55 Arial,sans-serif;color:#222;max-width:560px"><p>Hi ' + (m.name || '') + ',</p><p>You\'re now an <b>RRR Administrator</b>, with a black belt and a free (honorary) membership. Welcome to the team!</p>' +
+  try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: 'You\'re an RRR ' + badge + (badge === 'Ambassador' ? ' 🌟' : ' 🛡'),
+    htmlBody: '<div style="font:15px/1.55 Arial,sans-serif;color:#222;max-width:560px"><p>Hi ' + (m.name || '') + ',</p><p>You\'re now an <b>RRR ' + badge + '</b> with moderation rights, a black belt and a free (honorary) membership. Welcome to the team!</p>' +
       '<p><b>Your private moderation page</b> (bookmark it, don\'t share it):<br><a href="' + mod + '">' + mod + '</a></p>' +
       '<p>From there you can give a warning, suspend or remove a member, always with a reason. Every action is logged and Cybertronix is told. Members get an email with the reason and how to appeal.</p>' +
       '<p>Follow the <a href="' + u + 'code-of-conduct.html#enforcement">Code of Conduct steps</a>: friendly word → warning → suspension → removal. Zero-tolerance cases can go straight to removal.</p>' +
       '<p>Your dashboard: <a href="' + u + 'member.html?id=' + id + '">' + u + 'member.html?id=' + id + '</a></p><p>Retro Reverb Records<br><span style="color:#888">Welcome to the family</span></p></div>' }); } catch (e) { log_('admin email failed', String(e)); }
-  ui.alert(id + ' is now an Administrator (black belt, honorary). Their moderation link was emailed to ' + m.email + '.\n\nAlso give them the Moderator role on Discord.');
+  ui.alert(id + ' is now an RRR ' + badge + ' with moderation rights (black belt, honorary). Their moderation link was emailed to ' + m.email + '.\n\nAlso give them the Moderator role on Discord.');
 }
 function adminByKey_(key) {
   if (!key || String(key).length < 20) return null;

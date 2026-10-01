@@ -1299,7 +1299,7 @@ function linkReady_(token, asJson) {
       sh.getRange(i + 1, h.indexOf('status') + 1).setValue('ready'); sh.getRange(i + 1, h.indexOf('ready_at') + 1).setValue(new Date());
       notify_('🔗 Link Bandcamp NOW: ' + v[i][h.indexOf('artist')] + ' (' + v[i][h.indexOf('member_id')] + ')',
         'They have set the placeholder password.\n\nTheir Bandcamp: ' + v[i][h.indexOf('bandcamp_url')] + '\nPlaceholder password: ' + v[i][h.indexOf('temp_password')] +
-        '\n\nBandcamp → Add → Existing Artist → link with password. Then set status "linked" in the Links tab and use RRR menu → Confirm Bandcamp links now (the artist is emailed to change their password, and the placeholder is deleted).\n' + sheetUrl_());
+        '\n\nBandcamp → Add → Existing Artist → link with password. Then set status to "linked" in the Links tab. That is all: the artist is emailed straight away to change their password, and the placeholder is deleted.\n' + sheetUrl_());
     }
     return page('Thanks! 🎉', 'We\'ve been told you\'ve set the placeholder password. We\'ll link your page soon and email you <b>"Linked ✓"</b>. Then change your password to a new private one.');
   }

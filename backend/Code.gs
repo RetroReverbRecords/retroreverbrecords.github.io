@@ -21,6 +21,10 @@
 // ---------- SETTINGS (edit these) ----------
 const SETTINGS = {
   ownerEmail: 'retroreverbrecords@gmail.com',       // where alerts go
+  // Your upload deadlines (alerts to you): RouteNote this many days before release; Bandcamp on release day.
+  streamingUploadDays: 14,
+  // Optional phone alerts: install the free ntfy app, subscribe to a secret topic name, put it here (e.g. 'rrr-jobs-x7k2p9').
+  ntfyTopic: '',
   // Demo / walkthrough accounts: sign up with retroreverbrecords+anything@gmail.com.
   // They skip payment, bookings confirm without paying and take no real dates or calendar slots.
   // Remove them with the menu: RRR → Remove demo test data.
@@ -53,7 +57,7 @@ const TABS = {
   Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
-  Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id'],
+  Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded'],
   Achievements: ['member_id','achievement','earned_on','points','note'],
   Posts:        ['member_id','platform','date','link','status','caption','likes','views'],
   Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
@@ -295,6 +299,14 @@ function addToCalendar_(kind, p, isoDate) {
   };
   if (kind === 'bandcamp-release') addDeadline(SETTINGS.bandcampAssetsDays, 'Bandcamp assets');
   if (kind === 'streaming-release' || p.also_streaming) addDeadline(SETTINGS.streamingAssetsDays, 'Streaming assets');
+  // YOUR upload jobs, at 9:00 with phone reminders (the day before and at the time)
+  const job = (daysBefore, what) => {
+    const st = new Date(d); st.setDate(st.getDate() - daysBefore); st.setHours(9, 0, 0, 0);
+    const en = new Date(st); en.setMinutes(30);
+    try { const ev = cal.createEvent('⬆ UPLOAD ' + what + ': ' + (p.artist || '') + ' – ' + (p.title || ''), st, en, { description: 'Mark "uploaded" = yes in the Bookings tab when done.\n' + sheetUrl_() }); ev.addPopupReminder(0); ev.addPopupReminder(24 * 60); } catch (e) { log_('job event failed', String(e)); }
+  };
+  if (kind === 'streaming-release' || p.also_streaming) job(SETTINGS.streamingUploadDays, 'to RouteNote');
+  if (kind === 'bandcamp-release' && p.upload_by === 'rrr') job(0, 'to Bandcamp');
   return main.getId();
 }
 
@@ -463,6 +475,7 @@ function daily() {
   processDisputes_();
   processLinks_();
   if (typeof submitDaily_ === 'function') submitDaily_(); // RRR Submit (Submit.gs)
+  morningJobs_();
   expireUnpaidBookings_();
   paymentChase_();
   try { cleanDisputeFiles_(); } catch (e) { log_('dispute cleanup failed', String(e)); }
@@ -811,6 +824,7 @@ function applyValidations_() {
   set('Members', 'standing', list(['good', 'warning', 'suspended', 'removed']));
   set('Disputes', 'status', list(['open', 'cleared', 'not cleared']));
   set('Feedback', 'status', list(['new', 'seen', 'doing it', 'done', 'no']));
+  set('Bookings', 'uploaded', list(['yes', 'no']));
   set('Links', 'status', list(['requested', 'ready', 'linked', 'cancelled']));
   set('Withdrawals', 'refund_status', list(['to do', 'refunded', 'not due']));
 }
@@ -1356,4 +1370,46 @@ function processLinks_() {
 function processLinksNow() {
   const n = processLinks_();
   try { SpreadsheetApp.getUi().alert(n + ' artist(s) told they are linked.'); } catch (e) {}
+}
+
+
+// ============================================================
+// YOUR UPLOAD JOBS: morning alert (email + optional phone push)
+// RouteNote must be uploaded SETTINGS.streamingUploadDays before release; Bandcamp (when RRR uploads) on release day.
+// Type yes in the Bookings "uploaded" column when done and the alerts stop.
+// ============================================================
+function uploadJobs_() {
+  const today = isoDate_(new Date()), plus = n => { const d = new Date(); d.setDate(d.getDate() + n); return isoDate_(d); };
+  const jobs = [];
+  rows_('Bookings').forEach(r => {
+    if (!/^confirmed/i.test(String(r.status)) || /^y/i.test(String(r.uploaded)) || !r.date) return;
+    const rel = isoDate_(r.date); if (rel < today) return;
+    let p = {}; try { p = JSON.parse(r.details || '{}'); } catch (e) {}
+    const at = (n) => { const d = new Date(rel + 'T12:00:00'); d.setDate(d.getDate() - n); return isoDate_(d); };
+    if (r.kind === 'streaming-release' || p.also_streaming) jobs.push({ what: 'RouteNote', due: at(SETTINGS.streamingUploadDays), rel: rel, r: r, assets: p.assets_link || p.assets || '' });
+    if (r.kind === 'bandcamp-release' && p.upload_by === 'rrr') jobs.push({ what: 'Bandcamp', due: rel, rel: rel, r: r, assets: p.assets_link || '' });
+  });
+  const line = j => '• ' + j.what + ': ' + j.r.artist + ' – ' + j.r.title + ' (release ' + j.rel + ')' + (j.assets ? '\n   files: ' + j.assets : '\n   files: not sent yet – chase the artist');
+  return {
+    overdue: jobs.filter(j => j.due < today),
+    today: jobs.filter(j => j.due === today),
+    soon: jobs.filter(j => j.due > today && j.due <= plus(3)),
+    line: line
+  };
+}
+function phonePush_(title, body) {
+  if (!SETTINGS.ntfyTopic) return;
+  try { UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(SETTINGS.ntfyTopic), { method: 'post', payload: body, headers: { Title: title, Priority: 'high', Tags: 'rotating_light' }, muteHttpExceptions: true }); } catch (e) { log_('ntfy failed', String(e)); }
+}
+function morningJobs_() {
+  const j = uploadJobs_();
+  if (!j.overdue.length && !j.today.length && !j.soon.length) return;
+  const n = j.overdue.length + j.today.length;
+  const subject = (n ? '⚠ ' + n + ' upload' + (n > 1 ? 's' : '') + ' due TODAY' : 'Uploads coming up') + ' – RRR jobs';
+  const body = (j.overdue.length ? 'OVERDUE (push through today or the streaming date slips):\n' + j.overdue.map(j.line).join('\n') + '\n\n' : '') +
+    (j.today.length ? 'DUE TODAY:\n' + j.today.map(j.line).join('\n') + '\n\n' : '') +
+    (j.soon.length ? 'Next 3 days:\n' + j.soon.map(x => j.line(x) + ' – due ' + x.due).join('\n') + '\n\n' : '') +
+    'When done, type yes in the Bookings "uploaded" column.\n' + sheetUrl_();
+  notify_(subject, body);
+  if (n) phonePush_(subject, [].concat(j.overdue, j.today).map(x => x.what + ': ' + x.r.artist + ' – ' + x.r.title).join('\n'));
 }

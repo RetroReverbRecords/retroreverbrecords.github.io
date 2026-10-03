@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>RRR Levels</title>
+<title>RRR · HQ</title>
 <meta name="theme-color" content="#07061A">
-<meta name="robots" content="index, follow, noai, noimageai">
+<meta name="robots" content="noindex, nofollow, noai, noimageai">
 <meta name="copyright" content="© 2016–2026 Retro Reverb Records. All rights reserved.">
 <link rel="icon" href="assets/rrr-logo-stack.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -54,51 +54,26 @@
 <main>
   <div class="pagehead">
     <div class="wrap">
-      <p class="label">Levels</p>
-      <h1>Earn your <em>belt</em></h1>
-      <p class="lede">From white belt to 10th Dan. You climb by showing up for the community. Most points come from supporting other artists, because that's how everyone grows (<a href="together.html">here's why</a>).</p>
-      <div class="ctas-left"><a class="btn primary" href="member.html">See my belt</a><a class="btn ghost" href="index.html#join">Join and start at white</a></div>
+      <p class="label">Owner only · private</p>
+      <h1>🥋 RRR HQ</h1>
+      <p class="lede" id="hq-hello">Checking your access…</p>
     </div>
   </div>
   <section class="side">
-    <div class="wrap">
-      <div class="side-head"><span class="tag">A</span><h2>The belts</h2><p>Points never expire. Your belt shows on your dashboard, and artists' belts show on their Synth Stars card.</p></div>
-      <div class="belts" id="belt-ladder"></div>
-    </div>
-  </section>
-  <section class="side">
-    <div class="wrap">
-      <div class="side-head"><span class="tag">B</span><h2>How you earn points</h2><p><b class="tagauto">Auto</b> means the system adds them. <b class="tagcheck">Checked</b> means <a href="#claim">claim them below</a> with proof (a link or screenshot) and RRR adds them once checked.</p></div>
-      <div id="points-table"></div>
-    </div>
-  </section>
-  <section class="side" id="claim">
-    <div class="wrap">
-      <div class="side-head"><span class="tag">C</span><h2>Claim points</h2><p>Did something marked <b class="tagcheck">Checked</b>? Send proof here. RRR checks it, adds the points and emails you.</p></div>
-      <form class="panel booking-form claim-form" id="claim-form" novalidate>
-        <div class="status" role="status" id="claim-status"></div>
-        <fieldset id="claim-fields">
-          <div class="fields">
-            <label for="cl-id">Your member ID<input id="cl-id" name="member_id" type="text" placeholder="RRR-XXXXX" required autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
-            <label for="cl-action">What did you do?<select id="cl-action" name="action" required></select></label>
-            <label for="cl-proof" class="wide">Proof link<input id="cl-proof" name="proof" type="url" placeholder="Link to the post, playlist, Bandcamp purchase or screenshot (Google Drive, Imgur…)" required></label>
-            <label for="cl-note" class="wide">Which member did you support? Anything else?<textarea id="cl-note" name="note" placeholder="e.g. Bought Neon Rain EP by Demo Artist"></textarea></label>
-          </div>
-          <label class="agree"><input type="checkbox" name="honest" value="yes" required> <span>This is real support, not bots or swaps just for points. See the <a href="code-of-conduct.html">Code of Conduct</a>.</span></label>
-          <button class="btn primary" type="submit">Send claim</button>
-        </fieldset>
-      </form>
-    </div>
-  </section>
-  <section class="side">
-    <div class="wrap">
-      <div class="side-head"><span class="tag">D</span><h2>Fair play</h2></div>
-      <div class="notes">
-        <p>Points have no cash value and can't be transferred.</p>
-        <p>Fake engagement (bots, loops, fake accounts) earns nothing and breaks the <a href="code-of-conduct.html">Code of Conduct</a>.</p>
-        <p>Points earned unfairly may be removed.</p>
-        <p>Values may be tuned as the community grows. Changes are announced in the newsletter.</p>
+    <div class="wrap" id="hq-body" hidden>
+      <h3 class="subhead">Members</h3>
+      <div class="tiles" id="hq-members"></div>
+      <h3 class="subhead">Money <span class="small">estimate from the sheet, not your PayPal balance</span></h3>
+      <div class="tiles" id="hq-money"></div>
+      <h3 class="subhead">Waiting for you</h3>
+      <div class="tiles" id="hq-todo"></div>
+      <div class="grid2">
+        <div><h3 class="subhead">Belts</h3><div class="panel pad" id="hq-belts"></div></div>
+        <div><h3 class="subhead">Newest members</h3><ul class="list" id="hq-latest"></ul></div>
       </div>
+      <h3 class="subhead">Next 30 days</h3>
+      <div class="tablewrap"><table class="modtable"><thead><tr><th>Date</th><th>What</th><th>Artist</th><th>Status</th></tr></thead><tbody id="hq-upcoming"></tbody></table></div>
+      <p class="small" style="margin-top:18px"><a href="https://docs.google.com/spreadsheets/d/11nbmhMdgAtCl_6Yex5SmO55x2W_9Pq1XxEXs_j6Urm4/edit" target="_blank" rel="noopener">Open the RRR Operations sheet ↗</a> · <a id="hq-mod" href="mod.html">Moderation page</a> · <span id="hq-updated"></span></p>
     </div>
   </section>
 </main>
@@ -131,6 +106,6 @@
 <script src="assets/releases.js?v=20261003a"></script>
 <script src="assets/levels.js?v=20261003a"></script>
 <script src="assets/site.js?v=20261003a"></script>
-<script src="assets/levels-page.js?v=20261003a"></script>
+<script src="assets/hq-page.js?v=20261003a"></script>
 </body>
 </html>

@@ -148,6 +148,7 @@ function doGet(e) {
   if (q.slots) return json_(slotsFull_(q.slots));
   if (q.linkready) return linkReady_(q.linkready, q.json);
   if (q.mod) return modList_(q.mod);
+  if (q.hq) return ownerStats_(q.hq);
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
@@ -742,9 +743,9 @@ function handleReleaseSubmission_(p) {
   const id = String(p.member_id || '').trim().toUpperCase();
   const m = findRow_('Members', 'member_id', id);
   const forRrr = p.intent !== 'log';
-  if (!m || m.type !== 'artist') { log_('release submission refused', id + ' not an artist member'); return text_('ok'); }
-  if (!inGoodStanding_(m)) { log_('release submission refused', id + ' ' + standing_(m)); return text_('ok'); }
-  if (forRrr && !isEligible_(m)) { log_('release submission refused', id + ' not eligible (membership or Bandcamp link)'); return text_('ok'); }
+  if (!m || m.type !== 'artist') { log_('release submission refused', id + ' not an artist member'); return text_('refused: that member ID is not an artist member'); }
+  if (!inGoodStanding_(m)) { log_('release submission refused', id + ' ' + standing_(m)); return text_('refused: your membership is ' + standing_(m)); }
+  if (forRrr && !isEligible_(m)) { log_('release submission refused', id + ' not eligible (membership or Bandcamp link)'); return text_('refused: you need an active membership and a linked Bandcamp first'); }
   const affiliation = forRrr ? 'Pending review' : (p.affiliation === 'Other Label' ? 'Other Label' : 'Independent');
   const url = String(p.bandcamp_url || '').trim();
   append_('Releases', {
@@ -1496,4 +1497,53 @@ function handleModAction_(p) {
     body: 'Hi ' + (m.name || '') + ',\n\n' + words[action] + '\n\nReason: ' + reason + '\n\nOur Code of Conduct: ' + SETTINGS.siteUrl + 'code-of-conduct.html' + (action !== 'good' ? '\n\nIf you think this is wrong, reply to this email within 14 days to appeal. A different person will look at it.' : '') + '\n\nRetro Reverb Records' }); } catch (e) { log_('mod email failed', String(e)); }
   notify_('Moderation: ' + (a.artist || a.name) + ' set ' + (m.artist || m.name) + ' (' + id + ') to ' + action.toUpperCase(), 'Reason: ' + reason + '\n\nUndo: set standing back in the Members tab.\n' + sheetUrl_());
   return text_('ok');
+}
+
+// ============================================================
+// OWNER HQ: private numbers for the owner only (hq.html?k=<owner key>)
+// ============================================================
+function ownerStats_(key) {
+  const a = adminByKey_(key);
+  if (!a || !/owner/i.test(String(a.role)) || a.member_id !== 'RRR-00001') return json_({ ok: false, error: 'not allowed' });
+  const now = Date.now(), day = 86400000, t = d => { const x = new Date(d).getTime(); return isNaN(x) ? 0 : x; };
+  const all = rows_('Members').filter(m => m.member_id);
+  const real = all.filter(m => !isDemo_(m.email) && m.member_id !== 'RRR-00001');
+  const st = m => String(m.status || '').toLowerCase(), pl = m => String(m.plan || '').toLowerCase();
+  const isActive = m => /^active/.test(st(m)) || /^cancelled/.test(st(m));
+  const isPaused = m => /supporter|pause/.test(pl(m)) || /supporter|pause/.test(st(m));
+  const active = real.filter(m => isActive(m) && standing_(m) !== 'removed');
+  const count = (arr, f) => arr.filter(f).length;
+  const fee = m => isPaused(m) ? (m.type === 'artist' ? 1 : 0.5) : (/honorary/.test(pl(m)) ? 0 : (m.type === 'artist' ? 2 : 1));
+  const mrr = active.reduce((s, m) => s + fee(m), 0);
+  const belts = {}; real.forEach(m => { const r = rankFor_(Number(m.points) || 0).name.replace(/ belt.*| · .*/, '').replace(/^Black$/, '1st Dan'); belts[r] = (belts[r] || 0) + 1; });
+  const books = rows_('Bookings').filter(b => b.kind && !isDemo_(b.email));
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+  const paidThisMonth = books.filter(b => Number(b.paid_amount) > 0 && t(b.created) >= monthStart.getTime());
+  const upcoming = books.filter(b => /confirmed|paid|requested|booked/i.test(String(b.status)) && t(b.date) >= now - day && t(b.date) <= now + 30 * day)
+    .sort((x, y) => t(x.date) - t(y.date)).slice(0, 12).map(b => ({ date: b.date, kind: b.kind, artist: b.artist, title: b.title, status: b.status, uploaded: b.uploaded }));
+  const pay = rows_('Payments').filter(p => t(p.received) >= monthStart.getTime() && /completed/i.test(String(p.payment_status)));
+  const pend = (tab, f) => { try { return rows_(tab).filter(f).length; } catch (e) { return 0; } };
+  const out = {
+    ok: true, updated: new Date(),
+    members: { total: real.length, active: active.length, artists: count(active, m => m.type === 'artist'), fans: count(active, m => m.type !== 'artist'),
+      paused: count(active, isPaused), pendingPayment: count(real, m => /pending|awaiting/.test(st(m))),
+      paymentProblems: count(real, m => /locked|failed|archived/.test(st(m))), cancelled: count(real, m => /^cancelled|^ended/.test(st(m))),
+      new7: count(real, m => t(m.created) > now - 7 * day), new30: count(real, m => t(m.created) > now - 30 * day),
+      linked: count(real, m => m.type === 'artist' && /^yes/i.test(String(m.bandcamp_linked))),
+      warned: count(real, m => standing_(m) === 'warning'), suspended: count(real, m => standing_(m) === 'suspended'), removed: count(real, m => standing_(m) === 'removed'),
+      demo: count(all, m => isDemo_(m.email)) },
+    money: { monthlyMembership: Math.round(mrr * 100) / 100, paymentsThisMonth: pay.length,
+      receivedThisMonth: Math.round(pay.reduce((s, p) => s + (Number(p.amount) || 0), 0) * 100) / 100,
+      bookingsPaidThisMonth: paidThisMonth.length },
+    belts: belts,
+    todo: { releasesToReview: pend('Releases', r => /pending review/i.test(String(r.affiliation))), claimsToCheck: pend('Claims', r => !String(r.approved).trim()),
+      linksWaiting: pend('Links', r => /requested|ready/.test(String(r.status))), disputesOpen: pend('Disputes', r => /open|new/i.test(String(r.status))),
+      feedbackNew: pend('Feedback', r => /new/i.test(String(r.status))), pressToApprove: pend('Press', r => !String(r.approved).trim()),
+      withdrawals: pend('Withdrawals', r => !String(r.refund_status).trim()), awaitingPayment: count(books, b => /awaiting payment/i.test(String(b.status))) },
+    newsletter: pend('Subscribers', r => /subscribed/i.test(String(r.status)) && !/unsub/i.test(String(r.status))),
+    upcoming: upcoming,
+    latest: real.slice().sort((x, y) => t(y.created) - t(x.created)).slice(0, 8).map(m => ({ id: m.member_id, name: m.artist || m.name, type: m.type, status: m.status, since: m.created, points: Number(m.points) || 0 }))
+  };
+  try { out.submit = { submissions30: rows_('Submissions').filter(r => t(r.created) > now - 30 * day && !isDemo_(r.email)).length, curators: rows_('Curators').filter(r => /active|approved/i.test(String(r.status))).length }; } catch (e) {}
+  return json_(out);
 }

@@ -143,15 +143,22 @@
       const data = new URLSearchParams(); new FormData(form).forEach((v, k) => data.append(k, v));
       data.append('form', 'rrr-release'); data.append('member_id', form.dataset.member || '');
       const fs = $('#sel-form-status'), rrr = data.get('intent') === 'rrr';
+      const btn = $('#sf-btn'); btn.disabled = true; const label = btn.textContent; btn.textContent = 'Sending…';
+      fs.classList.add('open'); fs.innerHTML = '<span class="dot"></span><span>Sending to RRR…</span>';
       try {
-        await Promise.race([fetch(url, { method: 'POST', mode: 'no-cors', body: data, keepalive: true }), new Promise(r => setTimeout(r, 350))]);
-        fs.classList.add('open');
-        fs.innerHTML = `<span class="dot"></span><span>${rrr ? '<strong>Submitted.</strong> RRR reviews it and emails you the decision. Only this release is affected.' : '<strong>Added.</strong> It shows on your dashboard as ' + esc(data.get('affiliation') || 'Independent') + '.'}</span>`;
+        // Wait for RRR's answer, so "Submitted" only shows once it has really arrived
+        const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 30000);
+        const res = await fetch(url, { method: 'POST', body: data, signal: ctl.signal }); clearTimeout(timer);
+        const answer = (await res.text()).trim();
+        if (/^refused/i.test(answer)) throw new Error(answer.replace(/^refused:\s*/i, ''));
+        if (!/^ok/i.test(answer)) throw new Error('');
+        fs.innerHTML = `<span class="dot"></span><span>${rrr ? '<strong>Submitted ✓</strong> RRR has it. We review it and email you the decision. Only this release is affected.' : '<strong>Added ✓</strong> It shows on your dashboard as ' + esc(data.get('affiliation') || 'Independent') + '.'}</span>`;
+        if (window.rrrChime) window.rrrChime();
         form.reset(); mode(); window.scrollTo({ top: form.offsetTop - 120, behavior: 'smooth' });
       } catch (err) {
-        fs.classList.remove('open');
-        fs.innerHTML = `<span class="dot"></span><span><strong>That didn't send.</strong> Try again, or email ${esc(C.email)}.</span>`;
-      }
+        const why = err && err.message && err.name !== 'AbortError' ? esc(err.message) + '. ' : '';
+        fs.innerHTML = `<span class="dot"></span><span><strong>That didn't arrive.</strong> ${why}Nothing was sent, so try again, or email ${esc(C.email)}.</span>`;
+      } finally { btn.disabled = false; btn.textContent = label; }
     });
   }
 

@@ -755,3 +755,6 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after{animation
 .bookgrid>*,.grid2>*,.joingrid>*{min-width:0}.panel{overflow-wrap:break-word}.facts a,.box a{overflow-wrap:anywhere}
 .steps li>div{min-width:0}
 .mgrid,.rgrid{overflow:hidden}.mcard>*{max-width:100%}
+.hqbar{display:grid;grid-template-columns:90px 1fr 40px;align-items:center;gap:10px;margin:6px 0}
+.hqbar i{display:block;height:10px;border-radius:6px;background:linear-gradient(90deg,var(--pink),var(--cyan));min-width:4px}
+.hqbar b{text-align:right}

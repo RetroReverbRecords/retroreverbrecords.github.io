@@ -773,3 +773,19 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after{animation
 .rrr-problem{position:fixed;left:16px;right:16px;bottom:16px;z-index:200;max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:flex-start;padding:14px 44px 14px 16px;border:1px solid #ff6b6b;border-radius:8px;background:#22071a;color:#fff;box-shadow:0 0 18px rgba(255,80,120,.45);font-size:15px}
 .rrr-problem b{color:#ff8a8a;white-space:nowrap}
 .rrr-problem button{position:absolute;top:8px;right:10px;background:none;border:0;color:#fff;font-size:22px;cursor:pointer;line-height:1}
+.tagcode{font:700 10px var(--head);letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:3px;white-space:nowrap;border:1px solid var(--violet);color:#c9a6ff}
+.hall{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.hall li{display:grid;grid-template-columns:28px 1fr auto auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:6px}
+.hall li:first-child{border-color:var(--pink);box-shadow:var(--glow-pink)}
+.hall li .small{white-space:nowrap}
+@media (max-width:520px){.hall li{grid-template-columns:24px 1fr auto}.hall li .small{display:none}}
+
+/* Notice Board */
+.noticeboard{margin-top:24px}
+.notices{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+.notices li{display:grid;grid-template-columns:12px 1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:6px}
+.notices li.small{display:block;border:0;padding:0}
+.notices p{margin:0}
+.nb-dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:var(--glow-cyan)}
+.nb-belt{background:#f7d23e;box-shadow:0 0 8px #f7d23e}.nb-live{background:#ff3b3b;box-shadow:0 0 8px #ff3b3b}.nb-release,.nb-premiere{background:var(--pink);box-shadow:var(--glow-pink)}
+@media (max-width:520px){.notices li{grid-template-columns:12px 1fr}.notices li .btn{grid-column:2;justify-self:start}}

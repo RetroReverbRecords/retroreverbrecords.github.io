@@ -702,3 +702,16 @@ document.querySelectorAll('[data-discord]').forEach(a => { const c = window.RRR_
   check(); setInterval(check, 180000);
 })();
 
+// NOTICE BOARD: community moments (new members, belts, releases, premieres, live shows), each with something to do
+(function(){
+  const boards = document.querySelectorAll('[data-noticeboard]'); if (!boards.length) return;
+  const C = window.RRR_CONFIG || {}, url = C.automationUrl || '';
+  const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const ago = d => { const s = (Date.now() - new Date(d).getTime()) / 1000; if (!(s >= 0)) return ''; if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' min ago'; if (s < 86400) return Math.round(s / 3600) + ' h ago'; const n = Math.round(s / 86400); return n === 1 ? 'yesterday' : n + ' days ago'; };
+  const safe = u => /^(https:\/\/|[a-z-]+\.html)/i.test(String(u || ''));
+  const paint = list => boards.forEach(b => { b.querySelector('.notices').innerHTML = list.length ? list.slice(0, 8).map(n => `<li><span class="nb-dot nb-${e(n.type)}"></span><div><p>${e(n.text)}</p><span class="small">${e(ago(n.at))}</span></div>${n.action && safe(n.url) ? `<a class="btn ghost small-btn" href="${e(n.url)}"${/^https/.test(n.url) ? ' target="_blank" rel="noopener"' : ''}>${e(n.action)}</a>` : ''}</li>`).join('')
+    : '<li class="small">Nothing here yet. New members, belts, releases and live shows appear here as they happen.</li>'; });
+  if (!url) return paint([]);
+  fetch(url + (url.includes('?') ? '&' : '?') + 'notices=1').then(r => r.json()).then(d => paint((d && d.notices) || [])).catch(() => paint([]));
+})();
+

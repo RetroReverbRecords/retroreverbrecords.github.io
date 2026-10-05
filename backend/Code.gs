@@ -57,16 +57,16 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded'],
-  Achievements: ['member_id','achievement','earned_on','points','note'],
+  Achievements: ['member_id','achievement','earned_on','points','note','key'],
   Posts:        ['member_id','platform','date','link','status','caption','likes','views'],
   Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
   Subscribers:  ['email','created','source','consent','status','token','member_id'],
   Press:        ['created','artist','email','outlet','title','url','quote','approved'],
-  Claims:       ['created','member_id','action','points','proof','note','approved'],
+  Claims:       ['created','member_id','action','points','proof','note','approved','key'],
   Withdrawals:  ['received','name','email','member_id','contract_date','what','detail','sent_at','acknowledged','refund_by','refund_status'],
   Blocked:      ['email','member_id','standing','since','reason','owner_checklist_sent'],
   Releases:     ['release_id','created','member_id','artist','email','title','bandcamp_url','artwork_url','genre','subgenre','release_date',
@@ -79,6 +79,8 @@ const TABS = {
   Newsletter:   ['month','created','subject','sent_to','queued','status'],
   Queue:        ['email','month','sent'],
   Settings:     ['key','value'],
+  Codes:        ['code','action','label','points','valid_from','hours','created','note'],
+  Notices:      ['created','type','member_id','name','text','action_text','action_url','public'],
   Log:          ['time','what','detail']
 };
 
@@ -102,7 +104,7 @@ const AUTO_ACHIEVEMENTS = {
   loyal12:       { title: '1 year a member', points: 120 }
 };
 // Repeatable point values (see the Levels page)
-const POINTS = { releaseBooked: 15, postBooked: 5, videoBooked: 5, activeMonth: 10, fanReferral: 20, artistReferral: 40, pressApproved: 20 };
+const POINTS = { seriesPick: 50, releaseBooked: 15, postBooked: 5, videoBooked: 5, activeMonth: 10, fanReferral: 20, artistReferral: 40, pressApproved: 20 };
 
 // ============================================================
 // WEB ENDPOINTS
@@ -154,6 +156,8 @@ function doGet(e) {
   if (q.mod) return modList_(q.mod);
   if (q.hq) return ownerStats_(q.hq);
   if (q.live) return json_(liveState_());
+  if (q.notices) return json_({ ok: true, notices: noticesPublic_() });
+  if (q.hall) return json_(hallOfFame_());
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
@@ -202,11 +206,8 @@ function handleSignup_(p) {
   if (p.referred_by) {
     const ref = String(p.referred_by).trim();
     const inviter = findRow_('Members', 'member_id', ref) || findRow_('Members', 'artist', ref) || findRow_('Members', 'name', ref);
-    if (inviter && inviter.member_id !== id) {
-      addPoints_(inviter.member_id, isArtist ? POINTS.artistReferral : POINTS.fanReferral, 'Invited ' + (p.artist || p.name) + ' (' + (isArtist ? 'artist' : 'fan') + ')');
-      if (!rows_('Achievements').some(r => r.member_id === inviter.member_id && r.achievement === 'Brought a friend')) append_('Achievements', { member_id: inviter.member_id, achievement: 'Brought a friend', earned_on: new Date(), points: 0, note: 'badge' });
-    }
-    updateRow_('Members', 'member_id', id, { referred_by: ref });
+    // Points go to the inviter once this new member has paid their first month (see referralPoints_)
+    updateRow_('Members', 'member_id', id, { referred_by: inviter && inviter.member_id !== id ? inviter.member_id : ref });
   }
   notify_('New RRR sign-up: ' + (p.artist || p.name) + ' (' + (p.type || 'fan') + ')',
     'Member ID: ' + id + '\nEmail: ' + p.email + (isDemo_(p.email) ? '\nDEMO account: payment skipped, already active.' : '\nWaiting for PayPal payment.') + '\n\nMembers sheet: ' + sheetUrl_());
@@ -280,9 +281,9 @@ function handleBooking_(kind, p) {
   if (full) notify_('⚠ Release week full: ' + (p.artist || '') + ' – ' + title, 'Requested ' + date + '. That week already has ' + SETTINGS.maxReleasesPerWeek +
     ' release(s). Reply to ' + (p.email || 'the artist') + ' with the nearest free date, then change the status in the Bookings tab.\n' + sheetUrl_());
   if (memberId) {
-    if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title); }
-    if (kind === 'youtube-upload') addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title);
-    if (kind === 'social-post') { award_(memberId, 'firstPost'); addPoints_(memberId, POINTS.postBooked, 'Social post booked'); append_('Posts', { member_id: memberId, platform: [].concat(p.platform || []).join(', '), date: date, link: p.link, status: 'booked' }); }
+    if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title, 'releaseBooked'); }
+    if (kind === 'youtube-upload') addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title, 'videoBooked');
+    if (kind === 'social-post') { award_(memberId, 'firstPost'); addPoints_(memberId, POINTS.postBooked, 'Social post booked', 'postBooked'); append_('Posts', { member_id: memberId, platform: [].concat(p.platform || []).join(', '), date: date, link: p.link, status: 'booked' }); }
     if (kind === 'youtube-upload') award_(memberId, 'firstVideo');
   }
   notify_('New RRR booking: ' + kind + ' – ' + (p.artist || '') + ' – ' + title,
@@ -367,6 +368,7 @@ function handlePayPal_(e) {
     const wasLocked = mem && /locked|archived|payment failed|lapsed/i.test(String(mem.status));
     setStatus('active');
     if (memberId) updateRow_('Members', 'member_id', memberId, { payment_issue_since: ' ', payment_chase: ' ' });
+    if (mem && !/^active/i.test(String(mem.status)) && !wasLocked) { referralPoints_(memberId); notice_('joined', memberId, (mem.artist || mem.name) + ' joined the family 🎉', mem.type === 'artist' ? 'Check out their music' : '', mem.type === 'artist' && /^https:/.test(String(mem.bandcamp)) ? mem.bandcamp : ''); }
     if (wasLocked && mem.email) try { MailApp.sendEmail({ to: mem.email, name: 'Retro Reverb Records', subject: 'Welcome back to the family', body: 'Your payment came through and everything is unlocked again: bookings, points and Series. Thanks!\n\n' + SETTINGS.siteUrl + 'member.html?id=' + memberId + '\n\nRetro Reverb Records' }); } catch (e) {}
   }
   if (t === 'subscr_cancel') setStatus('cancelled (active until period ends)');
@@ -394,26 +396,32 @@ function award_(memberId, key, note) {
   append_('Achievements', { member_id: memberId, achievement: a.title, earned_on: new Date(), points: a.points, note: note || '' });
   recalcPoints_(memberId);
 }
-function addPoints_(memberId, pts, note) {
-  if (!memberId || !pts) return;
-  append_('Achievements', { member_id: memberId, achievement: 'Points', earned_on: new Date(), points: pts, note: note || '' });
+// Adds points, respecting the weekly caps (see POINTS RULES below). Returns how many points were really given.
+function addPoints_(memberId, pts, note, key) {
+  if (!memberId || !pts) return 0;
+  const give = capPoints_(memberId, Number(pts) || 0, key || '');
+  if (give <= 0) return 0;
+  append_('Achievements', { member_id: memberId, achievement: 'Points', earned_on: new Date(), points: give, note: note || '', key: key || '' });
   recalcPoints_(memberId);
+  return give;
 }
 function recalcPoints_(memberId) {
   const pts = rows_('Achievements').filter(r => r.member_id === memberId).reduce((s, r) => s + (Number(r.points) || 0), 0);
-  updateRow_('Members', 'member_id', memberId, { points: pts, rank: rankFor_(pts).name });
+  updateRow_('Members', 'member_id', memberId, { points: pts });
+  promote_(memberId, pts);
 }
 function rankFor_(pts) { let r = RANKS[0]; RANKS.forEach(x => { if (pts >= x.min) r = x; }); return r; }
 
 function publicProfile_(m) {
   const id = m.member_id;
   const pts = Number(m.points) || 0;
-  const rank = rankFor_(pts), next = RANKS.find(r => r.min > pts) || null;
+  const rank = RANKS[rankIndex_(m.rank)] || rankFor_(pts), next = RANKS[RANKS.indexOf(rank) + 1] || null, waiting = beltWaiting_(m);
   const stats = rows_('Stats').filter(r => r.member_id === id).pop() || null;
   return {
     id: id, name: m.artist || m.name, type: m.type, since: m.created, status: m.status,
     points: pts, rank: rank.name, nextRank: next ? next.name : null, nextAt: next ? next.min : null, rankFrom: rank.min,
-    belt: rank.name,
+    belt: rank.name, waiting: waiting, stars: pts > RANKS[RANKS.length - 1].min && /10th/.test(rank.name) ? Math.floor((pts - RANKS[RANKS.length - 1].min) / POINT_RULES.starEvery) : 0,
+    youtubeName: m.youtube_name || '',
     membershipActive: /active/i.test(String(m.status)) && standing_(m) !== 'suspended',
     standing: standing_(m),
     artistType: m.type === 'artist' ? (m.artist_type || 'Member') : '',
@@ -468,7 +476,7 @@ function daily() {
     if (months >= 12) award_(m.member_id, 'loyal12');
     // 10 points for every month as an active member (once per month)
     const tag = 'Active month ' + Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM');
-    if (!rows_('Achievements').some(r => r.member_id === m.member_id && r.note === tag)) addPoints_(m.member_id, POINTS.activeMonth, tag);
+    if (!rows_('Achievements').some(r => r.member_id === m.member_id && r.note === tag)) addPoints_(m.member_id, POINTS.activeMonth, tag, 'activeMonth');
   });
   // Press links you approved (type yes in "approved") earn the artist points once
   const sh = sheet_('Press'), pv = sh.getDataRange().getValues(), ph = pv[0];
@@ -476,9 +484,11 @@ function daily() {
   for (let i = 1; i < pv.length; i++) {
     if (String(pv[i][ai]).toLowerCase() !== 'yes') continue;
     const m = findRow_('Members', 'email', pv[i][ei]);
-    if (m) { addPoints_(m.member_id, POINTS.pressApproved, 'Press: ' + (pv[i][ti] || pv[i][oi])); if (!rows_('Achievements').some(r => r.member_id === m.member_id && r.achievement === 'In the press')) append_('Achievements', { member_id: m.member_id, achievement: 'In the press', earned_on: new Date(), points: 0, note: 'badge' }); }
+    if (m) { addPoints_(m.member_id, POINTS.pressApproved, 'Press: ' + (pv[i][ti] || pv[i][oi]), 'press'); if (!rows_('Achievements').some(r => r.member_id === m.member_id && r.achievement === 'In the press')) append_('Achievements', { member_id: m.member_id, achievement: 'In the press', earned_on: new Date(), points: 0, note: 'badge' }); }
     sh.getRange(i + 1, ai + 1).setValue('yes – points given');
   }
+  // Belts waiting for time in grade
+  rows_('Members').filter(m => /active/.test(m.status)).forEach(m => { try { promote_(m.member_id, Number(m.points) || 0); } catch (e) {} });
   approveClaims();
   processReleaseDecisions();
   processStanding_();
@@ -647,45 +657,169 @@ function handlePress_(p) {
 // You can change the number in "points" before approving (e.g. missions 10–50).
 // Type no to turn a claim down.
 // ============================================================
-const CLAIM_POINTS = { listen: 5, buy: 15, share: 3, live: 5, help: 10, mission: 10 };
-const CLAIM_LABELS = { listen: 'Full listen + save + playlist add', buy: 'Bought a member release or merch', share: 'Shared a member release',
-  live: 'In the live chat', help: 'Helped another member', mission: 'Community mission' };
+// POINTS RULES (owner decisions 1 Oct 2026, Points Menu). Change numbers here.
+const POINT_RULES = { weeklyCap: 60, colourWeeks: 2, danWeeks: 8, codeHours: 48, autoSmall: 5, spotCheck: 0.2, trustedBelt: 'Blue belt', starEvery: 2000 };
+// Activity: counts towards the weekly cap. cap = most times a week. how: 'claim' (proof link) or 'code' (code word said at a show/event)
+const ACTIVITY = {
+  buy:       { pts: 15, cap: 5, how: 'claim', label: 'Bought another member\'s release or merch' },
+  playlist:  { pts: 5,  cap: 5, how: 'claim', label: 'Added a member\'s track to a public playlist' },
+  share:     { pts: 3,  cap: 5, how: 'claim', label: 'Shared or commented on an official RRR Instagram or TikTok post' },
+  preorder:  { pts: 10, cap: 3, how: 'claim', label: 'Pre-ordered or pre-saved a member release' },
+  bcComment: { pts: 5,  cap: 3, how: 'claim', label: 'Left a "supported by" comment on Bandcamp' },
+  help:      { pts: 10, cap: 2, how: 'claim', label: 'Helped another member (feedback, mixing tips, artwork)' },
+  listen:    { pts: 5,  cap: 7, how: 'code',  label: 'Listened to a member release on release day' },
+  live:      { pts: 5,  cap: 1, how: 'code',  label: 'Came to The Bandcamp Hour live' },
+  party:     { pts: 10, cap: 2, how: 'code',  label: 'Joined a listening party or community event' },
+  mission:   { pts: 10, cap: 3, how: 'code',  label: 'Completed a community mission' }
+};
+// Not counted in the weekly cap, but limited per week
+const ITEM_CAPS = { releaseBooked: 1, postBooked: 4, refFan: 2, refArtist: 1 };
+// Compatibility with older code and the Claims tab
+const CLAIM_POINTS = Object.fromEntries(Object.entries(ACTIVITY).map(([k, v]) => [k, v.pts]));
+const CLAIM_LABELS = Object.fromEntries(Object.entries(ACTIVITY).map(([k, v]) => [k, v.label]));
+
+function weekStart_(d) { const x = new Date(d || new Date()); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.getTime(); }
+// How many of these points can really be given this week
+function capPoints_(memberId, pts, key) {
+  if (!key || (!ACTIVITY[key] && !ITEM_CAPS[key])) return pts;
+  const ws = weekStart_(), mine = rows_('Achievements').filter(r => r.member_id === memberId && new Date(r.earned_on).getTime() >= ws);
+  const cap = ACTIVITY[key] ? ACTIVITY[key].cap : ITEM_CAPS[key];
+  if (mine.filter(r => r.key === key).length >= cap) return 0;
+  if (!ACTIVITY[key]) return pts;
+  const used = mine.filter(r => ACTIVITY[r.key]).reduce((t, r) => t + (Number(r.points) || 0), 0);
+  return Math.max(0, Math.min(pts, POINT_RULES.weeklyCap - used));
+}
+const rankIndex_ = name => RANKS.findIndex(r => r.name === String(name || '').trim());
+// Belts: points earn the next belt, but each belt needs time in grade (2 weeks colour, 8 weeks Dan). One step at a time.
+function promote_(memberId, pts) {
+  const m = findRow_('Members', 'member_id', memberId); if (!m) return;
+  const target = rankIndex_(rankFor_(pts).name);
+  let cur = rankIndex_(m.rank); if (cur < 0) cur = 0;
+  const honorary = /honorary|owner/i.test(String(m.plan) + ' ' + String(m.status)) || /owner|administrator/i.test(String(m.role));
+  if (honorary) { if (target !== cur) updateRow_('Members', 'member_id', memberId, { rank: RANKS[Math.max(cur, target)].name }); return; }
+  if (target <= cur) { if (!m.rank) updateRow_('Members', 'member_id', memberId, { rank: RANKS[cur].name, rank_since: new Date() }); return; }
+  const since = new Date(m.rank_since || m.created || 0).getTime();
+  const weeks = cur < 7 ? POINT_RULES.colourWeeks : POINT_RULES.danWeeks;
+  if (Date.now() - since < weeks * 7 * 86400000) return; // waiting: shown on the dashboard as "ready on …"
+  const nb = RANKS[cur + 1];
+  updateRow_('Members', 'member_id', memberId, { rank: nb.name, rank_since: new Date() });
+  if (isDemo_(m.email)) return;
+  notice_('belt', memberId, (m.artist || m.name) + ' earned ' + nb.name.replace(' · ', ' ') + ' 🥋', 'Say well done', 'member.html?id=' + memberId);
+  if (m.email) try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: '🥋 You earned ' + nb.name + '!',
+    body: 'Congratulations! You are now ' + nb.name + ' in the RRR community, with ' + pts + ' points.\n\nSee your belt: ' + SETTINGS.siteUrl + 'member.html?id=' + memberId + '\n\nRetro Reverb Records\nWelcome to the family' }); } catch (e) {}
+}
+function beltWaiting_(m) { // for the dashboard: next belt earned by points but waiting for time in grade
+  const pts = Number(m.points) || 0, target = rankIndex_(rankFor_(pts).name), cur = Math.max(0, rankIndex_(m.rank));
+  if (target <= cur) return null;
+  const weeks = cur < 7 ? POINT_RULES.colourWeeks : POINT_RULES.danWeeks;
+  return { belt: RANKS[cur + 1].name, readyOn: new Date(new Date(m.rank_since || m.created || 0).getTime() + weeks * 7 * 86400000) };
+}
+// Referral points once the invited member has paid their first month (capped per week)
+function referralPoints_(newId) {
+  const nm = findRow_('Members', 'member_id', newId); if (!nm || !nm.referred_by) return;
+  const inviter = findRow_('Members', 'member_id', String(nm.referred_by).toUpperCase()); if (!inviter || inviter.member_id === newId) return;
+  if (rows_('Achievements').some(r => r.member_id === inviter.member_id && String(r.note).indexOf('[' + newId + ']') >= 0)) return;
+  const artist = nm.type === 'artist';
+  const got = addPoints_(inviter.member_id, artist ? POINTS.artistReferral : POINTS.fanReferral, 'Invited ' + (nm.artist || nm.name) + ' [' + newId + ']', artist ? 'refArtist' : 'refFan');
+  if (got && !rows_('Achievements').some(r => r.member_id === inviter.member_id && r.achievement === 'Brought a friend')) append_('Achievements', { member_id: inviter.member_id, achievement: 'Brought a friend', earned_on: new Date(), points: 0, note: 'badge' });
+}
+// Notice Board: public feed of community moments, each with something to do
+function notice_(type, memberId, text, actionText, actionUrl) {
+  if (type === 'joined' && rows_('Notices').some(n => n.type === 'joined' && n.member_id === memberId)) return;
+  append_('Notices', { created: new Date(), type: type, member_id: memberId || '', name: '', text: String(text).slice(0, 200), action_text: actionText || '', action_url: actionUrl || '', public: 'yes' });
+}
+function noticesPublic_() {
+  return rows_('Notices').filter(n => n.public !== 'no').slice(-20).reverse().map(n => ({ type: n.type, text: n.text, action: n.action_text, url: n.action_url, at: n.created }));
+}
+// Seasons: one per calendar year. Leaderboard = points earned this season (founders and admins not ranked)
+function hallOfFame_() {
+  const y = new Date().getFullYear(), ys = new Date(y, 0, 1).getTime();
+  const members = rows_('Members').filter(m => !isDemo_(m.email) && !/honorary|owner/i.test(String(m.plan) + String(m.status)) && /^active|^cancelled/i.test(String(m.status)) && m.public !== 'no' && standing_(m) !== 'removed');
+  const byId = {}; members.forEach(m => byId[m.member_id] = { id: m.member_id, name: m.artist || m.name, belt: m.rank || 'White belt', season: 0 });
+  rows_('Achievements').forEach(r => { if (byId[r.member_id] && new Date(r.earned_on).getTime() >= ys) byId[r.member_id].season += Number(r.points) || 0; });
+  return { ok: true, season: y, top: Object.values(byId).filter(x => x.season > 0).sort((a, b) => b.season - a.season).slice(0, 10) };
+}
+// Code words: say one on The Bandcamp Hour or at an event; members enter it on the Levels page within 48 hours
+function newCode_(action, label) {
+  const words = ['NEON', 'SYNTH', 'CHROME', 'LASER', 'OUTRUN', 'VHS', 'ARCADE', 'PULSE', 'GRID', 'NOVA', 'RETRO', 'TAPE', 'TURBO', 'DELTA', 'VAPOR'];
+  const code = words[Math.floor(Math.random() * words.length)] + (10 + Math.floor(Math.random() * 90));
+  append_('Codes', { code: code, action: action, label: label || ACTIVITY[action].label, points: ACTIVITY[action].pts, valid_from: new Date(), hours: POINT_RULES.codeHours, created: new Date() });
+  return code;
+}
+function makeCodeWord() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('New code word', 'What is it for? Type: live (The Bandcamp Hour), party (listening party/event), mission, or listen (a release-day listen)', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const action = String(r.getResponseText()).trim().toLowerCase();
+  if (!ACTIVITY[action] || ACTIVITY[action].how !== 'code') { ui.alert('Type one of: live, party, mission, listen'); return; }
+  const code = newCode_(action);
+  ui.alert('Code word: ' + code + '\n\nSay it (or post it) now. Members enter it on the Levels page within ' + POINT_RULES.codeHours + ' hours for +' + ACTIVITY[action].pts + ' points. It is in the Codes tab.');
+}
+function redeemCode_(m, codeIn) {
+  const code = String(codeIn || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!code) return 'refused: type the code word';
+  const c = rows_('Codes').find(x => String(x.code).toUpperCase() === code);
+  if (!c) return 'refused: that code word isn\'t right. Check the spelling';
+  const from = new Date(c.valid_from || c.created).getTime(), hours = Number(c.hours) || POINT_RULES.codeHours;
+  if (Date.now() < from || Date.now() > from + hours * 3600000) return 'refused: that code word has expired';
+  if (rows_('Achievements').some(r => r.member_id === m.member_id && String(r.note).indexOf('[' + code + ']') >= 0)) return 'refused: you already used that code word';
+  const action = ACTIVITY[c.action] ? c.action : 'mission';
+  const got = addPoints_(m.member_id, Number(c.points) || ACTIVITY[action].pts, 'Code word: ' + (c.label || ACTIVITY[action].label) + ' [' + code + ']', action);
+  if (!got) return 'refused: you\'ve reached this week\'s points limit for that. It resets on Monday';
+  return 'ok: +' + got + ' points';
+}
 
 function handleClaim_(p) {
   const id = String(p.member_id || '').trim().toUpperCase();
   const action = String(p.action || '');
   const m = findRow_('Members', 'member_id', id);
-  if (!m || !(action in CLAIM_POINTS)) { log_('claim rejected', id + ' ' + action); return text_(m ? 'refused: that action can\'t be claimed' : 'refused: we can\'t find that member ID'); }
+  if (!m) { log_('claim rejected', id + ' ' + action); return text_('refused: we can\'t find that member ID'); }
   if (!inGoodStanding_(m)) { log_('claim refused: ' + standing_(m), id); return text_('refused: claims are paused while your membership is ' + (/locked|archived/i.test(String(m.status)) ? 'unpaid' : standing_(m))); }
-  append_('Claims', { created: new Date(), member_id: id, action: CLAIM_LABELS[action] || action, points: CLAIM_POINTS[action],
-    proof: String(p.proof || '').slice(0, 500), note: String(p.note || '').slice(0, 500), approved: 'pending' });
-  notify_('RRR points claim: ' + (m.artist || m.name || id) + ' – ' + (CLAIM_LABELS[action] || action),
+  if (action === 'code') return text_(redeemCode_(m, p.code));
+  const a = ACTIVITY[action];
+  if (!a || a.how !== 'claim') { log_('claim rejected', id + ' ' + action); return text_('refused: that action can\'t be claimed'); }
+  // Weekly limits first, so nobody waits for a check that can't give points
+  if (capPoints_(id, a.pts, action) <= 0) return text_('refused: you\'ve reached this week\'s points limit for that. It resets on Monday');
+  const trusted = rankIndex_(m.rank) >= rankIndex_(POINT_RULES.trustedBelt);
+  const auto = a.pts <= POINT_RULES.autoSmall || trusted;
+  const spot = auto && Math.random() < POINT_RULES.spotCheck;
+  append_('Claims', { created: new Date(), member_id: id, action: a.label, points: a.pts, proof: String(p.proof || '').slice(0, 500), note: String(p.note || '').slice(0, 500),
+    approved: auto ? (spot ? 'auto – spot-check' : 'auto') : 'pending', key: action });
+  if (auto) {
+    const got = addPoints_(id, a.pts, 'Claim: ' + a.label, action);
+    if (spot) notify_('Spot-check a points claim: ' + (m.artist || m.name || id) + ' – ' + a.label, 'Approved automatically (+' + got + '). Proof: ' + (p.proof || '(none)') + '\nNote: ' + (p.note || '') + '\n\nIf it looks wrong, set its "approved" cell to no and remove the points row in Achievements.\n' + sheetUrl_());
+    return text_('ok: +' + got + ' points');
+  }
+  notify_('RRR points claim to check: ' + (m.artist || m.name || id) + ' – ' + a.label,
     'Proof: ' + (p.proof || '(none)') + '\nNote: ' + (p.note || '') + '\n\nCheck it, then type yes in the "approved" column of the Claims tab: ' + sheetUrl_());
-  return text_('ok');
+  return text_('ok: pending');
 }
-
 function approveClaims() {
   const sh = sheet_('Claims'), v = sh.getDataRange().getValues(), h = v[0];
-  const ai = h.indexOf('approved'), mi = h.indexOf('member_id'), pi = h.indexOf('points'), ac = h.indexOf('action');
+  const ai = h.indexOf('approved'), mi = h.indexOf('member_id'), pi = h.indexOf('points'), ac = h.indexOf('action'), ki = h.indexOf('key');
   let given = 0;
   for (let i = 1; i < v.length; i++) {
     if (String(v[i][ai]).trim().toLowerCase() !== 'yes') continue;
     const pts = Number(v[i][pi]) || 0, id = v[i][mi];
+    const key = (ki >= 0 && v[i][ki]) || Object.keys(ACTIVITY).find(k => ACTIVITY[k].label === v[i][ac]) || '';
+    let got = 0;
     if (pts > 0 && id) {
-      addPoints_(id, pts, 'Claim: ' + v[i][ac]);
+      got = addPoints_(id, pts, 'Claim: ' + v[i][ac], key);
       given++;
       const m = findRow_('Members', 'member_id', id);
-      if (m && m.email) {
-        const fresh = findRow_('Members', 'member_id', id) || m;
-        MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: '+' + pts + ' points: ' + v[i][ac],
-          body: 'Nice one! Your claim was approved: +' + pts + ' points.\n\nYou now have ' + (fresh.points || '') + ' points (' + (fresh.rank || '') + ').\n' +
-            'See your belt: ' + SETTINGS.siteUrl + 'member.html?id=' + encodeURIComponent(id) + '\n\nRetro Reverb Records' });
-      }
+      if (m && m.email) try {
+        MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: got ? '+' + got + ' points: ' + v[i][ac] : 'Your claim: weekly limit reached',
+          body: (got ? 'Nice one! Your claim was approved: +' + got + ' points.\n\nYou now have ' + (m.points || '') + ' points (' + (m.rank || '') + ').\n' : 'Your claim was approved, but you had already reached this week\'s points limit, so no extra points this time.\n') +
+            'See your belt: ' + SETTINGS.siteUrl + 'member.html?id=' + encodeURIComponent(id) + '\n\nRetro Reverb Records' }); } catch (e) {}
     }
-    sh.getRange(i + 1, ai + 1).setValue('yes – points given');
+    sh.getRange(i + 1, ai + 1).setValue(got ? 'yes – points given' : 'yes – weekly limit reached');
   }
   return given;
 }
+
+
+
+
 
 // ============================================================
 // FOUNDING MEMBERS — run once: select setupFounders above, click Run.
@@ -798,6 +932,8 @@ function processReleaseDecisions() {
       const num = prefix + '-' + String(used[prefix]).padStart(3, '0');
       sh.getRange(row, c.cat + 1).setValue(num);
       sh.getRange(row, c.app + 1).setValue(new Date());
+      if (v[i][col('member_id')]) addPoints_(v[i][col('member_id')], POINTS.seriesPick, 'Selected for ' + num + ': ' + v[i][c.title], 'seriesPick');
+      if (!isDemo_(v[i][c.email])) notice_('release', '', '"' + v[i][c.title] + '" by ' + v[i][c.artist] + ' is now ' + num + (s ? ' in ' + s.name : '') + ' 💿', 'Listen and buy', String(v[i][col('bandcamp_url')] || 'series.html'));
       done++;
       if (SETTINGS.releaseDecisionEmails && v[i][c.email] && !v[i][c.not]) {
         MailApp.sendEmail({ to: v[i][c.email], name: 'Retro Reverb Records', subject: '"' + v[i][c.title] + '" is an RRR Selected Release (' + num + ')',
@@ -856,6 +992,8 @@ function applyValidations_() {
   set('Members', 'role', list(['', 'Owner', 'Administrator']));
   set('Links', 'status', list(['requested', 'ready', 'linked', 'cancelled']));
   set('Withdrawals', 'refund_status', list(['to do', 'refunded', 'not due']));
+  set('Codes', 'action', list(['live', 'party', 'mission', 'listen']));
+  set('Notices', 'public', list(['yes', 'no']));
 }
 
 // ============================================================
@@ -1135,8 +1273,9 @@ function confirmBooking_(bookingId, amount, txnId) {
     sh.getRange(row, c('txn_id') + 1).setValue(txnId || '');
     const memberId = v[i][c('member_id')], title = v[i][c('title')];
     if (memberId) {
-      if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title); }
-      if (kind === 'youtube-upload') { award_(memberId, 'firstVideo'); addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title); }
+      if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title, 'releaseBooked'); }
+      if (kind === 'youtube-upload') { award_(memberId, 'firstVideo'); addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title, 'videoBooked'); }
+      if (kind === 'youtube-upload' && !demo) notice_('premiere', memberId, v[i][c('artist')] + ' premieres "' + title + '" on the RRR YouTube channel on ' + date + ' 🎬', 'Subscribe so you don\'t miss it', 'https://www.youtube.com/@RetroReverbRecords?sub_confirmation=1');
     }
     const email = v[i][c('email')];
     if (email) try {
@@ -1171,6 +1310,7 @@ function onOpen() {
     .addItem('Curator payouts list (RRR Submit)', 'curatorPayouts')
     .addSeparator()
     .addItem('🔴 Bandcamp Hour: I\'m live now', 'goLiveNow')
+    .addItem('New code word (show, event or mission)', 'makeCodeWord')
     .addItem('Bandcamp Hour: show ended', 'showEndedNow')
     .addSeparator()
     .addItem('Remove demo test data', 'removeDemoData')
@@ -1588,6 +1728,7 @@ function checkLive() {
   if (live && !old.live) {
     saveLive_({ live: true, videoId: videoId, title: title || SETTINGS.liveShow.name, since: new Date().toISOString(), manual: false });
     log_('live', 'The Bandcamp Hour went live: ' + videoId);
+    showStarted_();
   } else if (!live && old.live && !old.manual) {
     saveLive_({ live: false, lastVideoId: old.videoId || '', endedAt: new Date().toISOString() });
     log_('live', 'The Bandcamp Hour ended');
@@ -1598,6 +1739,7 @@ function checkLive() {
 function goLiveNow() {
   saveLive_({ live: true, videoId: '', title: SETTINGS.liveShow.name, since: new Date().toISOString(), manual: true });
   checkLiveVideo_();
+  showStarted_();
   try { SpreadsheetApp.getUi().alert('The website now shows "LIVE" with links to YouTube and Mixcloud. It switches off by itself after 4 hours, or use RRR → Bandcamp Hour: show ended.'); } catch (e) {}
 }
 function checkLiveVideo_() { // fill in the video for a manual "I'm live", if YouTube already shows it
@@ -1608,5 +1750,16 @@ function checkLiveVideo_() { // fill in the video for a manual "I'm live", if Yo
 function showEndedNow() {
   saveLive_({ live: false, endedAt: new Date().toISOString() });
   try { SpreadsheetApp.getUi().alert('The LIVE banner is off.'); } catch (e) {}
+}
+
+// When the show starts: a fresh code word for the live chat, a Notice Board post, and the code sent to you (email + phone push)
+function showStarted_() {
+  const today = new Date().toDateString();
+  if (rows_('Codes').some(c => c.action === 'live' && new Date(c.created).toDateString() === today)) return;
+  const code = newCode_('live', 'Came to ' + SETTINGS.liveShow.name + ' live');
+  notice_('live', '', SETTINGS.liveShow.name + ' is LIVE now 🔴', 'Watch, chat and catch the code word', 'live.html');
+  const msg = 'Tonight\'s code word: ' + code + '\n\nSay it on air or pin it in the chat. Members enter it on the Levels page within ' + POINT_RULES.codeHours + ' hours for +' + ACTIVITY.live.pts + ' points.';
+  notify_('🔴 You\'re live. Code word: ' + code, msg);
+  phonePush_('Code word: ' + code, msg);
 }
 

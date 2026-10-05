@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261005b">
+<link rel="stylesheet" href="assets/site.css?v=20261005d">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -62,39 +62,47 @@
   </div>
   <section class="side">
     <div class="wrap">
-      <div class="side-head"><span class="tag">A</span><h2>The belts</h2><p>Points never expire. Your belt shows on your dashboard, and artists' belts show on their Synth Stars card.</p></div>
+      <div class="side-head"><span class="tag">A</span><h2>The belts</h2><p>Points never expire. Each belt also needs time: at least <b>2 weeks</b> at every colour belt and <b>8 weeks</b> at every Dan, so a very active member reaches 10th Dan in about two years. After 10th Dan you earn a Grandmaster ★ for every 2,000 points.</p></div>
       <div class="belts" id="belt-ladder"></div>
     </div>
   </section>
   <section class="side">
     <div class="wrap">
-      <div class="side-head"><span class="tag">B</span><h2>How you earn points</h2><p><b class="tagauto">Auto</b> means the system adds them. <b class="tagcheck">Checked</b> means <a href="#claim">claim them below</a> with proof (a link or screenshot) and RRR adds them once checked.</p></div>
+      <div class="side-head"><span class="tag">B</span><h2>How you earn points</h2><p><b class="tagauto">Auto</b>: the system adds them. <b class="tagcheck">Claim</b>: <a href="#claim">send a proof link below</a> (small ones are added instantly). <b class="tagcode">Code word</b>: catch the code word at the show or event and <a href="#claim">enter it below</a>. Activity points are capped at <b>60 a week</b>, so nobody can rush the belts.</p></div>
       <div id="points-table"></div>
     </div>
   </section>
   <section class="side" id="claim">
     <div class="wrap">
-      <div class="side-head"><span class="tag">C</span><h2>Claim points</h2><p>Did something marked <b class="tagcheck">Checked</b>? Send proof here. RRR checks it, adds the points and emails you.</p></div>
+      <div class="side-head"><span class="tag">C</span><h2>Claim points</h2><p>Got a code word, or did something marked <b class="tagcheck">Claim</b>? Enter it here. Code words and small claims add points straight away; bigger claims are checked by RRR first.</p></div>
       <form class="panel booking-form claim-form" id="claim-form" novalidate>
         <div class="status" role="status" id="claim-status"></div>
         <fieldset id="claim-fields">
           <div class="fields">
             <label for="cl-id">Your member ID<input id="cl-id" name="member_id" type="text" placeholder="RRR-XXXXX" required autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
             <label for="cl-action">What did you do?<select id="cl-action" name="action" required></select></label>
-            <label for="cl-proof" class="wide">Proof link<input id="cl-proof" name="proof" type="url" placeholder="Link to the post, playlist, Bandcamp purchase or screenshot (Google Drive, Imgur…)" required></label>
-            <label for="cl-note" class="wide">Which member did you support? Anything else?<textarea id="cl-note" name="note" placeholder="e.g. Bought Neon Rain EP by Demo Artist"></textarea></label>
+            <label for="cl-code" class="wide code-only" hidden>Code word<input id="cl-code" name="code" type="text" placeholder="e.g. NEON42" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+            <label for="cl-proof" class="wide proof-only">Proof link<input id="cl-proof" name="proof" type="url" placeholder="Link to the post, playlist, Bandcamp purchase or screenshot (Google Drive, Imgur…)" required></label>
+            <label for="cl-note" class="wide proof-only">Which member did you support? Anything else?<textarea id="cl-note" name="note" placeholder="e.g. Bought Neon Rain EP by Demo Artist"></textarea></label>
           </div>
-          <label class="agree"><input type="checkbox" name="honest" value="yes" required> <span>This is real support, not bots or swaps just for points. See the <a href="code-of-conduct.html">Code of Conduct</a>.</span></label>
-          <button class="btn primary" type="submit">Send claim</button>
+          <label class="agree proof-only"><input type="checkbox" name="honest" value="yes" required> <span>This is real support, not bots or swaps just for points. See the <a href="code-of-conduct.html">Code of Conduct</a>.</span></label>
+          <button class="btn primary" type="submit" id="cl-btn">Send claim</button>
         </fieldset>
       </form>
     </div>
   </section>
+  <section class="side" id="season">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">D</span><h2>Season leaderboard</h2><p>Every year is a new season. The top supporters of the season get a holographic edition of their Synth Stars card and a place in the RRR Hall of Fame.</p></div>
+      <div class="panel pad" id="hall"><p class="small">Loading the leaderboard…</p></div>
+    </div>
+  </section>
   <section class="side">
     <div class="wrap">
-      <div class="side-head"><span class="tag">D</span><h2>Fair play</h2></div>
+      <div class="side-head"><span class="tag">E</span><h2>Fair play</h2></div>
       <div class="notes">
         <p>Points have no cash value and can't be transferred.</p>
+        <p>Some claims are spot-checked at random after they're added.</p>
         <p>Fake engagement (bots, loops, fake accounts) earns nothing and breaks the <a href="code-of-conduct.html">Code of Conduct</a>.</p>
         <p>Points earned unfairly may be removed.</p>
         <p>Values may be tuned as the community grows. Changes are announced in the newsletter.</p>
@@ -127,10 +135,10 @@
     <span class="flinks"><a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="live.html">The Bandcamp Hour</a> · <a href="submit.html">Submit music</a> · <a href="https://discord.gg/P2sjDBEtN" data-discord target="_blank" rel="noopener">Discord</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="feedback.html">Feedback</a> · <a href="agreement.html">Member Agreement</a> · <a href="terms.html">Terms</a> · <a href="refunds.html">Refunds</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a> · <a href="withdraw.html">Withdraw from contract here</a></span>
   </div>
 </footer>
-<script src="assets/config.js?v=20261005b"></script>
-<script src="assets/releases.js?v=20261005b"></script>
-<script src="assets/levels.js?v=20261005b"></script>
-<script src="assets/site.js?v=20261005b"></script>
-<script src="assets/levels-page.js?v=20261005b"></script>
+<script src="assets/config.js?v=20261005d"></script>
+<script src="assets/releases.js?v=20261005d"></script>
+<script src="assets/levels.js?v=20261005d"></script>
+<script src="assets/site.js?v=20261005d"></script>
+<script src="assets/levels-page.js?v=20261005d"></script>
 </body>
 </html>

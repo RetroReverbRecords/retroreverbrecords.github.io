@@ -77,6 +77,15 @@ window.RRR_CONFIG = {
     linkChannel: "#link-your-account"
   },
 
+  // THE BANDCAMP HOUR: the site shows a LIVE banner when the RRR YouTube channel is live (checked by the automation).
+  // schedule: when the show usually airs, shown on the Live page (e.g. "Fridays at 21:00 Italian time"). Leave "" to hide.
+  liveShow: {
+    name: "The Bandcamp Hour",
+    host: "Cybertronix",
+    schedule: "",
+    mixcloud: "https://www.mixcloud.com/spectrumonair/"
+  },
+
   // YouTube community
   youtube: {
     channel: "https://www.youtube.com/@RetroReverbRecords",

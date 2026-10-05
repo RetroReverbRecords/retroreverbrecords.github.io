@@ -659,3 +659,30 @@
 
 // Discord links follow RRR_CONFIG.discord.invite (one place to change it)
 document.querySelectorAll('[data-discord]').forEach(a => { const c = window.RRR_CONFIG && RRR_CONFIG.discord; if (c && c.invite) a.href = c.invite; });
+
+// THE BANDCAMP HOUR: live banner on every page while the RRR YouTube channel is live
+(function(){
+  const C = window.RRR_CONFIG || {}, url = C.automationUrl || '';
+  if (!url) return;
+  const show = (C.liveShow && C.liveShow.name) || 'The Bandcamp Hour';
+  function paint(d){
+    let bar = document.getElementById('livebar');
+    window.rrrLive = d;
+    document.dispatchEvent(new CustomEvent('rrr-live', { detail: d }));
+    if (!d || !d.live) { if (bar) bar.remove(); return; }
+    if (!bar) { bar = document.createElement('a'); bar.id = 'livebar'; bar.className = 'livebar'; document.body.prepend(bar); }
+    bar.href = 'live.html';
+    bar.innerHTML = '<span class="livedot"></span><b>LIVE NOW</b><span>' + show.replace(/[<>&]/g, '') + ' with ' + ((C.liveShow && C.liveShow.host) || 'Cybertronix').replace(/[<>&]/g, '') + '</span><em>Watch &amp; chat →</em>';
+  }
+  function check(){
+    let cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem('rrr-live') || 'null'); } catch (e) {}
+    if (cached && Date.now() - cached.at < 90000) { paint(cached.d); return; }
+    fetch(url + (url.includes('?') ? '&' : '?') + 'live=1').then(r => r.json()).then(d => {
+      try { sessionStorage.setItem('rrr-live', JSON.stringify({ at: Date.now(), d })); } catch (e) {}
+      paint(d);
+    }).catch(() => {});
+  }
+  check(); setInterval(check, 180000);
+})();
+

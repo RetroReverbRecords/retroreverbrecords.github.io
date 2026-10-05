@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>RRR Member Dashboard</title>
+<title>RRR · The Bandcamp Hour (live)</title>
 <meta name="theme-color" content="#07061A">
 <meta name="robots" content="index, follow, noai, noimageai">
 <meta name="copyright" content="© 2016–2026 Retro Reverb Records. All rights reserved.">
@@ -54,25 +54,23 @@
 <main>
   <div class="pagehead">
     <div class="wrap">
-      <p class="label">Member dashboard</p>
-      <h1>Your <em>progress</em></h1>
-      <p class="lede">Achievements, rank, releases, social posts and stats, all in one place.</p>
-      <form class="lookup" id="lookup" novalidate>
-        <label for="lk-id" class="small">Member ID</label>
-        <input id="lk-id" type="text" placeholder="RRR-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
-        <button class="btn primary" type="submit">Open</button>
-      </form>
-      <div class="install" id="install" hidden>
-        <p><strong>Get the RRR app.</strong> Add it to your home screen: it opens straight to your dashboard.</p>
-        <button class="btn ghost" type="button" id="install-btn" hidden>Install app</button>
-        <p class="small" id="install-ios" hidden>On iPhone: tap the Share button, then <b>Add to Home Screen</b>.</p>
-      </div>
+      <p class="label">Live radio · YouTube · Mixcloud</p>
+      <h1>The Bandcamp Hour</h1>
+      <p class="lede">New music from the Bandcamp underground, hosted by Cybertronix, live on YouTube and Mixcloud.</p>
     </div>
   </div>
-
   <section class="side">
-    <div class="wrap" id="dash">
-      <div class="panel empty"><b>Loading…</b></div>
+    <div class="wrap">
+      <div id="lv-on" hidden>
+        <div class="liveplayer" id="lv-player"></div>
+        <p class="actions" style="margin-top:16px"><a class="btn primary" id="lv-yt" href="#" target="_blank" rel="noopener">Join the live chat on YouTube ↗</a> <a class="btn" id="lv-mx" href="#" target="_blank" rel="noopener">Listen on Mixcloud ↗</a></p>
+        <p class="small">Members: being in the live chat earns points. <a href="levels.html#claim">Claim them here</a>.</p>
+      </div>
+      <div class="panel pad liveoff" id="lv-off">
+        <p class="label">Off air right now</p>
+        <p id="lv-when">When we go live, this page plays the show and a <b>LIVE NOW</b> bar appears at the top of every page on the site.</p>
+        <p class="actions"><a class="btn primary" id="lv-sub" href="#" target="_blank" rel="noopener">Subscribe on YouTube for alerts ↗</a> <a class="btn" id="lv-past" href="#" target="_blank" rel="noopener">Past shows on Mixcloud ↗</a></p>
+      </div>
     </div>
   </section>
 </main>
@@ -105,6 +103,6 @@
 <script src="assets/releases.js?v=20261005a"></script>
 <script src="assets/levels.js?v=20261005a"></script>
 <script src="assets/site.js?v=20261005a"></script>
-<script src="assets/member-page.js?v=20261005a"></script>
+<script src="assets/live-page.js?v=20261005a"></script>
 </body>
 </html>

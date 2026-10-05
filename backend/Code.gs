@@ -49,7 +49,10 @@ const SETTINGS = {
   // Slots per day. A date is only taken once the booking is PAID (first to pay gets it).
   // How many bookings each day can take. Change the numbers any time.
   slotsPerDay: { 'bandcamp-release': 1, 'streaming-release': 3, 'youtube-upload': 2, 'social-post': 2 },
-  paidKinds: ['bandcamp-release', 'streaming-release', 'youtube-upload', 'merch-listing']
+  paidKinds: ['bandcamp-release', 'streaming-release', 'youtube-upload', 'merch-listing'],
+  // The Bandcamp Hour: the website shows a LIVE banner and player when the RRR YouTube channel is live.
+  // Checked every 5 minutes. Menu: RRR → Bandcamp Hour: I'm live now / Show ended (instant, overrides the check).
+  liveShow: { name: 'The Bandcamp Hour', youtubeLivePage: 'https://www.youtube.com/@RetroReverbRecords/live', mixcloud: 'https://www.mixcloud.com/spectrumonair/' }
 };
 
 // Sheet tabs and their columns. Created automatically on first run.
@@ -149,6 +152,7 @@ function doGet(e) {
   if (q.linkready) return linkReady_(q.linkready, q.json);
   if (q.mod) return modList_(q.mod);
   if (q.hq) return ownerStats_(q.hq);
+  if (q.live) return json_(liveState_());
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
@@ -524,6 +528,8 @@ function setup() {
   ScriptApp.newTrigger('daily').timeBased().everyDays(1).atHour(8).create();
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'onEditRRR') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('onEditRRR').forSpreadsheet(ss_()).onEdit().create();
+  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'checkLive') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('checkLive').timeBased().everyMinutes(5).create();
   log_('setup', 'done');
 }
 
@@ -1163,6 +1169,9 @@ function onOpen() {
     .addItem('Make a member an Administrator or Ambassador', 'makeAdmin')
     .addItem('Curator payouts list (RRR Submit)', 'curatorPayouts')
     .addSeparator()
+    .addItem('🔴 Bandcamp Hour: I\'m live now', 'goLiveNow')
+    .addItem('Bandcamp Hour: show ended', 'showEndedNow')
+    .addSeparator()
     .addItem('Remove demo test data', 'removeDemoData')
     .addToUi();
   try { applyValidations_(); } catch (e) {}
@@ -1547,3 +1556,56 @@ function ownerStats_(key) {
   try { out.submit = { submissions30: rows_('Submissions').filter(r => t(r.created) > now - 30 * day && !isDemo_(r.email)).length, curators: rows_('Curators').filter(r => /active|approved/i.test(String(r.status))).length }; } catch (e) {}
   return json_(out);
 }
+
+// ============================================================
+// THE BANDCAMP HOUR: live on the website
+// The website asks ?live=1. Every 5 minutes checkLive() looks at the RRR YouTube "live" page.
+// No OBS changes needed: going live on YouTube is enough.
+// ============================================================
+function liveState_() {
+  let st = {}; try { st = JSON.parse(PropertiesService.getScriptProperties().getProperty('LIVE_STATE') || '{}'); } catch (e) {}
+  // A manual "I'm live" lasts at most 4 hours if you forget to end it
+  if (st.live && st.manual && Date.now() - new Date(st.since).getTime() > 4 * 3600000) st = { live: false };
+  return { ok: true, live: !!st.live, videoId: st.videoId || '', title: st.title || SETTINGS.liveShow.name, since: st.since || '',
+    youtube: st.videoId ? 'https://www.youtube.com/watch?v=' + st.videoId : SETTINGS.liveShow.youtubeLivePage, mixcloud: SETTINGS.liveShow.mixcloud };
+}
+function saveLive_(st) { PropertiesService.getScriptProperties().setProperty('LIVE_STATE', JSON.stringify(st)); }
+function checkLive() {
+  let old = {}; try { old = JSON.parse(PropertiesService.getScriptProperties().getProperty('LIVE_STATE') || '{}'); } catch (e) {}
+  if (old.manual && old.live && Date.now() - new Date(old.since).getTime() < 4 * 3600000) return; // you said you're live: trust that
+  let live = false, videoId = '', title = '';
+  try {
+    const res = UrlFetchApp.fetch(SETTINGS.liveShow.youtubeLivePage, { muteHttpExceptions: true, followRedirects: true,
+      headers: { 'Accept-Language': 'en-GB,en;q=0.9', 'Cookie': 'CONSENT=YES+1; SOCS=CAI' } });
+    const html = res.getContentText();
+    // Live = the /live page opens a video (not the channel page) and YouTube marks it as live now
+    const v = html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/);
+    videoId = v ? v[1] : '';
+    live = !!videoId && (/"isLiveNow":\s*true/.test(html) || /"isLive":\s*true/.test(html));
+    const t = html.match(/<meta (?:property|name)="og:title" content="([^"]*)"/); title = t ? t[1].replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"') : '';
+  } catch (e) { log_('live check failed', String(e)); return; }
+  if (live && !old.live) {
+    saveLive_({ live: true, videoId: videoId, title: title || SETTINGS.liveShow.name, since: new Date().toISOString(), manual: false });
+    log_('live', 'The Bandcamp Hour went live: ' + videoId);
+  } else if (!live && old.live && !old.manual) {
+    saveLive_({ live: false, lastVideoId: old.videoId || '', endedAt: new Date().toISOString() });
+    log_('live', 'The Bandcamp Hour ended');
+  } else if (live && videoId && old.videoId !== videoId) {
+    old.videoId = videoId; saveLive_(old);
+  }
+}
+function goLiveNow() {
+  saveLive_({ live: true, videoId: '', title: SETTINGS.liveShow.name, since: new Date().toISOString(), manual: true });
+  checkLiveVideo_();
+  try { SpreadsheetApp.getUi().alert('The website now shows "LIVE" with links to YouTube and Mixcloud. It switches off by itself after 4 hours, or use RRR → Bandcamp Hour: show ended.'); } catch (e) {}
+}
+function checkLiveVideo_() { // fill in the video for a manual "I'm live", if YouTube already shows it
+  try { const html = UrlFetchApp.fetch(SETTINGS.liveShow.youtubeLivePage, { muteHttpExceptions: true, headers: { 'Cookie': 'CONSENT=YES+1; SOCS=CAI' } }).getContentText();
+    const v = html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/);
+    if (v && /"isLiveNow":\s*true/.test(html)) { const st = JSON.parse(PropertiesService.getScriptProperties().getProperty('LIVE_STATE') || '{}'); st.videoId = v[1]; saveLive_(st); } } catch (e) {}
+}
+function showEndedNow() {
+  saveLive_({ live: false, endedAt: new Date().toISOString() });
+  try { SpreadsheetApp.getUi().alert('The LIVE banner is off.'); } catch (e) {}
+}
+

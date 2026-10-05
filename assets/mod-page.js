@@ -28,7 +28,7 @@
     if ((standing === 'removed' || standing === 'suspended') && !confirm(`${standing === 'removed' ? 'Remove' : 'Suspend'} ${m.artist || m.name} (${id})?\n\nReason: ${reason}\n\nThey will be emailed.`)) return;
     const body = new URLSearchParams({ form: 'mod-action', key, member_id: id, standing, reason });
     try {
-      await Promise.race([fetch(url, { method: 'POST', mode: 'no-cors', body, keepalive: true }), new Promise(r => setTimeout(r, 350))]);
+      await window.rrrSend(url, body);
       m.standing = standing; data.log.unshift({ action: standing, member_name: m.artist || m.name, member_id: id, admin_name: (data.admin || {}).name, when: new Date(), reason });
       rows(); log(); say(true, `<strong>Done ✓</strong> ${esc(m.artist || m.name)} is now <b>${esc(standing)}</b>. They've been emailed and Cybertronix has been told.`);
       if (window.rrrChime) window.rrrChime();

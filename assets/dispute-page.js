@@ -30,7 +30,7 @@
     try {
       say(true, '<strong>Sending…</strong> Large files can take a minute.');
       for (let i = 0; i < files.length; i++) { data.append('file' + (i + 1), await readAsDataURL(files[i])); data.append('file' + (i + 1) + '_name', files[i].name); }
-      await fetch(url, { method: 'POST', mode: 'no-cors', body: data });
+      await window.rrrSend(url, data);
       say(true, `<strong>Dispute sent for case ${esc(caseEl.value)}.</strong> You'll get an email confirming we received it, and our decision within 7 days. No email within a day? Email ${esc(C.email)} with your case number.`);
       form.querySelector('fieldset').disabled = true;
     } catch (err) {

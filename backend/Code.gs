@@ -113,7 +113,8 @@ function doPost(e) {
     if (p.txn_type || p.payment_status || p.ipn_track_id) return handlePayPal_(e);
     const kind = p.form || 'unknown';
     if (kind === 'signup') return handleSignup_(p);
-    if (/release|social-post|youtube-upload|merch-listing/.test(kind)) return handleBooking_(kind, p);
+    // Bookings: exact names only (an earlier loose match sent 'rrr-release' Series submissions here by mistake)
+    if (/^(bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing)$/.test(kind)) return handleBooking_(kind, p);
     if (kind === 'newsletter') return handleSubscribe_(p);
     if (kind === 'unsubscribe') { const r = findRow_('Subscribers', 'email', String(p.email || '').trim().toLowerCase()); if (r) updateRow_('Subscribers', 'email', r.email, { status: 'unsubscribed' }); return text_('ok'); }
     if (kind === 'press') return handlePress_(p);
@@ -257,7 +258,7 @@ function handleBooking_(kind, p) {
   const date = p.release_date || p.preferred_date || p.premiere_date || '';
   const member = p.email ? findRow_('Members', 'email', p.email) : null;
   const memberId = member ? member.member_id : '';
-  if (member && !inGoodStanding_(member)) { log_('booking refused: ' + standing_(member), memberId + ' ' + kind); notify_('Booking refused (member ' + standing_(member) + '): ' + memberId, JSON.stringify(p).slice(0, 800)); return text_('ok'); }
+  if (member && !inGoodStanding_(member)) { log_('booking refused: ' + standing_(member), memberId + ' ' + kind); notify_('Booking refused (member ' + standing_(member) + '): ' + memberId, JSON.stringify(p).slice(0, 800)); return text_('refused: bookings are paused while your membership is ' + (/locked|archived/i.test(String(member.status)) ? 'unpaid' : standing_(member))); }
   const title = p.title || p.link || '';
   let eventId = '';
   // Release slots: dates are subject to availability
@@ -654,8 +655,8 @@ function handleClaim_(p) {
   const id = String(p.member_id || '').trim().toUpperCase();
   const action = String(p.action || '');
   const m = findRow_('Members', 'member_id', id);
-  if (!m || !(action in CLAIM_POINTS)) { log_('claim rejected', id + ' ' + action); return text_('ok'); }
-  if (!inGoodStanding_(m)) { log_('claim refused: ' + standing_(m), id); return text_('ok'); }
+  if (!m || !(action in CLAIM_POINTS)) { log_('claim rejected', id + ' ' + action); return text_(m ? 'refused: that action can\'t be claimed' : 'refused: we can\'t find that member ID'); }
+  if (!inGoodStanding_(m)) { log_('claim refused: ' + standing_(m), id); return text_('refused: claims are paused while your membership is ' + (/locked|archived/i.test(String(m.status)) ? 'unpaid' : standing_(m))); }
   append_('Claims', { created: new Date(), member_id: id, action: CLAIM_LABELS[action] || action, points: CLAIM_POINTS[action],
     proof: String(p.proof || '').slice(0, 500), note: String(p.note || '').slice(0, 500), approved: 'pending' });
   notify_('RRR points claim: ' + (m.artist || m.name || id) + ' – ' + (CLAIM_LABELS[action] || action),
@@ -1020,8 +1021,8 @@ function disputeFolder_() {
 function handleDispute_(p) {
   const caseNo = String(p.case || '').trim().toUpperCase();
   const rel = rows_('Releases').find(r => String(r.ai_case).toUpperCase() === caseNo);
-  if (!rel) { log_('dispute refused: unknown case', caseNo); return text_('ok'); }
-  if (String(p.member_id || '').trim().toUpperCase() !== String(rel.member_id).toUpperCase()) { log_('dispute refused: member mismatch', caseNo); return text_('ok'); }
+  if (!rel) { log_('dispute refused: unknown case', caseNo); return text_('refused: we can\'t find that case number'); }
+  if (String(p.member_id || '').trim().toUpperCase() !== String(rel.member_id).toUpperCase()) { log_('dispute refused: member mismatch', caseNo); return text_('refused: that case number belongs to a different member ID'); }
   const saved = [];
   for (let k = 1; k <= 3; k++) {
     const data = p['file' + k], name = p['file' + k + '_name'];
@@ -1334,7 +1335,7 @@ function linkStatus_(memberId) {
 function handleLinkRequest_(p) {
   const id = String(p.member_id || '').trim().toUpperCase();
   const m = findRow_('Members', 'member_id', id);
-  if (!m || m.type !== 'artist' || !inGoodStanding_(m)) { log_('link request refused', id); return text_('ok'); }
+  if (!m || m.type !== 'artist' || !inGoodStanding_(m)) { log_('link request refused', id); return text_(!m ? 'refused: we can\'t find that member ID' : m.type !== 'artist' ? 'refused: linking is for artist members' : 'refused: linking is paused while your membership is not in good standing'); }
   if (/^y/i.test(String(m.bandcamp_linked))) return text_('ok');
   const method = p.method === 'invite' ? 'invite' : 'password';
   const token = Utilities.getUuid().replace(/-/g, '');
@@ -1493,11 +1494,11 @@ function modList_(key) {
   return json_({ ok: true, admin: { id: a.member_id, name: a.artist || a.name }, members: members, log: log });
 }
 function handleModAction_(p) {
-  const a = adminByKey_(p.key); if (!a) { log_('mod action refused (bad key)', JSON.stringify(p).slice(0, 300)); return text_('ok'); }
+  const a = adminByKey_(p.key); if (!a) { log_('mod action refused (bad key)', JSON.stringify(p).slice(0, 300)); return text_('refused: this moderation link is not allowed'); }
   const id = String(p.member_id || '').toUpperCase(), action = String(p.standing || ''), reason = String(p.reason || '').trim().slice(0, 1000);
   if (['good', 'warning', 'suspended', 'removed'].indexOf(action) < 0 || reason.length < 5) return text_('ok');
   const m = findRow_('Members', 'member_id', id);
-  if (!m || id === 'RRR-00001' || /administrator/i.test(String(m.role))) { log_('mod action refused (protected)', id); return text_('ok'); }
+  if (!m || id === 'RRR-00001' || /administrator/i.test(String(m.role))) { log_('mod action refused (protected)', id); return text_('refused: that member is protected'); }
   updateRow_('Members', 'member_id', id, { standing: action, admin_notes: (m.admin_notes ? m.admin_notes + ' | ' : '') + new Date().toISOString().slice(0, 10) + ' ' + action + ' by ' + (a.artist || a.name) + ': ' + reason });
   append_('ModLog', { when: new Date(), admin_id: a.member_id, admin_name: a.artist || a.name, member_id: id, member_name: m.artist || m.name, action: action, reason: reason });
   if (action === 'suspended' || action === 'removed') processStanding_();

@@ -109,7 +109,7 @@ function handleSubmitTrack_(p) {
   let subId = String(p.sub_id || '').toUpperCase();
   if (!/^SUB-[A-Z0-9]{6}$/.test(subId) || findRow_('Submissions', 'sub_id', subId)) subId = subId_('SUB-', 'Submissions', 'sub_id');
   const m = p.member_id ? findRow_('Members', 'member_id', String(p.member_id).toUpperCase()) : findRow_('Members', 'email', email);
-  if (m && !inGoodStanding_(m)) { log_('submission refused: ' + standing_(m), email); return text_('ok'); }
+  if (m && !inGoodStanding_(m)) { log_('submission refused: ' + standing_(m), email); return text_('refused: submissions are paused while your membership is ' + standing_(m)); }
   append_('Submissions', { sub_id: subId, created: new Date(), artist: String(p.artist || '').slice(0, 120), email: email, member_id: m ? m.member_id : '',
     title: String(p.title || '').slice(0, 160), track_url: url, genre: p.genre || '', message: String(p.message || '').slice(0, 800),
     curator_ids: ids.join(', '), amount: money_(ids.length * SUBMIT.pricePerCurator), status: 'awaiting payment' });

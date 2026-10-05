@@ -36,7 +36,7 @@
       if (!form.checkValidity()) { form.reportValidity(); return; }
       const data = new URLSearchParams(); new FormData(form).forEach((v, k) => data.append(k, v)); data.append('form', 'claim');
       try {
-        await Promise.race([fetch(endpoint, { method: 'POST', mode: 'no-cors', body: data, keepalive: true }), new Promise(r => setTimeout(r, 350))]);
+        await window.rrrSend(endpoint, data);
         st.classList.add('open');
         st.innerHTML = '<span class="dot"></span><span><strong>Claim sent.</strong> Once RRR checks it, the points land on your dashboard and you get an email. 🥋</span>';
         const keep = idEl.value; form.reset(); idEl.value = keep;

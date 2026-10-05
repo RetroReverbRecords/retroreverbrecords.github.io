@@ -179,7 +179,7 @@
       const data = new URLSearchParams(); new FormData(lf).forEach((v, k) => data.append(k, v)); data.append('form', 'link-request');
       const method = (lf.querySelector('input[name=method]:checked') || {}).value;
       try {
-        await Promise.race([fetch(url, { method: 'POST', mode: 'no-cors', body: data, keepalive: true }), new Promise(r => setTimeout(r, 350))]);
+        await window.rrrSend(url, data);
         say(true, method === 'invite'
           ? '<strong>Done ✓</strong> We\'ll send you a Bandcamp invite within a day. Watch for an email from Bandcamp and press accept.'
           : '<strong>Check your email ✓</strong> We\'ve sent your placeholder password and the next steps to the address on your membership. Not there in a few minutes? Check spam.');

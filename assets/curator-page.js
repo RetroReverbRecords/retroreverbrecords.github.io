@@ -7,7 +7,7 @@
   const key = new URLSearchParams(location.search).get('k') || '';
   const st = $('#cq-status'), listEl = $('#cq-list');
   const say = (ok, html) => { st.classList.toggle('open', ok); st.innerHTML = `<span class="dot"></span><span>${html}</span>`; };
-  const post = data => Promise.race([fetch(url, { method: 'POST', mode: 'no-cors', body: data, keepalive: true }), new Promise(r => setTimeout(r, 350))]);
+  const post = data => window.rrrSend(url, data);
   const words = t => String(t || '').trim().split(/\s+/).filter(Boolean).length;
   let data = null, filter = 'all', minWords = 20;
   const left = d => { const h = (new Date(d) - Date.now()) / 3600000; return h <= 0 ? 'expired' : h < 48 ? `in ${Math.ceil(h)} hours` : `in ${Math.ceil(h / 24)} days`; };

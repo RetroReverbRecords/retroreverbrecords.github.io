@@ -1,4 +1,26 @@
 /* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
+
+// Send a form to the RRR automation. Answers fast (after 0.35 s) so the page feels instant, but keeps listening:
+// if the automation then says the form was refused or failed, a clear message pops up so nobody is told
+// "sent" for something that never arrived.
+window.rrrProblem = function(why){
+  let t = document.getElementById('rrr-problem');
+  if (!t) { t = document.createElement('div'); t.id = 'rrr-problem'; t.className = 'rrr-problem'; t.setAttribute('role', 'alert'); document.body.appendChild(t); }
+  const e = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const mail = (window.RRR_CONFIG || {}).email || 'retroreverbrecords@gmail.com';
+  t.innerHTML = '<b>That didn’t go through.</b> <span>' + (why ? e(why.charAt(0).toUpperCase() + why.slice(1)) + '. ' : 'Something went wrong on our side. ') + 'Nothing was saved. Questions: ' + e(mail) + '</span><button type="button" aria-label="Close">×</button>';
+  t.querySelector('button').onclick = () => t.remove();
+};
+window.rrrSend = function(url, data, onProblem){
+  const body = data instanceof URLSearchParams ? data : new URLSearchParams(data);
+  const req = fetch(url, { method: 'POST', body, keepalive: body.toString().length < 60000 })
+    .then(r => r.text()).then(t => { t = String(t || '').trim();
+      if (/^(refused|error)/i.test(t)) (onProblem || window.rrrProblem)(/^refused/i.test(t) ? t.replace(/^refused:?\s*/i, '') : '');
+      return t; })
+    .catch(() => 'unconfirmed'); // the answer couldn't be read: it most likely arrived
+  return Promise.race([req, new Promise(r => setTimeout(() => r('pending'), 350))]);
+};
+
 /* RRR site behaviour. Settings live in config.js, releases in releases.js. */
 (function(){
   const C = window.RRR_CONFIG || {};
@@ -223,13 +245,7 @@
         // (it writes the sheet and sends emails). Show the confirmation as soon as the request is on its way;
         // keepalive lets it finish even if the person leaves the page. Only a network failure is reported.
         const btn = form.querySelector('[type=submit]'); if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Sending…'; }
-        const req = fetch(endpoint, { method: 'POST', mode: 'no-cors', body: data, keepalive: data.toString().length < 60000 });
-        req.catch(() => {
-          statusEl.classList.remove('open');
-          statusEl.innerHTML = `<span class="dot"></span><span><strong>That didn't send.</strong> Check your connection and try again, or email ${esc(C.email)}.</span>`;
-          try { statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
-        });
-        await Promise.race([req, new Promise(r => setTimeout(r, 350))]);
+        await window.rrrSend(endpoint, data);
         if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || btn.textContent; }
       } else {
         const res = await fetch(endpoint, { method: 'POST', body: data, headers: { 'Accept': 'application/json' } });
@@ -538,7 +554,7 @@
       if (!f.checkValidity()) { f.reportValidity(); return; }
       if (!open) { st.textContent = 'Newsletter sign-up opens soon.'; return; }
       const data = new URLSearchParams({ form: 'newsletter', email: $('input[type=email]', f).value, consent: $('input[type=checkbox]', f).checked ? 'yes' : 'no', source: location.pathname.split('/').pop() || 'index' });
-      try { await fetch(endpoint, { method: 'POST', mode: 'no-cors', body: data }); st.textContent = 'You\'re on the list. See you on the 1st.'; f.reset(); track('Lead', { content_name: 'newsletter' }); }
+      try { await window.rrrSend(endpoint, data); st.textContent = 'You\'re on the list. See you on the 1st.'; f.reset(); track('Lead', { content_name: 'newsletter' }); }
       catch (err) { st.textContent = 'That didn\'t work. Check your connection and try again.'; }
     });
   });

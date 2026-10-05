@@ -9,7 +9,7 @@
   const demoPrefix = String(C.demoEmailPrefix || '').toLowerCase();
   const isDemo = e => { const x = String(e || '').trim().toLowerCase(); return !!demoPrefix && x.indexOf(demoPrefix) === 0 && /@gmail\.com$/.test(x); };
   const say = (el, ok, html) => { el.classList.toggle('open', ok); el.innerHTML = `<span class="dot"></span><span>${html}</span>`; };
-  const post = data => Promise.race([fetch(url, { method: 'POST', mode: 'no-cors', body: data, keepalive: true }), new Promise(r => setTimeout(r, 350))]);
+  const post = data => window.rrrSend(url, data);
   let price = 1, max = 10, curators = [];
   const subForm = $('#sub-form'), subSt = $('#sub-status'), list = $('#cur-list');
   const chosen = () => $$('#cur-list input[name=curator]:checked').map(x => x.value);

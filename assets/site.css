@@ -789,3 +789,10 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after{animation
 .nb-dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:var(--glow-cyan)}
 .nb-belt{background:#f7d23e;box-shadow:0 0 8px #f7d23e}.nb-live{background:#ff3b3b;box-shadow:0 0 8px #ff3b3b}.nb-release,.nb-premiere{background:var(--pink);box-shadow:var(--glow-pink)}
 @media (max-width:520px){.notices li{grid-template-columns:12px 1fr}.notices li .btn{grid-column:2;justify-self:start}}
+
+/* Watch: latest YouTube Shorts on the home page */
+.watch{margin-top:24px}
+.shorts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:14px}
+.shorts figure{margin:0;display:grid;gap:10px}
+.shorts iframe{width:100%;aspect-ratio:9/16;border:0;border-radius:8px;background:#000}
+.shorts figcaption{display:grid;gap:4px}

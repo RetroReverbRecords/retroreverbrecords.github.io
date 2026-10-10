@@ -34,6 +34,18 @@
   else list.innerHTML = '<div class="panel empty"><b>Coming soon.</b></div>';
   if (!open) { $('#sub-fields').disabled = true; $('#cur-fields').disabled = true; say(subSt, false, '<strong>Coming soon.</strong> RRR Submit opens with the RRR launch.'); }
 
+  let missT = 0;
+  subForm.addEventListener('invalid', e => {
+    clearTimeout(missT);
+    missT = setTimeout(() => {
+      const miss = [...subForm.querySelectorAll(':invalid')].filter(x => x.name).map(x => {
+        if (x.type === 'checkbox') return 'the rights box';
+        const l = subForm.querySelector(`label[for="${x.id}"]`) || x.closest('label');
+        return l ? l.childNodes[0].textContent.trim().replace(/\s*\(optional\)/i, '') : x.name;
+      });
+      if (miss.length) { say(subSt, false, 'Please fill in: <b>' + [...new Set(miss)].map(esc).join(', ') + '</b>'); subSt.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }, 0);
+  }, true);
   subForm.addEventListener('submit', async e => {
     e.preventDefault(); if (!open) return;
     const ids = chosen();

@@ -70,6 +70,15 @@
             <label for="wd-id">Member ID (if you have one)<input id="wd-id" name="member_id" type="text" placeholder="RRR-XXXXX" autocapitalize="characters"></label>
             <label for="wd-date">Date you joined or booked<input id="wd-date" name="contract_date" type="date"></label>
           </div>
+          <div class="wdlimits">
+            <p class="label">Time limits</p>
+            <ul>
+              <li><b>Membership:</b> within 14 days of joining. Full refund.</li>
+              <li><b>Release or YouTube booking:</b> within 14 days of booking, and only <b>before</b> we upload it. Once your release or video is uploaded, that booking can't be withdrawn. If we've started but not finished, you get back only the part we haven't done.</li>
+              <li><b>Printed cards:</b> unopened, within 14 days of receiving them.</li>
+              <li>After 14 days, see the <a href="refunds.html">Refund Policy</a>.</li>
+            </ul>
+          </div>
           <span class="label">What are you withdrawing from?</span>
           <div class="checks wdchecks">
             <label><input type="checkbox" name="what" value="membership"> My membership</label>
@@ -78,7 +87,7 @@
             <label><input type="checkbox" name="what" value="printed cards"> Printed cards</label>
             <label><input type="checkbox" name="what" value="other"> Something else</label>
           </div>
-          <label for="wd-detail" class="wide">Which booking or order? (optional)<textarea id="wd-detail" name="detail" placeholder="e.g. release title and date"></textarea></label>
+          <label for="wd-detail" class="wide wdetail">Which booking or order? (optional)<textarea id="wd-detail" name="detail" placeholder="e.g. release title and date"></textarea></label>
           <p class="small">By confirming, you tell Retro Reverb Records that you withdraw from the contract(s) ticked above.</p>
           <button class="btn primary" type="submit">Confirm withdrawal</button>
         </fieldset>

@@ -796,3 +796,17 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after{animation
 .shorts figure{margin:0;display:grid;gap:10px}
 .shorts iframe{width:100%;aspect-ratio:9/16;border:0;border-radius:8px;background:#000}
 .shorts figcaption{display:grid;gap:4px}
+
+/* neon star rating */
+.neonstars{display:flex;flex-direction:row-reverse;justify-content:flex-end;align-items:center;gap:6px;margin-top:8px}
+.neonstars input{position:absolute;opacity:0;width:1px;height:1px}
+.neonstars label{font-size:40px;line-height:1;cursor:pointer;color:#2a2550;transition:color .15s,text-shadow .15s,transform .15s}
+.neonstars label:hover,.neonstars label:hover~label,.neonstars input:checked~label{color:#ff2fa8;text-shadow:0 0 8px #ff2fa8,0 0 18px #ff2fa8}
+.neonstars label:hover{transform:scale(1.15)}
+.neonstars input:focus-visible+label{outline:2px solid #34d8ff;outline-offset:3px;border-radius:4px}
+.neonstars .starword{order:-1;margin-left:12px;font-family:"IBM Plex Mono",monospace;color:#34d8ff;min-width:9em}
+.neonstars:has(#r1:checked) .starword::before{content:"Not great"}
+.neonstars:has(#r2:checked) .starword::before{content:"Could be better"}
+.neonstars:has(#r3:checked) .starword::before{content:"Good"}
+.neonstars:has(#r4:checked) .starword::before{content:"Great"}
+.neonstars:has(#r5:checked) .starword::before{content:"Love it"}

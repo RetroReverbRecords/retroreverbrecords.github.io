@@ -815,3 +815,16 @@ html.a11y-still *, html.a11y-still *::before, html.a11y-still *::after{animation
 .wdlimits ul{margin:6px 0 0;padding-left:18px;display:grid;gap:6px}
 label.wdetail{display:grid;gap:8px;margin-top:14px}
 label.wdetail textarea{width:100%;min-height:80px;background:#05060d;color:#e6e6f0;border:1px solid #2a2f55;border-radius:8px;padding:12px;font:inherit}
+
+.hint.bad{color:#ff5c8a}
+.curreq{margin:18px 0}
+.cqplayer{margin:10px 0;display:grid;gap:8px}
+.cqplayer iframe{width:100%;border:0;border-radius:8px;background:#000}
+.cqplayer iframe.yt{aspect-ratio:16/9}
+.cqplayer iframe.sc{height:120px}
+.cqplayer audio{width:100%}
+.listenbar{height:8px;border-radius:6px;background:#221d44;overflow:hidden}
+.listenbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d8ff,#ff2fa8);transition:width .4s}
+.cqform[aria-disabled=true]{opacity:.45;pointer-events:none}
+.cqform .accfields{display:grid;gap:10px}
+.cqform .accfields[hidden]{display:none}

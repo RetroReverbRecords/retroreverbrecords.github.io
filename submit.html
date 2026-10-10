@@ -56,7 +56,7 @@
     <div class="wrap">
       <p class="label">RRR Submit · radio, playlists, blogs</p>
       <h1>Get your track <em>heard</em></h1>
-      <p class="lede">Send your track straight to the RRR radio show, the #synthfam playlist and other synth curators. <b>€<span data-sub-price>1.00</span> per curator</b>, an honest listen and written feedback within 7 days, or that part of your money back. No subscription.</p>
+      <p class="lede">Send your track straight to the RRR radio show, the #synthfam playlist and other synth curators. <b>€<span data-sub-price>1.50</span> per curator</b>, a real listen and a written answer within 14 days, or that part of your money back. No subscription.</p>
       <div class="ctas-left"><a class="btn primary" href="#send">Send a track</a><a class="btn ghost" href="#curators-join">Become a curator</a></div>
     </div>
   </div>
@@ -65,9 +65,9 @@
     <div class="wrap">
       <div class="side-head"><span class="tag">A</span><h2>How it works</h2></div>
       <ol class="steps">
-        <li><div><h3>Pick your curators</h3><p>Radio shows, playlists and blogs that love synth and electronic music. Each one costs <b>€<span data-sub-price>1.00</span></b>.</p></div></li>
-        <li><div><h3>Send your track</h3><p>A Bandcamp, SoundCloud, YouTube or private link, plus a short message.</p></div></li>
-        <li><div><h3>They listen and answer</h3><p>Every curator writes at least 20 words of honest feedback and accepts or declines within 7 days.</p></div></li>
+        <li><div><h3>Pick your curators</h3><p>Radio shows, playlists and blogs that love synth and electronic music. Each one costs <b>€<span data-sub-price>1.50</span></b>.</p></div></li>
+        <li><div><h3>Send your track</h3><p>A YouTube, SoundCloud or Dropbox link, or a direct MP3/WAV link, plus your links so curators can tag you. Curators must play at least 30 seconds before they can answer, so Bandcamp and Google Drive links can't be used.</p></div></li>
+        <li><div><h3>They listen and answer</h3><p>Every curator plays your track, then accepts it (telling you when, where and why it will play) or declines with at least 20 words of honest feedback, within 14 days.</p></div></li>
         <li><div><h3>No answer, no charge</h3><p>If a curator doesn't answer in time, you get that part of your payment back.</p></div></li>
       </ol>
       <p class="small">You pay for a listen and honest feedback, <b>never for placement</b>. Curators decide freely, and Spotify forbids paying for playlist adds.</p>
@@ -88,7 +88,8 @@
             <label for="sb-email">Email<input id="sb-email" name="email" type="email" required autocomplete="email"></label>
             <label for="sb-title">Track title<input id="sb-title" name="title" type="text" required></label>
             <label for="sb-genre">Genre<select id="sb-genre" name="genre" required data-genres></select></label>
-            <label for="sb-url" class="wide">Link to the track<input id="sb-url" name="track_url" type="url" required placeholder="https://… Bandcamp, SoundCloud, YouTube, or a private Drive/Dropbox link"></label>
+            <label for="sb-url" class="wide">Link to the track<input id="sb-url" name="track_url" type="url" required placeholder="https://… YouTube, SoundCloud, Dropbox, or a direct .mp3/.wav link"><span class="small hint" id="sb-url-hint">Not Bandcamp or Google Drive: curators must be able to play it on their page.</span></label>
+            <label for="sb-links" class="wide">Your links for promotion<input id="sb-links" name="artist_links" type="text" required placeholder="Spotify, Bandcamp, Instagram, TikTok… so curators can tag you"></label>
             <label for="sb-msg" class="wide">Message to the curators (optional)<textarea id="sb-msg" name="message" maxlength="800" placeholder="A couple of lines: what the track is, what you'd like feedback on"></textarea></label>
             <label for="sb-id">RRR member ID (optional)<input id="sb-id" name="member_id" type="text" placeholder="RRR-XXXXX" autocapitalize="characters"></label>
           </div>
@@ -102,20 +103,27 @@
 
   <section class="side" id="curators-join">
     <div class="wrap">
-      <div class="side-head"><span class="tag">C</span><h2>Become a curator</h2><p>Run a radio show, playlist, blog or channel for synth and electronic music? Get paid to listen. You earn per answered track, paid monthly by PayPal. We check every curator by hand.</p></div>
+      <div class="side-head"><span class="tag">C</span><h2>Become a curator</h2><p>Run a radio show, playlist, blog or channel for synth and electronic music? Get paid to listen: <b>€0.80 per answered track</b>, paid monthly by PayPal. We check every curator by hand.</p></div>
+      <div class="grid2 curreq">
+        <div class="panel pad"><p class="label">Minimums</p><ul class="ticks"><li><b>Radio show:</b> a link to the show</li><li><b>Podcast:</b> 25+ episodes, on a regular schedule</li><li><b>YouTube:</b> 1,500+ subscribers</li><li><b>Playlist:</b> 500+ followers</li></ul></div>
+        <div class="panel pad"><p class="label">The rules</p><ul class="ticks"><li>Your AI policy matches <a href="terms.html#ai">RRR's</a>. Non-negotiable: breaking it means <b>instant removal</b>.</li><li>Bots or bought followers: removed, <b>not paid</b>.</li><li>Any cheating: <b>not paid</b>.</li><li>Play at least 30 seconds of every track, and answer within <b>14 days</b>.</li><li>Accept: say <b>when, where and why</b> it will play, and send the link after. Decline: 20+ words of honest feedback.</li><li>Never sell or promise placement.</li></ul></div>
+      </div>
       <form class="panel booking-form" id="cur-form" novalidate>
         <div class="status" role="status" id="cur-status"></div>
         <fieldset id="cur-fields">
           <div class="fields">
             <label for="cu-name">Name of your show, playlist or blog<input id="cu-name" name="name" type="text" required></label>
-            <label for="cu-type">Type<select id="cu-type" name="type" required><option value="">Choose…</option><option>Radio show</option><option>Spotify playlist</option><option>YouTube channel</option><option>Blog / magazine</option><option>Label</option><option>Other</option></select></label>
+            <label for="cu-type">Type<select id="cu-type" name="type" required><option value="">Choose…</option><option>Radio show</option><option>Podcast</option><option>Spotify playlist</option><option>YouTube channel</option><option>Blog / magazine</option><option>Other</option></select></label>
             <label for="cu-genres">Genres you cover<input id="cu-genres" name="genres" type="text" required placeholder="e.g. Synthwave, Darksynth, Outrun"></label>
             <label for="cu-aud">Audience<input id="cu-aud" name="audience" type="text" required placeholder="e.g. 4,200 playlist followers, 800 weekly listeners"></label>
+            <label for="cu-fol">Followers or subscribers<input id="cu-fol" name="followers" type="number" min="0" inputmode="numeric" placeholder="e.g. 1500"></label>
+            <label for="cu-ep">Episodes so far (podcasts and radio)<input id="cu-ep" name="episodes" type="number" min="0" inputmode="numeric" placeholder="e.g. 30"></label>
             <label for="cu-link" class="wide">Link to it<input id="cu-link" name="link" type="url" required placeholder="https://"></label>
             <label for="cu-about" class="wide">About you (optional)<textarea id="cu-about" name="about" maxlength="800"></textarea></label>
             <label for="cu-email">Email (also your PayPal for payouts)<input id="cu-email" name="email" type="email" required></label>
           </div>
-          <label class="agree"><input type="checkbox" name="agree" value="yes" required> <span>My audience is real (no bought followers). I'll give honest feedback within 7 days and never sell placement.</span></label>
+          <label class="agree"><input type="checkbox" name="ai_policy" value="yes" required> <span>My AI policy matches the <a href="terms.html#ai">RRR AI policy</a>. I understand breaking it means instant removal.</span></label>
+          <label class="agree"><input type="checkbox" name="agree" value="yes" required> <span>My audience is real (no bots or bought followers). I'll play every track for at least 30 seconds, answer within 14 days and never sell placement. Cheating means removal and no payment.</span></label>
           <button class="btn primary" type="submit">Apply</button>
         </fieldset>
       </form>

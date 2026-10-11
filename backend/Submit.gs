@@ -6,7 +6,8 @@
 //
 // How it works
 // 1. Artists pick curators on submit.html, pay SUBMIT.pricePerCurator per curator (PayPal, custom = SUB-XXXXXX).
-//    Track links must be playable on the curator page (YouTube, SoundCloud, Dropbox or a direct audio file) for the 30-second listen check.
+//    Track links must be playable on the curator page for the 30-second listen check: YouTube, Spotify, SoundCloud, Dropbox,
+//    direct audio (real play time) or Bandcamp (timer starts when the curator presses play in Bandcamp's player).
 // 2. Payment confirmed → one review per curator, due in SUBMIT.answerDays days; curators are emailed.
 // 3. Curators listen on their private page (curator.html?k=…). The answer form unlocks after SUBMIT.listenSeconds of real play.
 //    Accepted: when, where and why it will play (+ links). Declined: at least SUBMIT.minWords words of feedback.
@@ -29,11 +30,20 @@ const SUBMIT = {
   maxCurators: 10,
   minimums: 'Radio show: link to the show · Podcast: 25+ regular episodes · YouTube: 1,500+ subscribers · Playlist: 500+ followers'
 };
-const PLAYABLE_RE = /^https:\/\/((www\.|m\.)?youtube\.com\/|youtu\.be\/|(on\.|m\.)?soundcloud\.com\/|(www\.)?dropbox\.com\/|[^?#]+\.(mp3|wav|m4a|ogg|flac)([?#]|$))/i;
+const PLAYABLE_RE = /^https:\/\/((www\.|m\.)?youtube\.com\/|youtu\.be\/|(on\.|m\.)?soundcloud\.com\/|(www\.)?dropbox\.com\/|open\.spotify\.com\/(intl-[a-z]+\/)?(track|album)\/|[a-z0-9-]+\.bandcamp\.com\/(track|album)\/|[^?#]+\.(mp3|wav|m4a|ogg|flac)([?#]|$))/i;
+// Bandcamp: find the album/track id so the curator page can show Bandcamp's embedded player
+function bandcampEmbed_(url) {
+  if (!/\.bandcamp\.com\/(track|album)\//i.test(url)) return '';
+  try { const h = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true }).getContentText();
+    const m = h.match(/bc-page-properties" content="([^"]+)"/); if (!m) return '';
+    const j = JSON.parse(m[1].replace(/&quot;/g, '"')); if (!j.item_id) return '';
+    return (j.item_type === 't' ? 'track=' : 'album=') + j.item_id;
+  } catch (e) { log_('bandcamp embed failed', String(e)); return ''; }
+}
 const SUB_TABS = {
   Curators:    ['curator_id','joined','name','type','genres','audience','link','about','email','key','share','status','member_id','notified','followers','episodes','agreed','removed_reason'],
-  Submissions: ['sub_id','created','artist','email','member_id','title','track_url','genre','message','curator_ids','amount','status','txn_id','paid_at','artist_links'],
-  Reviews:     ['review_id','sub_id','curator_id','curator_name','artist','email','title','track_url','genre','message','created','due','status','listened','decision','where','feedback','answered_at','earned','payout','artist_links','listen_secs','play_time','why','links']
+  Submissions: ['sub_id','created','artist','email','member_id','title','track_url','genre','message','curator_ids','amount','status','txn_id','paid_at','artist_links','embed'],
+  Reviews:     ['review_id','sub_id','curator_id','curator_name','artist','email','title','track_url','genre','message','created','due','status','listened','decision','where','feedback','answered_at','earned','payout','artist_links','listen_secs','play_time','why','links','embed']
 };
 
 function subEnsure_() {
@@ -91,7 +101,7 @@ function curatorQueue_(key) {
   const owed = money_(answered.filter(r => String(r.payout) !== 'paid').reduce((s, r) => s + Number(r.earned || 0), 0));
   const view = r => ({ id: r.review_id, artist: r.artist, title: r.title, url: r.track_url, genre: r.genre, message: r.message, created: r.created, due: r.due,
     status: r.status, listened: Number(r.listen_secs || 0) >= SUBMIT.listenSeconds, secs: Number(r.listen_secs || 0), decision: r.decision, where: r.where, feedback: r.feedback,
-    answered: r.answered_at, earned: r.earned, artistLinks: r.artist_links, playTime: r.play_time, why: r.why, links: r.links });
+    answered: r.answered_at, earned: r.earned, artistLinks: r.artist_links, embed: r.embed, playTime: r.play_time, why: r.why, links: r.links });
   return { ok: true, curator: { id: c.curator_id, name: c.name, type: c.type }, listenSeconds: SUBMIT.listenSeconds, minWords: SUBMIT.minWords,
     stats: { answers: answered.length, thisMonth: answered.filter(r => new Date(r.answered_at) >= monthStart).length, rate: rate, owed: owed },
     todo: mine.filter(r => r.status === 'open').sort((a, b) => new Date(a.due) - new Date(b.due)).map(view),
@@ -130,7 +140,7 @@ function handleSubmitTrack_(p) {
   if (m && !inGoodStanding_(m)) { log_('submission refused: ' + standing_(m), email); return text_('refused: submissions are paused while your membership is ' + standing_(m)); }
   append_('Submissions', { sub_id: subId, created: new Date(), artist: String(p.artist || '').slice(0, 120), email: email, member_id: m ? m.member_id : '',
     title: String(p.title || '').slice(0, 160), track_url: url, genre: p.genre || '', message: String(p.message || '').slice(0, 800),
-    curator_ids: ids.join(', '), amount: money_(ids.length * SUBMIT.pricePerCurator), status: 'awaiting payment', artist_links: String(p.artist_links || '').slice(0, 600) });
+    curator_ids: ids.join(', '), amount: money_(ids.length * SUBMIT.pricePerCurator), status: 'awaiting payment', artist_links: String(p.artist_links || '').slice(0, 600), embed: bandcampEmbed_(url) });
   if (isDemo_(email)) confirmSubmissionPayment_(subId, 'demo', 'DEMO');
   return text_('ok');
 }
@@ -147,7 +157,7 @@ function confirmSubmissionPayment_(subId, amount, txnId) {
   String(s.curator_ids).split(',').map(x => x.trim()).filter(Boolean).forEach(cid => {
     const c = curators.find(x => x.curator_id === cid); if (!c) return;
     append_('Reviews', { review_id: subId_('REV-', 'Reviews', 'review_id'), sub_id: subId, curator_id: cid, curator_name: c.name, artist: s.artist, email: s.email,
-      title: s.title, track_url: s.track_url, genre: s.genre, message: s.message, created: new Date(), due: due, status: 'open', payout: String(c.share) === '0' ? 'n/a' : '', artist_links: s.artist_links || '' });
+      title: s.title, track_url: s.track_url, genre: s.genre, message: s.message, created: new Date(), due: due, status: 'open', payout: String(c.share) === '0' ? 'n/a' : '', artist_links: s.artist_links || '', embed: s.embed || '' });
     if (c.email) try { MailApp.sendEmail({ to: c.email, name: 'RRR Submit', subject: (demo ? '[DEMO] ' : '') + 'New track to review: ' + s.artist + ' – ' + s.title,
       body: 'A new track is waiting for you.\n\n' + s.artist + ' – ' + s.title + ' (' + (s.genre || 'no genre') + ')\n\nPlease listen and answer by ' + due.toDateString() + '.\nYour queue: ' + SETTINGS.siteUrl + 'curator.html?k=' + c.key + '\n\nRRR Submit' }); } catch (e) { log_('curator email failed', String(e)); }
   });

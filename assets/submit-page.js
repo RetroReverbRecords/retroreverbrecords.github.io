@@ -34,12 +34,12 @@
   else list.innerHTML = '<div class="panel empty"><b>Coming soon.</b></div>';
   if (!open) { $('#sub-fields').disabled = true; $('#cur-fields').disabled = true; say(subSt, false, '<strong>Coming soon.</strong> RRR Submit opens with the RRR launch.'); }
 
-  const PLAY = /^https:\/\/((www\.|m\.)?youtube\.com\/|youtu\.be\/|(on\.|m\.)?soundcloud\.com\/|(www\.)?dropbox\.com\/|[^?#]+\.(mp3|wav|m4a|ogg|flac)([?#]|$))/i;
+  const PLAY = /^https:\/\/((www\.|m\.)?youtube\.com\/|youtu\.be\/|(on\.|m\.)?soundcloud\.com\/|(www\.)?dropbox\.com\/|open\.spotify\.com\/(intl-[a-z]+\/)?(track|album)\/|[a-z0-9-]+\.bandcamp\.com\/(track|album)\/|[^?#]+\.(mp3|wav|m4a|ogg|flac)([?#]|$))/i;
   const urlIn = $('#sb-url'), urlHint = $('#sb-url-hint');
   if (urlIn) urlIn.addEventListener('input', () => {
     const v = urlIn.value.trim(), bad = v && !PLAY.test(v);
-    urlIn.setCustomValidity(bad ? 'Use a YouTube, SoundCloud, Dropbox or direct .mp3/.wav link' : '');
-    if (urlHint) { urlHint.classList.toggle('bad', !!bad); urlHint.textContent = bad ? (/bandcamp|drive\.google/i.test(v) ? 'Bandcamp and Google Drive links can\'t be played on the curator page. Use YouTube, SoundCloud, Dropbox or a direct .mp3/.wav link.' : 'Use a YouTube, SoundCloud, Dropbox or direct .mp3/.wav link.') : 'Not Bandcamp or Google Drive: curators must be able to play it on their page.'; }
+    urlIn.setCustomValidity(bad ? 'Use a Spotify, Bandcamp, YouTube, SoundCloud, Dropbox or direct .mp3/.wav link' : '');
+    if (urlHint) { urlHint.classList.toggle('bad', !!bad); urlHint.textContent = bad ? (/drive\.google/i.test(v) ? 'Google Drive links can\'t be played on the curator page.' : 'Use a Spotify, Bandcamp, YouTube, SoundCloud, Dropbox or direct .mp3/.wav link to the track or album.') : 'Spotify, Bandcamp, YouTube, SoundCloud, Dropbox or a direct .mp3/.wav link.'; }
   });
   let missT = 0;
   subForm.addEventListener('invalid', e => {

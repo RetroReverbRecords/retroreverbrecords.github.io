@@ -31,6 +31,8 @@
     if (/^https:\/\/((www\.|m\.)?youtube\.com\/|youtu\.be\/)/i.test(u)) return 'yt';
     if (/^https:\/\/((on|m)\.)?soundcloud\.com\//i.test(u)) return 'sc';
     if (/^https:\/\/(www\.)?dropbox\.com\//i.test(u)) return 'db';
+    if (/^https:\/\/open\.spotify\.com\/(intl-[a-z]+\/)?(track|album)\//i.test(u)) return 'sp';
+    if (/^https:\/\/[a-z0-9-]+\.bandcamp\.com\/(track|album)\//i.test(u)) return 'bc';
     if (/^https:\/\/[^?#]+\.(mp3|wav|m4a|ogg|flac)([?#]|$)/i.test(u)) return 'au';
     return '';
   }
@@ -56,6 +58,21 @@
       box.innerHTML = `<iframe class="sc" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodeURIComponent(r.url)}&visual=false&show_comments=false"></iframe>`;
       loadScript('https://w.soundcloud.com/player/api.js', () => window.SC && window.SC.Widget).then(() => { const w = SC.Widget(box.querySelector('iframe'));
         w.bind(SC.Widget.Events.PLAY_PROGRESS, e => tick(e.currentPosition / 1000)); w.bind(SC.Widget.Events.PAUSE, () => { last = null; report(true); }); });
+    } else if (k === 'sp') {
+      const m = r.url.match(/(track|album)\/([A-Za-z0-9]+)/); if (!m) return;
+      box.innerHTML = '<div></div>';
+      const go = API => API.createController(box.firstChild, { uri: `spotify:${m[1]}:${m[2]}`, width: '100%', height: m[1] === 'album' ? 352 : 152 }, ctl => {
+        ctl.addListener('playback_update', e => { const d = e.data || {}; if (d.isPaused || d.isBuffering) { if (d.isPaused) { last = null; report(true); } return; } tick((d.position || 0) / 1000); }); });
+      if (window.SpotifyIframeApi) go(window.SpotifyIframeApi);
+      else { (window.spWait = window.spWait || []).push(go);
+        if (!window.onSpotifyIframeApiReady) window.onSpotifyIframeApiReady = API => { window.SpotifyIframeApi = API; (window.spWait || []).forEach(f => f(API)); window.spWait = []; };
+        loadScript('https://open.spotify.com/embed/iframe-api/v1'); }
+    } else if (k === 'bc' && r.embed) {
+      box.innerHTML = `<iframe class="sc" style="height:120px" src="https://bandcamp.com/EmbeddedPlayer/${esc(r.embed)}/size=large/bgcol=0b0d1a/linkcol=ff2fa8/tracklist=false/artwork=small/transparent=true/" seamless></iframe><p class="small">Bandcamp: the timer runs after you press play in the player, while you stay on this page.</p>`;
+      const fr = box.querySelector('iframe'); let on = false;
+      window.addEventListener('blur', () => { setTimeout(() => { if (document.activeElement === fr) on = true; }, 0); });
+      window.addEventListener('focus', () => { on = false; last = null; report(true); });
+      setInterval(() => { if (on && document.visibilityState === 'visible') { secs += 1; show(); report(); } }, 1000);
     } else if (k === 'db' || k === 'au') {
       let src = r.url;
       if (k === 'db') src = r.url.replace(/([?&])dl=\d/, '$1raw=1') + (/[?&](raw|dl)=/.test(r.url) ? '' : (r.url.includes('?') ? '&' : '?') + 'raw=1');

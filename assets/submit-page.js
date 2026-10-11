@@ -73,7 +73,7 @@
       <p><b>${esc(title)}</b> → ${esc(names.join(', '))}</p>
       ${demo ? '<p class="paid"><strong>Demo:</strong> no payment needed. The curators get it straight away.</p>' : `<p><b>Pay €${amount.toFixed(2)}</b> to send it to the curators:</p><div class="done-pay"></div>`}
       <p class="label">What next</p>
-      <ol class="nextsteps"><li>Each curator listens and answers within 7 days.</li><li>Their feedback arrives by email.</li><li>No answer in time? That part of your payment comes back.</li></ol>
+      <ol class="nextsteps"><li>Each curator listens and answers within 14 days.</li><li>Their feedback arrives by email.</li><li>No answer in time? That part of your payment comes back.</li></ol>
       <div class="ctas-left"><a class="btn ghost" href="submit.html">Send another track</a></div>`;
     $('#sub-fields').hidden = true; $('#sub-fields').insertAdjacentElement('beforebegin', done); subSt.innerHTML = ''; subSt.classList.remove('open');
     if (!demo && window.rrrPay) window.rrrPay(done.querySelector('.done-pay'), { kind: 'one-off', amount, item: `RRR Submit: ${title} (${subId})`, custom: subId, note: `Submission ${subId}. It goes to the curators as soon as payment arrives.` });

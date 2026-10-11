@@ -828,3 +828,9 @@ label.wdetail textarea{width:100%;min-height:80px;background:#05060d;color:#e6e6
 .cqform[aria-disabled=true]{opacity:.45;pointer-events:none}
 .cqform .accfields{display:grid;gap:10px}
 .cqform .accfields[hidden]{display:none}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 6px}
+.chips .small{width:100%}
+.chip{font:600 13px var(--mono,monospace);padding:7px 12px;border-radius:20px;border:1px solid #3a2f6b;background:#120d2a;color:#e6e6f0;cursor:pointer}
+.chip:hover{border-color:#34d8ff}
+.chip.on{border-color:#ff2fa8;color:#ff2fa8;box-shadow:0 0 10px rgba(255,47,168,.3)}

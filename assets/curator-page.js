@@ -83,6 +83,12 @@
     }
     window.addEventListener('pagehide', () => report(true));
   }
+  const CHIPS = {
+    accepted: [['Loved the vocals', 'Loved the vocals.'], ['Great genre fit', 'It fits our show and playlist perfectly.'], ['Strong production', 'The production is strong and polished.'],
+      ['Original sound', 'It has an original sound of its own.'], ['Catchy hook', 'The hook stays with you.'], ['Authentic human feel', 'It has a real, authentic human feel.'], ['Great mix', 'The mix is clean and powerful.']],
+    declined: [['Not our genre', "It's not quite the right genre for our audience."], ['Mix needs work', 'The mix needs more work, the levels feel unbalanced.'],
+      ['Vocals need work', 'The vocals need a bit more work.'], ['Long intro', 'The intro takes too long to get going.'], ['Sound quality', 'The sound quality could be improved.'], ['Keep going', 'There is real potential here, keep going.']]
+  };
   function rows(){
     const t = data.todo;
     const pick = { all: t, urgent: t.filter(r => (new Date(r.due) - Date.now()) < 48 * 3600000), listen: t.filter(r => !r.listened), complete: t.filter(r => r.listened), done: data.done }[filter];
@@ -101,6 +107,7 @@
           <label>Where?<input name="where" type="text" placeholder="Show, playlist, channel or post"></label>
           <label>Links (optional now, you can add them after it plays)<input name="links" type="text" placeholder="https://"></label>
         </div>
+        <div class="chips" data-chips hidden></div>
         <label><span data-fbl>Your feedback</span> <span class="small" data-wc>0 / ${minWords} words</span><textarea name="feedback" required placeholder="What works, what you'd change, and why"></textarea></label>
         <button class="btn primary" type="submit">Send answer</button></form>`
       : `${r.decision === 'accepted' ? `<p class="small"><b>When:</b> ${esc(r.playTime)} · <b>Where:</b> ${esc(r.where)}</p>` : ''}${r.feedback ? `<p class="small cqfb">${esc(r.feedback)}</p>` : ''}
@@ -115,7 +122,11 @@
       mountPlayer(card, r);
       const ta = fm.feedback, wc = fm.querySelector('[data-wc]'), acc = fm.querySelector('.accfields'), fbl = fm.querySelector('[data-fbl]');
       fm.querySelectorAll('input[name=decision]').forEach(x => x.addEventListener('change', () => { const a = x.value === 'accepted' && x.checked;
-        acc.hidden = !a; fm.play_time.required = a; fm.where.required = a; fbl.textContent = a ? 'Why you picked it' : 'Your feedback'; }));
+        acc.hidden = !a; fm.play_time.required = a; fm.where.required = a; fbl.textContent = a ? 'Why you picked it' : 'Your feedback';
+        const ch = fm.querySelector('[data-chips]'); ch.hidden = false;
+        ch.innerHTML = '<span class="small">Tap to add, then say more in your own words:</span>' + CHIPS[a ? 'accepted' : 'declined'].map((c, i) => `<button type="button" class="chip" data-i="${i}">${esc(c[0])}</button>`).join('');
+        ch.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { const t = CHIPS[a ? 'accepted' : 'declined'][b.dataset.i][1];
+          if (!ta.value.includes(t)) { ta.value = (ta.value.trim() ? ta.value.trim() + ' ' : '') + t; ta.dispatchEvent(new Event('input')); } b.classList.add('on'); })); }));
       ta.addEventListener('input', () => { const n = words(ta.value); wc.textContent = `${n} / ${minWords} words`; wc.classList.toggle('ok', n >= minWords); });
       fm.addEventListener('submit', async e => {
         e.preventDefault();

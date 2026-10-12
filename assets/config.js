@@ -81,8 +81,8 @@ window.RRR_CONFIG = {
   // schedule: when the show usually airs, shown on the Live page (e.g. "Fridays at 21:00 Italian time"). Leave "" to hide.
   liveShow: {
     name: "The Bandcamp Hour",
-    host: "Cybertronix",
-    schedule: "",
+    host: "Cybertronix and Eden Future",
+    schedule: "Sundays 3pm, Tuesdays 10pm and Wednesdays 2am (UK time) on Spectrum On Air",
     mixcloud: "https://www.mixcloud.com/spectrumonair/"
   },
 

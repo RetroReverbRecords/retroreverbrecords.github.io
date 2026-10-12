@@ -16,8 +16,8 @@ window.RRR_CARDS = {
   // The 52 slots in each season. Add artists as their cards are made.
   roster: {
     "S1": {
-      "01": { artist: "Cybertronix", style: "Synthwave · Electronic · Dark", image: "assets/card-cybertronix.jpg", back: "assets/card-cybertronix-back.jpg", value: "A♠", member: "RRR-00001" },
-      "02": { artist: "Eden Future", style: "Shredwave", image: "assets/card-eden-future.jpg", member: "RRR-P9K6M" }
+      "01": { artist: "Cybertronix", style: "Synthwave · Electronic · Dark", image: "assets/card-cybertronix.jpg?v=2", back: "assets/card-cybertronix-back.jpg?v=2", value: "A♠", member: "RRR-00001" },
+      "02": { artist: "Eden Future", style: "Shredwave", image: "assets/card-eden-future.jpg?v=2", member: "RRR-P9K6M" }
     }
   },
 

@@ -192,7 +192,7 @@
           <div class="tabpanel" id="panel-social" role="tabpanel" aria-labelledby="tab-social" hidden>
             <form class="panel booking-form" data-kind="social-post" novalidate>
               <h2>Social media post</h2>
-              <p class="intro">Book a promotional post on RRR community social media. Included with Artist Membership. We slot it into the RRR calendar and confirm the date by email.</p>
+              <p class="intro">Book a promotional post on RRR community social media. Included with Artist Membership. Book at least 3 days ahead: we check every post first, email you when it's approved, and it goes out automatically on the day.</p>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
@@ -201,7 +201,7 @@
                   <label for="so-date">Preferred date<input id="so-date" name="preferred_date" type="date" required></label>
                   <label for="so-alt">Backup date<input id="so-alt" name="backup_date" type="date"></label>
                   <label for="so-link" class="wide">Link to promote<input id="so-link" name="link" type="url" placeholder="Bandcamp, Spotify or YouTube link" required></label>
-                  <label for="so-assets" class="wide">Image or video (Google Drive link)<input id="so-assets" name="assets" type="url"></label>
+                  <label for="so-assets" class="wide">Image or video (Google Drive or Dropbox link, shared so anyone with the link can view)<input id="so-assets" name="assets" type="url" required placeholder="https://drive.google.com/…"></label>
                   <label for="so-caption" class="wide">Caption idea and tags<textarea id="so-caption" name="caption"></textarea></label>
                 </div>
                 <div class="checks">
@@ -215,6 +215,7 @@
                   <label><input type="checkbox" name="platform" value="discord" id="so-dc"> Discord announcement</label>
                   <label><input type="checkbox" name="platform" value="twitch" id="so-tw"> Twitch live shout-out</label>
                 </div>
+                <label class="agree"><input type="checkbox" name="content_ok" value="yes" required> <span>My post follows the <a href="code-of-conduct.html">Code of Conduct</a>: no sexual, racist or hateful content. I understand RRR checks every post first and may refuse or take down a post that could harm RRR (<a href="terms.html#social-posts">terms</a>).</span></label>
                 <button class="btn primary" type="submit">Book social post</button>
               </fieldset>
             </form>
@@ -372,6 +373,6 @@
 <script src="assets/config.js?v=20261008a"></script>
 <script src="assets/releases.js?v=20261008a"></script>
 <script src="assets/levels.js?v=20261012a"></script>
-<script src="assets/site.js?v=20261008a"></script>
+<script src="assets/site.js?v=20261012a"></script>
 </body>
 </html>

@@ -45,6 +45,7 @@ const SETTINGS = {
   newsletterMode: 'auto',
   dailySendLimit: 90,  // free Gmail allows ~100 emails a day; the rest go out the next days
   releaseDecisionEmails: true, // email artists when a Selected Release is approved or not selected
+  socialLeadDays: 3,          // social posts: book at least this many days ahead
   maxReleasesPerWeek: 0,       // release slots per week (Mon–Sun). 0 = no limit. Over the limit, bookings are flagged 'date full' for you
   // Slots per day. A date is only taken once the booking is PAID (first to pay gets it).
   // How many bookings each day can take. Change the numbers any time.
@@ -60,9 +61,9 @@ const TABS = {
   Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
-  Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded'],
+  Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
   Achievements: ['member_id','achievement','earned_on','points','note','key'],
-  Posts:        ['member_id','platform','date','link','status','caption','likes','views'],
+  Posts:        ['member_id','platform','date','link','status','caption','likes','views','booking_id','assets'],
   Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
   Subscribers:  ['email','created','source','consent','status','token','member_id'],
   Press:        ['created','artist','email','outlet','title','url','quote','approved'],
@@ -156,6 +157,7 @@ function doGet(e) {
   if (q.mod) return modList_(q.mod);
   if (q.hq) return ownerStats_(q.hq);
   if (q.live) return json_(liveState_());
+  if (q.review) return reviewPost_(q.review, q.d, q.t);
   if (q.notices) return json_({ ok: true, notices: noticesPublic_() });
   if (q.hall) return json_(hallOfFame_());
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
@@ -262,8 +264,17 @@ function handleBooking_(kind, p) {
   if (member && !inGoodStanding_(member)) { log_('booking refused: ' + standing_(member), memberId + ' ' + kind); notify_('Booking refused (member ' + standing_(member) + '): ' + memberId, JSON.stringify(p).slice(0, 800)); return text_('refused: bookings are paused while your membership is ' + (/locked|archived/i.test(String(member.status)) ? 'unpaid' : standing_(member))); }
   // Booking is for active members only: unpaid sign-ups can't book yet
   if (member && !/^active/i.test(String(member.status))) { log_('booking refused: membership not active (' + member.status + ')', memberId + ' ' + kind); return text_('refused: booking opens once your membership payment has gone through. If you did not finish paying, reply to your welcome email and we will send you the payment link'); }
+  // Social posts: members only, assets required, at least 3 days ahead (time for the content check and your yes/no)
+  if (kind === 'social-post') {
+    if (!member) return text_('refused: social posts are for artist members. Use the email you joined with');
+    if (!/^https?:\/\//i.test(String(p.assets || ''))) return text_('refused: add a link to your image or video (Google Drive, Dropbox…), shared so anyone with the link can view');
+    const min = new Date(); min.setHours(0, 0, 0, 0); min.setDate(min.getDate() + SETTINGS.socialLeadDays);
+    if (!date || new Date(isoDate_(date) + 'T12:00:00') < min) return text_('refused: book social posts at least ' + SETTINGS.socialLeadDays + ' days ahead, so we can check the content in time');
+    if (String(p.content_ok || '') !== 'yes') return text_('refused: please tick the content rules box');
+  }
   const title = p.title || p.link || '';
   let eventId = '';
+  const socialId = kind === 'social-post' ? 'SP-' + Utilities.getUuid().replace(/-/g, '').slice(0, 6).toUpperCase() : '';
   // Release slots: dates are subject to availability
   const full = /release/.test(kind) && date && SETTINGS.maxReleasesPerWeek > 0 &&
     rows_('Bookings').filter(r => /release/.test(r.kind) && !/cancel|full/i.test(String(r.status)) && r.date && weekKey_(r.date) === weekKey_(date)).length >= SETTINGS.maxReleasesPerWeek;
@@ -279,13 +290,18 @@ function handleBooking_(kind, p) {
     notify_('Booking date full: ' + kind + ' – ' + (p.artist || ''), date + ' was already full. Reply with the next free day: ' + nextFreeDate_(kind, isoDate_(date)) + '\n' + sheetUrl_()); return text_('ok'); }
   if (date && !full) eventId = addToCalendar_(kind, p, date);
   append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
-    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : 'requested', calendar_event_id: eventId });
+    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : kind === 'social-post' ? 'awaiting review' : 'requested', calendar_event_id: eventId,
+    booking_id: kind === 'social-post' ? socialId : '', review_token: kind === 'social-post' ? Utilities.getUuid().replace(/-/g, '') : '' });
+  if (kind === 'social-post' && p.email) try {
+    MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Social post booked: we\'re checking it (' + socialId + ')',
+      body: 'Thanks! Your social post for ' + isoDate_(date) + ' is booked.\n\nWhat happens next:\n1. We check your link and artwork against the RRR Code of Conduct.\n2. You get an email when it\'s approved, with the time it goes live.\n3. It posts automatically on the day.\n\nYou can follow it on your dashboard: ' + SETTINGS.siteUrl + 'member.html\n\nBooking ' + socialId + '\n\nRetro Reverb Records' });
+  } catch (e) { log_('social booked email failed', String(e)); }
   if (full) notify_('⚠ Release week full: ' + (p.artist || '') + ' – ' + title, 'Requested ' + date + '. That week already has ' + SETTINGS.maxReleasesPerWeek +
     ' release(s). Reply to ' + (p.email || 'the artist') + ' with the nearest free date, then change the status in the Bookings tab.\n' + sheetUrl_());
   if (memberId) {
     if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title, 'releaseBooked'); }
     if (kind === 'youtube-upload') addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title, 'videoBooked');
-    if (kind === 'social-post') { award_(memberId, 'firstPost'); addPoints_(memberId, POINTS.postBooked, 'Social post booked', 'postBooked'); append_('Posts', { member_id: memberId, platform: [].concat(p.platform || []).join(', '), date: date, link: p.link, status: 'booked' }); }
+    if (kind === 'social-post') { award_(memberId, 'firstPost'); addPoints_(memberId, POINTS.postBooked, 'Social post booked', 'postBooked'); append_('Posts', { member_id: memberId, platform: [].concat(p.platform || []).join(', '), date: date, link: p.link, status: 'awaiting review', caption: String(p.caption || '').slice(0, 2000), booking_id: socialId, assets: p.assets || '' }); }
     if (kind === 'youtube-upload') award_(memberId, 'firstVideo');
   }
   notify_('New RRR booking: ' + kind + ' – ' + (p.artist || '') + ' – ' + title,
@@ -297,6 +313,25 @@ function weekKey_(d) {
   const x = new Date(d); if (isNaN(x)) return '';
   const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day);
   return Utilities.formatDate(x, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+// SOCIAL POSTS: owner says yes or no from the review email (links carry a one-off token per booking)
+function reviewPost_(id, d, t) {
+  const page = (title, msg) => HtmlService.createHtmlOutput('<div style="font:16px/1.5 Arial;max-width:520px;margin:40px auto;padding:24px;border-radius:12px;background:#110E2B;color:#F3EEFF"><h2 style="color:#FF2FA8;margin:0 0 8px">' + title + '</h2><p>' + msg + '</p></div>').setTitle('RRR post review');
+  const b = findRow_('Bookings', 'booking_id', String(id || '').toUpperCase());
+  if (!b || !t || String(b.review_token) !== String(t)) return page('Link not valid', 'This review link is wrong or has expired.');
+  if (!/awaiting review/i.test(String(b.status))) return page('Already decided', 'This post is already <b>' + b.status + '</b>. Nothing changed.');
+  const yes = /^y/i.test(String(d || '')), when = isoDate_(b.date);
+  updateRow_('Bookings', 'booking_id', b.booking_id, { status: yes ? 'approved' : 'rejected' });
+  updateRow_('Posts', 'booking_id', b.booking_id, { status: yes ? 'approved' : 'rejected' });
+  if (!yes && b.calendar_event_id) try { const ev = getCalendar_().getEventById(b.calendar_event_id); if (ev) ev.deleteEvent(); } catch (e) {}
+  if (b.email) try {
+    MailApp.sendEmail({ to: b.email, name: 'Retro Reverb Records',
+      subject: yes ? '✅ Your social post is approved (' + when + ')' : 'Your social post wasn\'t approved (' + b.booking_id + ')',
+      body: yes ? 'Good news: your post is approved and will go live on ' + when + ' on the RRR accounts you chose. Nothing else to do.\n\nBooking ' + b.booking_id + '\nRetro Reverb Records'
+               : 'Thanks for booking. This post didn\'t pass our content check (RRR Code of Conduct: ' + SETTINGS.siteUrl + 'code-of-conduct.html), so it won\'t go out and your slot is free again.\n\nYou\'re welcome to book a new post with different content. Think we got it wrong? Just reply to this email and we\'ll take another look.\n\nBooking ' + b.booking_id + '\nRetro Reverb Records' });
+  } catch (e) { log_('review email failed', String(e)); }
+  return page(yes ? '✅ Approved' : '❌ Rejected', (b.artist || '') + ' – ' + when + '. ' + (yes ? 'It will be scheduled automatically.' : 'The artist has been told, and the slot is free again.'));
 }
 
 function addToCalendar_(kind, p, isoDate) {
@@ -1246,7 +1281,7 @@ function processDisputesNow() {
 function holdsSlot_(r) {
   const st = String(r.status);
   if (/^confirmed/i.test(st)) return true;
-  return SETTINGS.paidKinds.indexOf(r.kind) < 0 && /^requested/i.test(st);
+  return SETTINGS.paidKinds.indexOf(r.kind) < 0 && /^(requested|awaiting review|approved|scheduled|posted)/i.test(st);
 }
 function slotsTaken_(kind, iso) {
   return rows_('Bookings').filter(r => r.kind === kind && holdsSlot_(r) && isoDate_(r.date) === iso).length;

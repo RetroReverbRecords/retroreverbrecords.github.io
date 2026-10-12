@@ -410,7 +410,7 @@ window.rrrSend = function(url, data, onProblem){
         };
         dateIn.addEventListener('change', check);
         // Availability calendar: free days in green, taken in red, too soon in grey. Click a free day to pick it.
-        const DL = C.deadlines || {}, lead = { 'bandcamp-release': DL.bandcampAssetsDays ?? 14, 'streaming-release': DL.streamingAssetsDays ?? 21, 'youtube-upload': 3, 'social-post': 2 }[f.dataset.kind] ?? 3;
+        const DL = C.deadlines || {}, lead = { 'bandcamp-release': DL.bandcampAssetsDays ?? 14, 'streaming-release': DL.streamingAssetsDays ?? 21, 'youtube-upload': 3, 'social-post': 3 }[f.dataset.kind] ?? 3;
         const isoOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         const first = new Date(); first.setHours(12, 0, 0, 0); first.setDate(first.getDate() + lead);
         dateIn.min = isoOf(first);

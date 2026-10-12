@@ -378,14 +378,8 @@ function handlePayPal_(e) {
   if (t === 'subscr_eot' && mem && /^cancelled/i.test(String(mem.status))) setStatus('ended');
   else if (t === 'subscr_failed' || t === 'subscr_eot') startPaymentChase_(mem);
 
-  // 4. Tell the owner straight away
-  const who = memberId || p.payer_email;
-  const nice = {
-    subscr_signup: 'NEW SUBSCRIPTION', subscr_payment: 'Subscription payment', subscr_cancel: 'Subscription cancelled',
-    subscr_eot: 'Subscription ended', subscr_failed: 'Subscription payment failed', web_accept: 'One-off payment'
-  }[t] || ('PayPal: ' + t);
-  notify_('RRR ' + nice + ' – ' + who + ' – ' + (p.mc_gross || p.mc_amount3 || '') + ' ' + (p.mc_currency || ''),
-    'Item: ' + (p.item_name || '') + '\nPayer: ' + (p.payer_email || '') + '\nMember ID: ' + (memberId || 'none') + '\n\nPayments sheet: ' + sheetUrl_());
+  // 4. Tell the owner straight away: one clear alert for every payment
+  paymentAlert_(p, memberId);
   return text_('ok');
 }
 
@@ -617,6 +611,27 @@ function newMemberId_() {
   return id;
 }
 function getCalendar_() { const c = CalendarApp.getCalendarsByName(SETTINGS.calendarName); return c.length ? c[0] : CalendarApp.createCalendar(SETTINGS.calendarName); }
+// Payment alert email: what it was, how much, from whom
+function paymentAlert_(p, memberId) {
+  const t = p.txn_type || '', amt = p.mc_gross || p.mc_amount3 || '', cur = p.mc_currency || '';
+  const money = (cur === 'EUR' ? '€' : cur === 'GBP' ? '£' : cur === 'USD' ? '$' : cur + ' ') + amt;
+  const who = p.payer_business_name || ((p.first_name || '') + ' ' + (p.last_name || '')).trim() || p.payer_email || 'someone';
+  const items = [];
+  if (p.item_name) items.push(p.item_name + (p.quantity && p.quantity !== '1' ? ' ×' + p.quantity : ''));
+  for (let i = 1; i <= Number(p.num_cart_items || 0); i++) items.push((p['item_name' + i] || 'item') + (p['quantity' + i] && p['quantity' + i] !== '1' ? ' ×' + p['quantity' + i] : '') + (p['mc_gross_' + i] ? ' (' + p['mc_gross_' + i] + ' ' + cur + ')' : ''));
+  const bandcamp = /bandcamp/i.test(String(p.payer_email) + ' ' + String(p.payer_business_name));
+  const st = String(p.payment_status || '');
+  let kind = { subscr_signup: 'New membership', subscr_payment: 'Membership payment', subscr_cancel: 'Membership cancelled', subscr_eot: 'Membership ended', subscr_failed: 'Membership payment FAILED' }[t];
+  if (!kind) kind = bandcamp ? 'Bandcamp sale (your share)' : (t === 'cart' ? 'Shop order' : t === 'web_accept' ? 'Website payment' : t === 'send_money' ? 'Money received' : 'PayPal ' + t);
+  const bad = /refunded|reversed|denied|failed/i.test(st) || /failed|cancel|eot/.test(t);
+  const subject = (bad ? '⚠️ ' : '💰 ') + 'RRR ' + kind + ': ' + (amt ? money + ' – ' : '') + (items[0] || who) + (bad && st ? ' (' + st + ')' : '');
+  const addr = [p.address_name, p.address_street, p.address_city, p.address_zip, p.address_country].filter(Boolean).join(', ');
+  const body = kind + (amt ? '\nAmount: ' + money + (p.mc_fee ? ' (PayPal fee ' + p.mc_fee + ')' : '') : '') + (p.mc_shipping && Number(p.mc_shipping) ? '\nShipping paid: ' + p.mc_shipping + ' ' + cur : '') +
+    '\nFrom: ' + who + (p.payer_email ? ' <' + p.payer_email + '>' : '') + (memberId ? '\nMember ID: ' + memberId : '') +
+    (items.length ? '\n\nItems:\n- ' + items.join('\n- ') : '') + (addr ? '\n\nShip to: ' + addr : '') + (p.memo ? '\n\nNote from buyer: ' + p.memo : '') +
+    '\n\nStatus: ' + (st || t) + (p.txn_id ? '\nPayPal transaction: ' + p.txn_id : '') + '\n\nPayments sheet: ' + sheetUrl_();
+  notify_(subject, body);
+}
 function notify_(subject, body) { MailApp.sendEmail(SETTINGS.ownerEmail, subject, body); }
 function log_(what, detail) { try { sheet_('Log').appendRow([new Date(), what, detail]); } catch (e) {} }
 function text_(s) { return ContentService.createTextOutput(s); }

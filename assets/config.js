@@ -82,7 +82,7 @@ window.RRR_CONFIG = {
   liveShow: {
     name: "The Bandcamp Hour",
     host: "Cybertronix and Eden Future",
-    schedule: "Sundays 3pm, Tuesdays 10pm and Wednesdays 2am (UK time) on Spectrum On Air",
+    schedule: "Sundays 3–5pm UK (4–6pm Italy), plus Tuesdays 10pm and Wednesdays 2am UK, on Spectrum On Air",
     mixcloud: "https://www.mixcloud.com/spectrumonair/"
   },
 

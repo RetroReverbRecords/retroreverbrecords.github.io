@@ -31,7 +31,5 @@ window.RRR_CARDS = {
   // serial: Season-Card-Edition-Copy, e.g. S1-01-P-0007
   // hash:   made by card-maker.html from serial + check code
   issued: [
-    // DEMO so you can try the checker. Serial DEMO-01-P-0000, code SYNTH-DEMO. Delete before launch.
-    { serial: "DEMO-01-P-0000", hash: "e53669f85848ed012a175eb63c6585e136657878b7a8ebe31e8c959b81ee215e", of: 50, issuedOn: "2026-09-29", demo: true }
   ]
 };

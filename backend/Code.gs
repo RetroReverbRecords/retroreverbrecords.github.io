@@ -63,6 +63,7 @@ const TABS = {
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
   Achievements: ['member_id','achievement','earned_on','points','note','key'],
+  CardClaims:   ['created','member_id','artist','email','style','photo','instrument','fun_stat','fact','ideas','status','due','card_no','notes'],
   Posts:        ['member_id','platform','date','link','status','caption','likes','views','booking_id','assets'],
   Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
   Subscribers:  ['email','created','source','consent','status','token','member_id'],
@@ -124,6 +125,7 @@ function doPost(e) {
     if (kind === 'claim') return handleClaim_(p);
     if (kind === 'rrr-release') return handleReleaseSubmission_(p);
     if (kind === 'withdrawal') return handleWithdrawal_(p);
+    if (kind === 'card-claim') return handleCardClaim_(p);
     if (kind === 'ai-result') return handleAiResult_(p);
     if (kind === 'ai-dispute') return handleDispute_(p);
     if (kind === 'feedback') {
@@ -316,6 +318,24 @@ function weekKey_(d) {
 }
 
 // SOCIAL POSTS: owner says yes or no from the review email (links carry a one-off token per booking)
+// SYNTH STARS: artist members claim their free card; RRR designs it within 4 weeks
+function handleCardClaim_(p) {
+  const id = String(p.member_id || '').trim().toUpperCase(), em = String(p.email || '').trim().toLowerCase();
+  const m = findRow_('Members', 'member_id', id);
+  if (!m || String(m.email).trim().toLowerCase() !== em) return text_('refused: that member ID and email don\'t match. Use the email you joined with');
+  if (m.type !== 'artist' || !/^active/i.test(String(m.status))) return text_('refused: cards are for active artist members');
+  if (rows_('CardClaims').some(r => r.member_id === id && !/rejected|cancel/i.test(String(r.status)))) return text_('refused: you\'ve already claimed your card. We\'ll be in touch');
+  if (String(p.likeness_ok) !== 'yes' || String(p.stats_ok) !== 'yes') return text_('refused: please tick both boxes');
+  const due = new Date(); due.setDate(due.getDate() + 28);
+  append_('CardClaims', { created: new Date(), member_id: id, artist: String(p.artist || '').slice(0, 30), email: m.email, style: String(p.style || '').slice(0, 24),
+    photo: String(p.photo || '').slice(0, 500), instrument: String(p.instrument || '').slice(0, 24), fun_stat: String(p.fun_stat || '').slice(0, 24),
+    fact: String(p.fact || '').slice(0, 70), ideas: String(p.ideas || '').slice(0, 400), status: 'new', due: due });
+  try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: '🃏 Your Synth Stars card is on its way',
+    body: 'Thanks ' + (p.artist || '') + '! We\'ve got your photo and details.\n\nWhat happens next:\n1. We design your card (within 4 weeks, by ' + Utilities.formatDate(due, Session.getScriptTimeZone(), 'd MMM yyyy') + ').\n2. We email you a preview. You can ask for one round of changes.\n3. Your card joins Season 1 on ' + SETTINGS.siteUrl + 'cards.html\n\nRetro Reverb Records' }); } catch (e) { log_('card claim email failed', String(e)); }
+  notify_('🃏 New card claim: ' + (p.artist || id), 'Member ' + id + '\nStyle: ' + (p.style || '') + '\nInstrument: ' + (p.instrument || '') + '\nFun stat: ' + (p.fun_stat || '') + '\nFact: ' + (p.fact || '') + '\nIdeas: ' + (p.ideas || '-') + '\nPhoto: ' + (p.photo || '') + '\nDue: ' + due.toDateString() + '\n\nCardClaims tab: ' + sheetUrl_());
+  return text_('ok');
+}
+
 function reviewPost_(id, d, t) {
   const page = (title, msg) => HtmlService.createHtmlOutput('<div style="font:16px/1.5 Arial;max-width:520px;margin:40px auto;padding:24px;border-radius:12px;background:#110E2B;color:#F3EEFF"><h2 style="color:#FF2FA8;margin:0 0 8px">' + title + '</h2><p>' + msg + '</p></div>').setTitle('RRR post review');
   const b = findRow_('Bookings', 'booking_id', String(id || '').toUpperCase());

@@ -59,15 +59,39 @@
     const sKey = grid.dataset.season || 'S1';
     const season = (K.seasons || {})[sKey] || { size: 52 };
     const roster = (K.roster || {})[sKey] || {};
-    let html = '';
+    // Revealed cards, then a few "coming next" slots; the rest stay folded away
+    const shown = [], NEXT = 5;
+    let blanks = 0;
     for (let n = 1; n <= season.size; n++) {
       const id = String(n).padStart(2, '0'), a = roster[id];
-      html += a
-        ? `<figure class="slot filled">${a.image ? `<img src="${esc(a.image)}" alt="${esc(a.artist)} card" loading="lazy">` : ''}<figcaption><span class="num">${id}</span> ${esc(a.artist)}</figcaption></figure>`
-        : `<figure class="slot"><div class="blank"><span>?</span></div><figcaption><span class="num">${id}</span> To be revealed</figcaption></figure>`;
+      if (a) shown.push(`<figure class="slot filled">${a.image ? `<img src="${esc(a.image)}" alt="${esc(a.artist)} card" loading="lazy">` : ''}<figcaption><span class="num">${id}</span> ${esc(a.artist)}</figcaption></figure>`);
+      else if (blanks++ < NEXT) shown.push(`<figure class="slot"><div class="blank"><span>?</span></div><figcaption><span class="num">${id}</span> Coming next</figcaption></figure>`);
     }
-    grid.innerHTML = html;
+    const left = season.size - Object.keys(roster).length;
+    if (left > NEXT) shown.push(`<a class="slot more" href="#claim"><div class="blank"><span>+${left - NEXT}</span></div><figcaption>more to reveal · <b>claim yours</b></figcaption></a>`);
+    grid.innerHTML = shown.join('');
     const count = $('#roster-count'); if (count) count.textContent = `${Object.keys(roster).length} of ${season.size} revealed`;
+  }
+
+  /* ---------- claim your card ---------- */
+  const claim = $('#claim-form');
+  if (claim) {
+    const C = window.RRR_CONFIG || {}, url = C.automationUrl || '', st = $('#claim-status');
+    let beta = false; try { beta = !!C.betaKey && localStorage.getItem('rrr-beta') === C.betaKey; } catch (e) {}
+    const open = !!(url && (C.signupOpen || beta));
+    $('#claim-fields').disabled = !open;
+    const say = (ok, h) => { st.classList.toggle('open', ok); st.innerHTML = `<span class="dot"></span><span>${h}</span>`; };
+    say(open, open ? '<strong>Claims are open.</strong> Free for artist members.' : '<strong>Coming soon.</strong> Card claims open when membership launches.');
+    claim.addEventListener('submit', async e => {
+      e.preventDefault();
+      const missing = [...claim.querySelectorAll('[required]')].filter(x => x.type === 'checkbox' ? !x.checked : !x.value.trim() || !x.checkValidity());
+      if (missing.length) { say(false, '<strong>Please fill in:</strong> ' + missing.map(x => esc((x.closest('label') || {}).textContent || x.name).split('(')[0].trim().slice(0, 40)).join(', ')); missing[0].focus(); return; }
+      const data = new URLSearchParams(); new FormData(claim).forEach((v, k) => data.append(k, v)); data.append('form', 'card-claim');
+      const btn = claim.querySelector('[type=submit]'); btn.disabled = true; btn.textContent = 'Sending…';
+      try { await window.rrrSend(url, data); say(true, '<strong>Claimed ✓</strong> Check your email. We\'ll show you your card before it goes live, within 4 weeks.'); claim.reset(); if (window.rrrChime) window.rrrChime(); }
+      catch (err) { say(false, '<strong>That didn\'t send.</strong> Check your connection and try again.'); }
+      btn.disabled = false; btn.textContent = 'Claim my card';
+    });
   }
 
   /* ---------- card maker (owner tool) ---------- */

@@ -857,3 +857,7 @@ fieldset{min-width:0;min-inline-size:0}
 @media (max-width:420px){.choice span{flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px}}
 .choice em span{display:inline;padding:0;border:0;background:none;box-shadow:none;border-radius:0}
 .nl-fields label.agree{display:flex;gap:10px;align-items:center}.nl-fields label.agree input{margin:0;flex:none}
+
+/* Cards: claim form example + folded roster */
+.claimex img{width:100%;height:auto;border-radius:8px;margin:8px 0 12px;box-shadow:0 0 24px rgba(155,92,255,.3)}
+.slot.more{text-decoration:none;color:inherit}.slot.more .blank span{font:700 22px var(--head);color:var(--pink)}

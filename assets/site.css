@@ -834,3 +834,15 @@ label.wdetail textarea{width:100%;min-height:80px;background:#05060d;color:#e6e6
 .chip{font:600 13px var(--mono,monospace);padding:7px 12px;border-radius:20px;border:1px solid #3a2f6b;background:#120d2a;color:#e6e6f0;cursor:pointer}
 .chip:hover{border-color:#34d8ff}
 .chip.on{border-color:#ff2fa8;color:#ff2fa8;box-shadow:0 0 10px rgba(255,47,168,.3)}
+
+/* Friends of the label (Live page) */
+.friend{display:grid;grid-template-columns:120px 1fr;gap:28px;align-items:center;padding:28px;margin-top:24px}
+.friend-logo{width:120px;height:120px;border-radius:50%;box-shadow:0 0 0 1px var(--line),0 0 28px rgba(155,92,255,.35)}
+.friend-body h2{margin:8px 0 6px}
+.friend-body>p{margin:0 0 14px;color:var(--muted)}
+.friend-facts{display:flex;flex-wrap:wrap;gap:10px 28px;margin:0 0 18px}
+.friend-facts div{border-left:2px solid var(--pink);padding-left:12px}
+.friend-facts dt{font:500 11px/1.4 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+.friend-facts dd{margin:2px 0 0;font-weight:600}
+.friend-links{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;margin:0}
+@media (max-width:640px){.friend{grid-template-columns:1fr;justify-items:center;text-align:center;padding:22px 18px}.friend-facts,.friend-links{justify-content:center}.friend-facts div{border-left:0;padding-left:0}}

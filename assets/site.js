@@ -715,3 +715,14 @@ document.querySelectorAll('[data-discord]').forEach(a => { const c = window.RRR_
   fetch(url + (url.includes('?') ? '&' : '?') + 'notices=1').then(r => r.json()).then(d => paint((d && d.notices) || [])).catch(() => paint([]));
 })();
 
+
+/* Links typed without https:// (e.g. "name.bandcamp.com") are fixed automatically, so phones don't reject them */
+(function(){
+  const fix = el => {
+    if (!el || el.type !== 'url') return;
+    const v = el.value.trim();
+    if (v && !/^[a-z][a-z0-9+.-]*:\/\//i.test(v) && /^[^\s]+\.[^\s]+$/.test(v)) el.value = 'https://' + v.replace(/^\/+/, '');
+  };
+  ['blur', 'change'].forEach(t => document.addEventListener(t, e => fix(e.target), true));
+  document.addEventListener('submit', e => { e.target.querySelectorAll && e.target.querySelectorAll('input[type=url]').forEach(fix); }, true);
+})();

@@ -64,12 +64,13 @@
     let blanks = 0;
     for (let n = 1; n <= season.size; n++) {
       const id = String(n).padStart(2, '0'), a = roster[id];
-      if (a) shown.push(`<figure class="slot filled">${a.image ? `<img src="${esc(a.image)}" alt="${esc(a.artist)} card" loading="lazy">` : ''}<figcaption><span class="num">${id}</span> ${esc(a.artist)}</figcaption></figure>`);
+      if (a) shown.push(`<figure class="slot filled${a.back ? ' flip' : ''}" ${a.back ? 'tabindex="0" title="Tap to flip"' : ''}><div class="faces">${a.image ? `<img class="front" src="${esc(a.image)}" alt="${esc(a.artist)} card" loading="lazy">` : ''}${a.back ? `<img class="back" src="${esc(a.back)}" alt="${esc(a.artist)} card, back" loading="lazy">` : ''}</div><figcaption><span class="num">${id}</span> ${esc(a.artist)}${a.value ? ` <b class="cval">${esc(a.value)}</b>` : ''}</figcaption></figure>`);
       else if (blanks++ < NEXT) shown.push(`<figure class="slot"><div class="blank"><span>?</span></div><figcaption><span class="num">${id}</span> Coming next</figcaption></figure>`);
     }
     const left = season.size - Object.keys(roster).length;
     if (left > NEXT) shown.push(`<a class="slot more" href="#claim"><div class="blank"><span>+${left - NEXT}</span></div><figcaption>more to reveal · <b>claim yours</b></figcaption></a>`);
     grid.innerHTML = shown.join('');
+    grid.querySelectorAll('.flip').forEach(f => { const t = () => f.classList.toggle('flipped'); f.addEventListener('click', t); f.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); t(); } }); });
     const count = $('#roster-count'); if (count) count.textContent = `${Object.keys(roster).length} of ${season.size} revealed`;
   }
 

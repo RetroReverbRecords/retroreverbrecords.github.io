@@ -861,3 +861,16 @@ fieldset{min-width:0;min-inline-size:0}
 /* Cards: claim form example + folded roster */
 .claimex img{width:100%;height:auto;border-radius:8px;margin:8px 0 12px;box-shadow:0 0 24px rgba(155,92,255,.3)}
 .slot.more{text-decoration:none;color:inherit}.slot.more .blank span{font:700 22px var(--head);color:var(--pink)}
+
+/* Synth Stars: flip cards (front/back) */
+.slot .faces{position:relative;display:grid}
+.slot .faces img{grid-area:1/1;width:100%;height:auto;backface-visibility:hidden;transition:transform .6s;border-radius:6px}
+.slot.flip{cursor:pointer;perspective:900px}
+.slot .faces .back{transform:rotateY(180deg)}
+.slot.flipped .faces .front{transform:rotateY(180deg)}
+.slot.flipped .faces .back{transform:rotateY(0)}
+.cval{color:var(--pink);font-family:var(--mono)}
+.mycard{display:grid;grid-template-columns:minmax(0,220px) 1fr;gap:22px;align-items:center}
+.mycard .slot{margin:0}
+@media (max-width:560px){.mycard{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.paynow{border-color:var(--pink)!important}

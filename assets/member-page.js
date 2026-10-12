@@ -128,6 +128,28 @@
     }).join('');
   }
 
+  // Members who signed up but haven't finished paying get their payment button back here
+  function payNow(m){
+    const P = C.payments || {}, amt = ((C.membershipPrices || {})[m.type === 'fan' ? 'fan' : 'artist']) || 0;
+    if (!P.paypalEmail || !amt) return '';
+    const q = new URLSearchParams({ business: P.paypalEmail, currency_code: 'EUR', no_shipping: '1', charset: 'utf-8', cmd: '_xclick-subscriptions',
+      item_name: 'RRR ' + (m.type === 'fan' ? 'Fan' : 'Artist') + ' Membership', a3: Number(amt).toFixed(2), p3: '1', t3: 'M', src: '1', custom: m.id,
+      return: (C.siteUrl || '') + 'member.html?id=' + encodeURIComponent(m.id) });
+    if (C.automationUrl) q.set('notify_url', C.automationUrl);
+    return `<div class="panel nextstep paynow"><span class="label">One step left</span><p><b>Finish setting up your monthly payment</b> (€${Number(amt).toFixed(2)}/month). Your account goes live as soon as it arrives.</p>
+      <p><a class="btn primary" href="https://www.paypal.com/cgi-bin/webscr?${q.toString()}" target="_blank" rel="noopener">Pay with PayPal or card</a></p>
+      <p class="small">On a phone, open this page in Safari or Chrome (not inside WhatsApp or Instagram) so PayPal loads properly.</p></div>`;
+  }
+  // Your Synth Stars card (from cards.js), or a link to claim one
+  function myCard(m, demo){
+    const R = ((window.RRR_CARDS || {}).roster || {}), hit = [];
+    Object.keys(R).forEach(s => Object.keys(R[s]).forEach(n => { if (R[s][n].member === m.id) hit.push(Object.assign({ season: s, no: n }, R[s][n])); }));
+    if (!hit.length) return demo ? '' : `<div class="panel nextstep"><span class="label">Synth Stars</span><p><b>Claim your free card.</b> We make a one-of-a-kind collector card of you within 4 weeks.</p><p><a class="btn ghost" href="cards.html#claim">Claim my card</a></p></div>`;
+    const c = hit[0];
+    return `<h3 class="subhead">My Synth Stars card <span class="small"><a href="cards.html#season">see the season</a></span></h3>
+      <div class="panel pad mycard"><figure class="slot filled${c.back ? ' flip' : ''}" ${c.back ? 'tabindex="0" title="Tap to flip" onclick="this.classList.toggle(\'flipped\')"' : ''}><div class="faces"><img class="front" src="${esc(c.image)}" alt="${esc(c.artist)} card">${c.back ? `<img class="back" src="${esc(c.back)}" alt="${esc(c.artist)} card, back">` : ''}</div></figure>
+      <div><p class="label">Season ${esc(String(c.season).replace(/^S/, ''))} · card ${esc(c.no)} of 52</p><h3 style="margin:6px 0">${esc(c.artist)}${c.value ? ` <b class="cval">${esc(c.value)}</b>` : ''}</h3><p class="small">${esc(c.style || '')}</p>${c.back ? '<p class="small">Tap the card to flip it.</p>' : ''}</div></div>`;
+  }
   function render(m, demo, notLive){
     const pts = Number(m.points) || 0;
     // The belt comes from RRR (it includes time in grade); older data falls back to points
@@ -135,7 +157,7 @@
     const from = belt.min, to = nb ? nb.min : null;
     const pct = to ? Math.max(0, Math.min(100, Math.round((pts - from) / (to - from) * 100))) : 100;
     const earned = new Set((m.achievements || []).map(a => a.title));
-    const statusLabel = s => ({ 'live': 'Live', 'posted': 'Posted', 'booked': 'Booked', 'requested': 'Requested', 'assets received': 'Assets in' }[String(s).toLowerCase()] || s || '–');
+    const statusLabel = s => ({ 'live': 'Live', 'posted': 'Posted', 'booked': 'Booked', 'requested': 'Requested', 'assets received': 'Assets in', 'awaiting review': 'Being checked', 'approved': 'Approved', 'scheduled': 'Scheduled', 'rejected': 'Not approved', 'post failed': 'Problem' }[String(s).toLowerCase()] || s || '–');
     const kindLabel = k => ({ 'bandcamp-release': 'Bandcamp', 'streaming-release': 'Streaming' }[k] || k);
     const s = m.stats;
     $('#dash').innerHTML = `
@@ -160,6 +182,8 @@
         </div>
       </div>
 
+      ${!demo && /pending payment/i.test(String(m.status || '')) ? payNow(m) : ''}
+      ${m.type === 'artist' ? myCard(m, demo) : ''}
       ${m.type === 'artist' ? `
       <h3 class="subhead">RRR status <span class="small"><a href="series.html">about Selected Releases</a></span></h3>
       <div class="statusgrid">

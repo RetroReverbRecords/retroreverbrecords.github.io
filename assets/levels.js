@@ -50,11 +50,16 @@ window.RRR_LEVELS = {
       { action: "Sign up to the newsletter", pts: 5, how: "auto" }
     ]},
     { group: "Your own journey", items: [
-      { action: "Join the community", pts: 10, how: "auto" },
+      { action: "Join the community (once your first payment goes through)", pts: 10, how: "auto" },
       { action: "Every month as an active member", pts: 10, how: "auto" },
+      { action: "Bonus: 3 months a member", pts: 30, how: "auto", cap: "once" },
+      { action: "Bonus: 1 year a member", pts: 120, how: "auto", cap: "once" },
       { action: "Book a release", pts: 15, how: "auto", cap: "1 a week" },
+      { action: "Bonus: your first release booking", pts: 15, how: "auto", cap: "once" },
       { action: "Book a social post", pts: 5, how: "auto", cap: "up to 4 a week" },
+      { action: "Bonus: your first social post booking", pts: 5, how: "auto", cap: "once" },
       { action: "Book a YouTube premiere", pts: 5, how: "auto" },
+      { action: "Bonus: your first YouTube premiere", pts: 5, how: "auto", cap: "once" },
       { action: "A review or feature about you approved on the Press wall", pts: 20, how: "auto" },
       { action: "Release selected for an RRR series", pts: 50, how: "auto" }
     ]}

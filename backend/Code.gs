@@ -187,7 +187,7 @@ function handleSignup_(p) {
     plan: p.type === 'artist' ? 'Artist' : 'Fan', points: 0, rank: 'White belt', public: 'yes',
     artist_type: p.type === 'artist' ? 'Member' : '', bandcamp_linked: p.type === 'artist' ? 'no' : ''
   });
-  award_(id, 'joined');
+  if (isDemo_(p.email)) award_(id, 'joined'); // real members get their joining points when the first payment arrives
 
   // Signed agreement: stored, and a copy emailed to the member
   const isArtist = p.type === 'artist';
@@ -260,6 +260,8 @@ function handleBooking_(kind, p) {
   const member = p.email ? findRow_('Members', 'email', p.email) : null;
   const memberId = member ? member.member_id : '';
   if (member && !inGoodStanding_(member)) { log_('booking refused: ' + standing_(member), memberId + ' ' + kind); notify_('Booking refused (member ' + standing_(member) + '): ' + memberId, JSON.stringify(p).slice(0, 800)); return text_('refused: bookings are paused while your membership is ' + (/locked|archived/i.test(String(member.status)) ? 'unpaid' : standing_(member))); }
+  // Booking is for active members only: unpaid sign-ups can't book yet
+  if (member && !/^active/i.test(String(member.status))) { log_('booking refused: membership not active (' + member.status + ')', memberId + ' ' + kind); return text_('refused: booking opens once your membership payment has gone through. If you did not finish paying, reply to your welcome email and we will send you the payment link'); }
   const title = p.title || p.link || '';
   let eventId = '';
   // Release slots: dates are subject to availability
@@ -368,6 +370,7 @@ function handlePayPal_(e) {
     const wasLocked = mem && /locked|archived|payment failed|lapsed/i.test(String(mem.status));
     setStatus('active');
     if (memberId) updateRow_('Members', 'member_id', memberId, { payment_issue_since: ' ', payment_chase: ' ' });
+    if (mem) award_(memberId, 'joined'); // once only: award_ skips it if already given
     if (mem && !/^active/i.test(String(mem.status)) && !wasLocked) { referralPoints_(memberId); notice_('joined', memberId, (mem.artist || mem.name) + ' joined the family 🎉', mem.type === 'artist' ? 'Check out their music' : '', mem.type === 'artist' && /^https:/.test(String(mem.bandcamp)) ? mem.bandcamp : ''); }
     if (wasLocked && mem.email) try { MailApp.sendEmail({ to: mem.email, name: 'Retro Reverb Records', subject: 'Welcome back to the family', body: 'Your payment came through and everything is unlocked again: bookings, points and Series. Thanks!\n\n' + SETTINGS.siteUrl + 'member.html?id=' + memberId + '\n\nRetro Reverb Records' }); } catch (e) {}
   }
@@ -1607,6 +1610,7 @@ function makeAdmin() {
   const badge = /^amb/i.test(String(t.getResponseText()).trim()) ? 'Ambassador' : 'Administrator';
   const key = Utilities.getUuid().replace(/-/g, '');
   updateRow_('Members', 'member_id', id, { role: 'Administrator', admin_key: key, status: 'active (honorary)', plan: 'honorary', standing: 'good' });
+  award_(id, 'joined');
   if (!rows_('Achievements').some(x => x.member_id === id && /^(Administrator|Ambassador)$/.test(x.achievement))) {
     recalcPoints_(id);
     const now = Number((findRow_('Members', 'member_id', id) || {}).points) || 0;

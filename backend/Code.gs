@@ -93,6 +93,7 @@ const TABS = {
   Settings:     ['key','value'],
   Codes:        ['code','action','label','points','valid_from','hours','created','note'],
   Notices:      ['created','type','member_id','name','text','action_text','action_url','public'],
+  NotifSeen:    ['member_id','key','seen_at'],
   Log:          ['time','what','detail']
 };
 
@@ -136,6 +137,7 @@ function doPost(e) {
     if (kind === 'rrr-release') return handleReleaseSubmission_(p);
     if (kind === 'withdrawal') return handleWithdrawal_(p);
     if (kind === 'card-claim') return handleCardClaim_(p);
+    if (kind === 'notif-seen') return markSeen_(p);
     if (kind === 'ai-result') return handleAiResult_(p);
     if (kind === 'ai-dispute') return handleDispute_(p);
     if (kind === 'feedback') {
@@ -414,8 +416,13 @@ function handlePayPal_(e) {
   if (String(p.receiver_email || p.business || '').toLowerCase() !== SETTINGS.paypalEmail.toLowerCase()) {
     log_('PayPal wrong receiver', p.receiver_email); return text_('ok');
   }
-  // 2. Ignore repeats
+  // 2. Ignore repeats. PayPal resends the same message (same ipn_track_id) if it isn't sure we got it,
+  // and sign-up messages have no txn_id, so also skip a second sign-up for the same subscription.
+  const cache = CacheService.getScriptCache(), trackKey = p.ipn_track_id ? 'ipn_' + p.ipn_track_id : '';
+  if (trackKey && cache.get(trackKey)) return text_('ok');
+  if (trackKey) cache.put(trackKey, '1', 21600);
   if (p.txn_id && findRow_('Payments', 'txn_id', p.txn_id)) return text_('ok');
+  if (p.txn_type === 'subscr_signup' && p.subscr_id && rows_('Payments').some(r => r.txn_type === 'subscr_signup' && String(r.subscr_id) === String(p.subscr_id))) return text_('ok');
   // Booking payment: custom = booking ID (BK-XXXXXX). Confirms the booking and takes the date.
   if (/^BK-/i.test(String(p.custom || '')) && /completed/i.test(String(p.payment_status || ''))) {
     append_('Payments', { received: new Date(), txn_type: p.txn_type, payment_status: p.payment_status, amount: p.mc_gross || '', currency: p.mc_currency,
@@ -518,9 +525,58 @@ function publicProfile_(m) {
     releases: rows_('Bookings').filter(r => r.member_id === id && /release/.test(r.kind)).map(r => ({ title: r.title, kind: r.kind, format: r.format, date: r.date, status: r.status })),
     posts: rows_('Posts').filter(r => r.member_id === id).map(r => ({ platform: r.platform, date: r.date, link: r.link, status: r.status })),
     links: { bandcamp: /^https:\/\//.test(String(m.bandcamp)) ? m.bandcamp : '', spotify: /^https:\/\/open\.spotify\.com\//.test(String(m.spotify)) ? m.spotify : '' },
+    notifications: notifications_(m),
     stats: stats ? { updated: stats.updated, spotifyListeners: stats.spotify_monthly_listeners, spotifyStreams: stats.spotify_streams, playlists: stats.playlists, youtubeViews: stats.youtube_views, tiktokViews: stats.tiktok_views, source: stats.source } : null
     // Note: email, address and payment details are never included.
   };
+}
+
+// ============================================================
+// PERSONAL NOTIFICATIONS (dashboard). How-to guides first, then personal news.
+// Each one shows once per thing; "Got it" hides it for good (NotifSeen tab).
+// ============================================================
+function notifications_(m) {
+  const id = m.member_id, u = SETTINGS.siteUrl, artist = m.type === 'artist', out = [];
+  const seen = new Set(rows_('NotifSeen').filter(r => r.member_id === id).map(r => String(r.key)));
+  const add = (key, kind, text, action, url, at) => { if (!seen.has(key)) out.push({ key: key, kind: kind, text: text, action: action || '', url: url || '', at: at || '' }); };
+  const bookings = rows_('Bookings').filter(r => r.member_id === id);
+  // How-to guides (shown until they're done or dismissed)
+  add('guide:welcome', 'guide', 'Welcome to the family! Here is how RRR works, step by step.', 'How it works', u + 'how-it-works.html');
+  if (artist) {
+    if (!bookings.some(r => /release/.test(r.kind))) add('guide:release', 'guide', 'Want to release with RRR? Pick a date for Bandcamp, streaming or both.', 'Book a release', u + 'book.html');
+    if (!bookings.some(r => r.kind === 'social-post')) add('guide:social', 'guide', 'Want a post on the RRR socials? You get ' + SETTINGS.freePostsPerMonth + ' free posts a month. Book at least ' + SETTINGS.socialLeadDays + ' days ahead.', 'Book a post', u + 'book.html#social');
+    if (!rows_('CardClaims').some(r => r.member_id === id)) add('guide:card', 'guide', 'Want your own Synth Stars card? Send a photo and a few details and we design it for you.', 'Claim my card', u + 'cards.html#claim');
+    add('guide:radio', 'guide', 'Want your track on radio, playlists and blogs? Send it to curators with RRR Submit.', 'Submit a track', u + 'submit.html');
+    if (!/^y/i.test(String(m.bandcamp_linked))) add('guide:link', 'guide', 'Link your Bandcamp to RRR: it unlocks Bandcamp releases and free Bandcamp VIP.', 'How linking works', u + 'series.html#linking');
+  } else {
+    add('guide:cards', 'guide', 'Collect Synth Stars cards of your favourite RRR artists.', 'See the cards', u + 'cards.html');
+  }
+  add('guide:points', 'guide', 'Earn points and belts by backing artists: buying, sharing, listening live. Here is the full menu.', 'Points and belts', u + 'levels.html');
+  add('guide:live', 'guide', 'Listen to The Bandcamp Hour live on Sundays 3–5pm UK and catch the code word for points.', 'Listen live', u + 'live.html');
+  // Personal news (last 45 days)
+  const since = Date.now() - 45 * 864e5, t = d => { const x = new Date(d).getTime(); return isNaN(x) ? 0 : x; };
+  rows_('Achievements').filter(r => r.member_id === id && t(r.earned_on) >= since).forEach(r => {
+    const at = t(r.earned_on), key = 'a:' + at + ':' + String(r.achievement).slice(0, 30);
+    if (r.achievement === 'Points') add(key, 'points', '+' + r.points + ' points: ' + (r.note || 'well done'), 'My points', '', r.earned_on);
+    else add(key, 'achievement', '🏅 Achievement unlocked: ' + r.achievement + (Number(r.points) ? ' (+' + r.points + ' points)' : ''), '', '', r.earned_on);
+  });
+  if (m.rank && !/^white/i.test(String(m.rank))) add('belt:' + m.rank, 'belt', '🥋 You earned your ' + m.rank + '!', 'See the belts', u + 'levels.html', m.rank_since);
+  const postText = { approved: 'Your social post was approved ✓', scheduled: 'Your social post is scheduled', posted: 'Your social post is live 🎉', rejected: "Your social post wasn't approved. Check your email for why." };
+  bookings.filter(r => r.kind === 'social-post' && postText[String(r.status).toLowerCase()] && t(r.created) >= since).forEach(r => {
+    const st = String(r.status).toLowerCase(); add('p:' + r.booking_id + ':' + st, 'post', postText[st] + ' (' + Utilities.formatDate(new Date(r.date), Session.getScriptTimeZone(), 'd MMM') + ')', '', '', r.date);
+  });
+  bookings.filter(r => /release/.test(r.kind) && /^confirmed/i.test(String(r.status)) && t(r.created) >= since).forEach(r => add('r:' + r.booking_id, 'release', 'Your release "' + r.title + '" is booked ✓ Check your email for the deadlines.', '', '', r.date));
+  rows_('Releases').filter(r => r.member_id === id && /approved/i.test(String(r.status))).forEach(r => add('s:' + r.release_id, 'series', '"' + r.title + '" was picked for the RRR Series' + (r.catalogue_no ? ' (' + r.catalogue_no + ')' : '') + ' 🎉', '', '', r.approved_on));
+  rows_('CardClaims').filter(r => r.member_id === id).forEach(r => add('c:' + String(r.status).toLowerCase(), 'card', ({ new: "We've got your card claim. We'll show you the design within 4 weeks.", ready: 'Your Synth Stars card is ready to check! Look in your email.', live: 'Your Synth Stars card is live 🎉' })[String(r.status).toLowerCase()] || 'Card update: ' + r.status, String(r.status).toLowerCase() === 'live' ? 'See it' : '', String(r.status).toLowerCase() === 'live' ? u + 'cards.html' : '', r.created));
+  // newest personal news first, guides after
+  const news = out.filter(n => n.kind !== 'guide').sort((a, b) => t(b.at) - t(a.at));
+  return news.slice(0, 15).concat(out.filter(n => n.kind === 'guide'));
+}
+function markSeen_(p) {
+  const id = String(p.member_id || '').toUpperCase(); if (!findRow_('Members', 'member_id', id)) return text_('refused: unknown member');
+  const have = new Set(rows_('NotifSeen').filter(r => r.member_id === id).map(r => String(r.key)));
+  String(p.keys || '').split('|').map(k => k.trim()).filter(k => k && k.length < 120 && !have.has(k)).slice(0, 40).forEach(k => append_('NotifSeen', { member_id: id, key: k, seen_at: new Date() }));
+  return text_('ok');
 }
 
 // ============================================================

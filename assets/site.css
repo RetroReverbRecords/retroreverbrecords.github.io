@@ -881,3 +881,14 @@ fieldset{min-width:0;min-inline-size:0}
 .statsadd{margin:14px 0;display:grid;gap:10px}
 @media (max-width:760px){.statspro{grid-template-columns:1fr}}
 .statsadd .statslink{display:grid;gap:6px;font-size:14px;color:var(--muted)}
+
+/* personal notifications on the dashboard */
+.notifbox{margin-bottom:16px;padding:16px 18px;border-color:rgba(63,208,255,.45)}
+.notifbox .nf-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.notifbox .nf-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.notifbox .nf-list li{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid rgba(255,255,255,.08)}
+.notifbox .nf-list li p{margin:0}
+.notifbox .nf-ico{font-size:20px}
+.notifbox .nf-x{background:none;border:1px solid rgba(255,255,255,.25);color:inherit;border-radius:999px;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer}
+.notifbox .nf-x:hover{border-color:#3FD0FF;color:#3FD0FF}
+@media (max-width:560px){.notifbox .nf-list li{grid-template-columns:auto 1fr}.notifbox .nf-list li .btn,.notifbox .nf-list li .nf-x{grid-column:2;justify-self:start}}

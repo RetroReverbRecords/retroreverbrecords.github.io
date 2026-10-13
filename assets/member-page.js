@@ -57,6 +57,12 @@
       { note: 'Social post booked', on: '2026-07-03', points: 5 },
       { note: 'Release booked: Night Drive', on: '2026-06-10', points: 15 }
     ],
+    notifications: [
+      { key: 'd1', kind: 'post', text: 'Your social post is live 🎉 (12 Oct)', at: '2026-10-12' },
+      { key: 'd2', kind: 'points', text: '+10 points: Bought a release on Bandcamp', at: '2026-10-10' },
+      { key: 'd3', kind: 'guide', text: 'Want your own Synth Stars card? Send a photo and a few details and we design it for you.', action: 'Claim my card', url: 'cards.html#claim' },
+      { key: 'd4', kind: 'guide', text: 'Want your track on radio, playlists and blogs? Send it to curators with RRR Submit.', action: 'Submit a track', url: 'submit.html' }
+    ],
     stats: { updated: '2026-09-28', spotifyListeners: 1840, spotifyStreams: 42310, playlists: 27, youtubeViews: 3900, tiktokViews: 12500, source: 'Songstats' }
   };
 
@@ -174,6 +180,25 @@
       <div class="panel pad mycard"><figure class="slot filled${c.back ? ' flip' : ''}" ${c.back ? 'tabindex="0" title="Tap to flip" onclick="this.classList.toggle(\'flipped\')"' : ''}><div class="faces"><img class="front" src="${esc(c.image)}" alt="${esc(c.artist)} card">${c.back ? `<img class="back" src="${esc(c.back)}" alt="${esc(c.artist)} card, back">` : ''}</div></figure>
       <div><p class="label">Season ${esc(String(c.season).replace(/^S/, ''))} · card ${esc(c.no)} of 52</p><h3 style="margin:6px 0">${esc(c.artist)}${c.value ? ` <b class="cval">${esc(c.value)}</b>` : ''}</h3><p class="small">${esc(c.style || '')}</p>${c.back ? '<p class="small">Tap the card to flip it.</p>' : ''}</div></div>`;
   }
+  /* ---------- personal notifications: how-to guides + your news; "Got it" hides each one for good ---------- */
+  function notifPanel(m, demo){
+    const list = (m.notifications || []).slice();
+    if (!list.length) return '';
+    const icon = k => ({ guide: '👉', points: '⭐', achievement: '🏅', belt: '🥋', post: '📣', release: '💿', series: '🎉', card: '🃏' }[k] || '🔔');
+    return `<div class="panel notifbox" id="notifs"><div class="nf-head"><p class="label">Your notifications · <span id="nf-count">${list.length}</span></p><button type="button" class="copy" id="nf-all">Mark all as seen</button></div>
+      <ul class="nf-list">${list.map(n => `<li data-key="${esc(n.key)}" class="nf-${esc(n.kind)}"><span class="nf-ico" aria-hidden="true">${icon(n.kind)}</span><div><p>${esc(n.text)}</p>${n.at && n.kind !== 'guide' ? `<span class="small">${esc(fmt(n.at))}</span>` : ''}</div>${n.action && n.url ? `<a class="btn ghost small-btn" href="${esc(n.url)}">${esc(n.action)}</a>` : ''}<button type="button" class="nf-x" aria-label="Got it, hide this">Got it</button></li>`).join('')}</ul></div>`;
+  }
+  function wireNotifs(m, demo){
+    const box = document.getElementById('notifs'); if (!box) return;
+    const send = keys => { if (demo || !url || !keys.length) return; const d = new URLSearchParams({ form: 'notif-seen', member_id: m.id, keys: keys.join('|') }); window.rrrSend ? window.rrrSend(url, d, () => {}) : fetch(url, { method: 'POST', body: d }); };
+    const update = () => { const n = box.querySelectorAll('li').length; const c = document.getElementById('nf-count'); if (c) c.textContent = n; if (!n) box.remove(); };
+    box.addEventListener('click', e => {
+      const x = e.target.closest('.nf-x'), a = e.target.closest('a.btn');
+      const li = e.target.closest('li'); if (!li || (!x && !a)) return;
+      send([li.dataset.key]); if (x) { li.remove(); update(); }
+    });
+    const all = document.getElementById('nf-all'); if (all) all.addEventListener('click', () => { send([...box.querySelectorAll('li')].map(li => li.dataset.key)); box.remove(); });
+  }
   function render(m, demo, notLive){
     const pts = Number(m.points) || 0;
     // The belt comes from RRR (it includes time in grade); older data falls back to points
@@ -186,6 +211,7 @@
     const s = m.stats;
     $('#dash').innerHTML = `
       ${m.standing === 'suspended' ? `<div class="panel empty" style="border-color:#ff8a8a"><b>Your membership is suspended.</b><span>Bookings, claims and submissions are paused. We've emailed you why and how to appeal. Questions: ${esc(C.email)}</span></div>` : ''}
+      ${notifPanel(m, demo)}
       ${demo ? `<p class="prov"><span>Example</span> ${notLive ? 'Member dashboards go live when the RRR automation is switched on. This is an example.' : 'This is an example dashboard with made-up numbers.'}</p>` : ''}
       <div class="dash-top">
         <div class="panel who">
@@ -259,6 +285,7 @@
         </div>
       </div>`;
     const tl = document.getElementById('try-levelup'); if (tl) tl.addEventListener('click', () => celebrate('Orange belt'));
+    wireNotifs(m, demo);
     checkLevelUp(m, demo);
   }
 })();

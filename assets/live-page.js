@@ -1,4 +1,4 @@
-/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
+/* © 2018–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 /* The Bandcamp Hour page: plays the live show when the RRR YouTube channel is live (state from site.js) */
 (function(){
   const C = window.RRR_CONFIG || {}, L = C.liveShow || {}, Y = C.youtube || {};

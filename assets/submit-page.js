@@ -1,4 +1,4 @@
-/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
+/* © 2018–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 /* RRR Submit: pick curators, send a track, pay per curator; curator applications. */
 (function(){
   const C = window.RRR_CONFIG || {}, url = C.automationUrl || '';

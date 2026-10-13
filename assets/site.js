@@ -1,4 +1,4 @@
-/* © 2016–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
+/* © 2018–2026 Retro Reverb Records. All rights reserved. Proprietary: no copying, reuse or redistribution without written permission. See LICENSE. */
 
 // Send a form to the RRR automation. Answers fast (after 0.35 s) so the page feels instant, but keeps listening:
 // if the automation then says the form was refused or failed, a clear message pops up so nobody is told

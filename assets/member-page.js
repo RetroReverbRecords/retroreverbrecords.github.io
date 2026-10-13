@@ -140,6 +140,17 @@
       <p><a class="btn primary" href="https://www.paypal.com/cgi-bin/webscr?${q.toString()}" target="_blank" rel="noopener">Pay with PayPal or card</a></p>
       <p class="small">On a phone, open this page in Safari or Chrome (not inside WhatsApp or Instagram) so PayPal loads properly.</p></div>`;
   }
+  // Bandcamp sales, read from the label's sale emails (buyers' emails are never shown)
+  function bcSales(b){
+    if (!b) return '';
+    const money = o => Object.keys(o || {}).map(k => ({ EUR: '€', GBP: '£', USD: '$' }[k] || k + ' ') + Number(o[k]).toFixed(2)).join(' + ') || '–';
+    return `<h3 class="subhead">Bandcamp sales <span class="small">through the RRR label · updated daily</span></h3>
+      <div class="tiles"><div class="panel tile"><span class="label">This month</span><b class="num">${num(b.month)}</b></div>
+      <div class="panel tile"><span class="label">Value this month</span><b class="num">${esc(money(b.monthValue))}</b></div>
+      <div class="panel tile"><span class="label">All time</span><b class="num">${num(b.total)}</b></div></div>
+      ${(b.recent || []).length ? `<ul class="list">${b.recent.map(r => `<li class="panel"><div><b>${esc(r.item)}</b><span class="small">${esc(fmt(r.on))} · ${r.type === 'physical' ? '📦 physical' : '💾 digital'}${r.fan ? ' · bought by ' + esc(r.fan) : ''}</span></div><span class="pill">${esc(money({ [r.currency || 'EUR']: r.price }))}</span></li>`).join('')}</ul>`
+        : '<div class="panel empty"><b>No Bandcamp sales recorded yet.</b><span>Sales of your RRR releases show here the day after they happen.</span></div>'}`;
+  }
   // Stats: Stats Pro members wait for us to connect them; everyone else sees the offer
   function statsEmpty(m, demo){
     if (m.type !== 'artist') return '<div class="panel empty"><b>Stats are for artist members.</b></div>';
@@ -219,6 +230,7 @@
       ${(m.recentPoints || []).length ? `<ul class="list ptlog">${m.recentPoints.map(r => `<li class="panel"><div><b>${esc(String(r.note || 'Points').replace(/^Claim: /, ''))}</b><span class="small">${esc(fmt(r.on))}${/^Claim: /.test(r.note || '') ? ' · checked by RRR' : ''}</span></div><em class="num pts">+${num(r.points)}</em></li>`).join('')}</ul>`
         : `<div class="panel empty"><b>No points yet beyond your badges.</b><span>Support another member's release, then <a href="levels.html#claim">claim your points</a>.</span></div>`}
 
+      ${m.type === 'artist' ? bcSales(m.bandcampSales) : ''}
       <h3 class="subhead">Stats${s && s.updated ? ` <span class="small">updated ${esc(fmt(s.updated))}${s.source ? ' · via ' + esc(s.source) : ''}</span>` : ''}</h3>
       ${s ? `<div class="tiles">
         <div class="panel tile"><span class="label">Spotify monthly listeners</span><b class="num">${num(s.spotifyListeners)}</b></div>

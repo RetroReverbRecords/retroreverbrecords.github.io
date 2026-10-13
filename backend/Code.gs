@@ -45,7 +45,8 @@ const SETTINGS = {
   newsletterMode: 'auto',
   dailySendLimit: 90,  // free Gmail allows ~100 emails a day; the rest go out the next days
   releaseDecisionEmails: true, // email artists when a Selected Release is approved or not selected
-  socialLeadDays: 3,          // social posts: book at least this many days ahead
+  socialLeadDays: 3,
+  bulletinDay: 4,              // weekly Bandcamp bulletin email to you: 0 = Sunday … 4 = Thursday          // social posts: book at least this many days ahead
   maxReleasesPerWeek: 0,       // release slots per week (Mon–Sun). 0 = no limit. Over the limit, bookings are flagged 'date full' for you
   // Slots per day. A date is only taken once the booking is PAID (first to pay gets it).
   // How many bookings each day can take. Change the numbers any time.
@@ -63,6 +64,7 @@ const TABS = {
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
   Achievements: ['member_id','achievement','earned_on','points','note','key'],
+  Sales:        ['sale_id','date','member_id','artist','item','url','qty','price','currency','type','fan'],
   CardClaims:   ['created','member_id','artist','email','style','photo','instrument','fun_stat','fact','ideas','status','due','card_no','notes'],
   Posts:        ['member_id','platform','date','link','status','caption','likes','views','booking_id','assets'],
   Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
@@ -486,6 +488,7 @@ function publicProfile_(m) {
     belt: rank.name, waiting: waiting, stars: pts > RANKS[RANKS.length - 1].min && /10th/.test(rank.name) ? Math.floor((pts - RANKS[RANKS.length - 1].min) / POINT_RULES.starEvery) : 0,
     youtubeName: m.youtube_name || '',
     statsPro: m.type === 'artist' && statsPro_(m), statsConnected: !!m.songstats_artist_id,
+    bandcampSales: m.type === 'artist' ? salesFor_(id) : null,
     membershipActive: /active/i.test(String(m.status)) && standing_(m) !== 'suspended',
     standing: standing_(m),
     artistType: m.type === 'artist' ? (m.artist_type || 'Member') : '',
@@ -564,9 +567,64 @@ function daily() {
   expireUnpaidBookings_();
   paymentChase_();
   try { cleanDisputeFiles_(); } catch (e) { log_('dispute cleanup failed', String(e)); }
+  try { importBandcampSales_(); } catch (e) { log_('bandcamp sales import failed', String(e)); }
+  try { weeklyBulletin_(); } catch (e) { log_('bulletin failed', String(e)); }
   updateSongstats();
   newsletterTick_();
   digest_();
+}
+
+// BANDCAMP SALES: read the "Cha-ching!" sale emails Bandcamp sends the label and store one row per item.
+// Matched to members by their Bandcamp page (or artist name). Buyer emails are never stored.
+function importBandcampSales_() {
+  const have = new Set(rows_('Sales').map(r => String(r.sale_id)));
+  const members = rows_('Members').filter(m => m.type === 'artist');
+  const host = u => { const m = String(u || '').match(/https?:\/\/([^\/\s]+)/i); return m ? m[1].toLowerCase().replace(/^www\./, '') : ''; };
+  const norm = t => String(t || '').normalize('NFKC').toLowerCase().replace(/[^a-z0-9]/g, '');
+  GmailApp.search('from:noreply@bandcamp.com subject:"Cha-ching" newer_than:4d', 0, 100).forEach(th => th.getMessages().forEach(msg => {
+    const b = msg.getPlainBody(), pid = (b.match(/Payment id:\s*(\d+)/) || [])[1]; if (!pid) return;
+    const fan = ((b.match(/\n([^\n(]+?) \([^)]*@[^)]*\) just paid/) || [])[1] || '').trim().slice(0, 40);
+    const shipped = /This shipped item|These shipped items/i.test(b) && !/digital or unshipped/i.test(b);
+    for (let i = 1; i <= 20; i++) {
+      const art = (b.match(new RegExp('Item' + i + 'Artist:\\s*(.*)')) || [])[1]; if (art === undefined) break;
+      const id = pid + '-' + i; if (have.has(id)) continue;
+      const url = ((b.match(new RegExp('Item' + i + 'Store URL:\\s*(\\S*)')) || [])[1] || '').trim();
+      const qty = Number((b.match(new RegExp('Item' + i + 'Quantity:\\s*(\\d+)')) || [])[1] || 1);
+      const pr = ((b.match(new RegExp('Item' + i + 'Price:\\s*(.*)')) || [])[1] || '').trim();
+      const cur = /€/.test(pr) ? 'EUR' : /£/.test(pr) ? 'GBP' : /\$/.test(pr) ? 'USD' : (pr.match(/[A-Z]{3}/) || [''])[0];
+      const price = Number((pr.match(/[\d.,]+/) || ['0'])[0].replace(',', '.'));
+      const title = decodeURIComponent((url.match(/\/(?:album|track|merch)\/([^/?#]+)/) || [, ''])[1]).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const m = members.find(x => x.bandcamp && host(x.bandcamp) === host(url)) || members.find(x => norm(x.artist) && norm(x.artist) === norm(art));
+      append_('Sales', { sale_id: id, date: msg.getDate(), member_id: m ? m.member_id : '', artist: String(art).normalize('NFKC').trim(), item: title || '(item)', url: url,
+        qty: qty, price: price, currency: cur, type: /\/merch\//.test(url) || shipped ? 'physical' : 'digital', fan: fan });
+      have.add(id);
+    }
+  }));
+}
+function salesFor_(memberId) {
+  const all = rows_('Sales').filter(r => r.member_id === memberId);
+  const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0);
+  const month = all.filter(r => new Date(r.date) >= start), sum = arr => { const t = {}; arr.forEach(r => { t[r.currency || 'EUR'] = (t[r.currency || 'EUR'] || 0) + (Number(r.price) || 0) * (Number(r.qty) || 1); }); return t; };
+  return { total: all.reduce((n, r) => n + (Number(r.qty) || 1), 0), month: month.reduce((n, r) => n + (Number(r.qty) || 1), 0), monthValue: sum(month),
+    recent: all.slice(-6).reverse().map(r => ({ on: r.date, item: r.item, type: r.type, fan: r.fan, price: r.price, currency: r.currency })) };
+}
+
+// WEEKLY BULLETIN: every Thursday the owner gets a ready-to-paste message for Bandcamp ("Message fans") and socials:
+// releases in the next 7 days, listening parties and new physical merch (from the RRR Releases calendar and Bookings).
+function weeklyBulletin_() {
+  const now = new Date(); if (now.getDay() !== SETTINGS.bulletinDay) return;
+  const end = new Date(now.getTime() + 7 * 86400000), fmt = d => Utilities.formatDate(new Date(d), Session.getScriptTimeZone(), 'EEE d MMM');
+  const rel = rows_('Bookings').filter(r => /release/.test(r.kind) && /^confirmed/i.test(String(r.status)) && r.date && new Date(r.date) >= now && new Date(r.date) < end);
+  const merch = rows_('Bookings').filter(r => r.kind === 'merch-listing' && /^confirmed/i.test(String(r.status)) && new Date(r.created) >= new Date(now.getTime() - 7 * 86400000));
+  let parties = [];
+  try { parties = getCalendar_().getEvents(now, end).filter(e => /listening party/i.test(e.getTitle())).map(e => ({ t: e.getTitle().replace(/^.*listening party:?\s*/i, ''), d: e.getStartTime() })); } catch (e) {}
+  if (!rel.length && !merch.length && !parties.length) return;
+  const lines = ['🔊 THIS WEEK ON RETRO REVERB RECORDS', ''];
+  if (rel.length) { lines.push('NEW RELEASES'); rel.forEach(r => lines.push('• ' + fmt(r.date) + ' – ' + r.artist + ' – ' + r.title)); lines.push(''); }
+  if (parties.length) { lines.push('LISTENING PARTIES (join us on Bandcamp and chat with the artist)'); parties.forEach(p => lines.push('• ' + fmt(p.d) + ' ' + Utilities.formatDate(p.d, 'Europe/London', 'HH:mm') + ' UK – ' + p.t)); lines.push(''); }
+  if (merch.length) { lines.push('NEW PHYSICAL MERCH'); merch.forEach(r => lines.push('• ' + r.artist + ' – ' + r.title)); lines.push(''); }
+  lines.push('📻 The Bandcamp Hour: Sundays 3–5pm UK on Spectrum On Air', 'Follow the label so you never miss one: https://retroreverbrecords.bandcamp.com', '', 'Welcome to the family 💜');
+  notify_('📣 Bandcamp bulletin ready to post (' + fmt(now) + ')', 'Paste this into Bandcamp → Tools → Message fans (and your socials if you like):\n\n' + lines.join('\n'));
 }
 
 function digest_() {
@@ -1361,6 +1419,10 @@ function confirmBooking_(bookingId, amount, txnId) {
     if (memberId) {
       if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title, 'releaseBooked'); }
       if (kind === 'youtube-upload') { award_(memberId, 'firstVideo'); addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title, 'videoBooked'); }
+      if (kind === 'bandcamp-release' && !demo && String(p.listening_party) === 'yes' && date) {
+        try { const st = new Date(date + 'T19:00:00Z'); getCalendar_().createEvent('Listening party: ' + v[i][c('artist')] + ' – ' + title, st, new Date(st.getTime() + 3600000), { description: 'Set it up in Bandcamp (release page → Listening party). Time is a placeholder: 8pm UK.' }); } catch (e) { log_('listening party event failed', String(e)); }
+        notify_('🎧 Listening party requested: ' + v[i][c('artist')] + ' – ' + title, 'Release day ' + date + '. A placeholder is in the RRR Releases calendar (8pm UK). Set the party up on Bandcamp and adjust the time; the weekly bulletin picks it up from the calendar.');
+      }
       if (kind === 'youtube-upload' && !demo) notice_('premiere', memberId, v[i][c('artist')] + ' premieres "' + title + '" on the RRR YouTube channel on ' + date + ' 🎬', 'Subscribe so you don\'t miss it', 'https://www.youtube.com/@RetroReverbRecords?sub_confirmation=1');
     }
     const email = v[i][c('email')];
@@ -1447,6 +1509,11 @@ function buildNewsletter_(forDate) {
     h('Released last month') + li(releases, r => '<b>' + r.artist + '</b> – ' + r.title + ' <span style="color:#A99FCB">(' + (r.format || '') + ')</span>') +
     h('Top social posts') + li(posts, p => '<a style="color:#3FD0FF" href="' + p.link + '">' + (p.caption || 'Post') + '</a> <span style="color:#A99FCB">' + p.score + ' interactions</span>') +
     h('Coming next month') + li(upcoming, r => '<b>' + r.artist + '</b> – ' + r.title + ' · ' + Utilities.formatDate(new Date(r.date), Session.getScriptTimeZone(), 'd MMM')) +
+    (() => { // Artist highlights: most Bandcamp copies sold last month
+      const tally = {}; rows_('Sales').filter(r => r.member_id && inRange(r.date, start, end)).forEach(r => { tally[r.artist] = (tally[r.artist] || 0) + (Number(r.qty) || 1); });
+      const top = Object.keys(tally).sort((a, b) => tally[b] - tally[a]).slice(0, 3);
+      return top.length ? h('Artist highlights') + '<p>🏆 <b>Artist of the month: ' + top[0] + '</b>. Thank you to everyone who picked up their music.</p>' + (top.length > 1 ? li(top.slice(1), a => a + ' – also flying off the shelves on Bandcamp') : '') : '';
+    })() +
     (press.length ? h('In the press') + li(press, p => '<a style="color:#3FD0FF" href="' + p.url + '">' + p.artist + ' in ' + p.outlet + '</a>') : '') +
     (newMembers.length ? h('Welcome to the roster') + li(newMembers, m => m.artist || m.name) : '') +
     h('Listen') + '<p><a style="color:#3FD0FF" href="' + SETTINGS.spotifyPlaylist + '">The RRR playlist on Spotify</a> · <a style="color:#3FD0FF" href="https://retroreverbrecords.bandcamp.com/">RRR on Bandcamp</a></p>' +

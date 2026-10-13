@@ -512,7 +512,7 @@ window.rrrSend = function(url, data, onProblem){
 
   /* ---------- cookie consent + marketing pixels ---------- */
   const PX = C.pixels || {};
-  const anyPixel = PX.metaPixelId || PX.googleTagId || PX.tiktokPixelId;
+  const anyPixel = PX.metaPixelId || PX.googleTagId || PX.tiktokPixelId || PX.metricoolHash;
   const store = { get(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch (e) {} } };
   let pixelsOn = false;
   function track(evt, data){
@@ -531,6 +531,10 @@ window.rrrSend = function(url, data, onProblem){
       const g = document.createElement('script'); g.async = true; g.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(PX.googleTagId); document.head.appendChild(g);
       window.dataLayer = window.dataLayer || []; window.gtag = function(){ dataLayer.push(arguments); }; gtag('js', new Date()); gtag('config', PX.googleTagId);
     }
+    if (PX.metricoolHash) {
+      const m = document.createElement('script'); m.async = true; m.src = 'https://tracker.metricool.com/resources/be.js';
+      m.onload = function(){ try { beTracker.t({ hash: PX.metricoolHash }); } catch (e) {} }; document.head.appendChild(m);
+    }
     if (PX.tiktokPixelId) {
       !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.load=function(e){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._u=i;var o=d.createElement("script");o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=d.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load(PX.tiktokPixelId);ttq.page();}(window,document,'ttq');
     }
@@ -541,7 +545,7 @@ window.rrrSend = function(url, data, onProblem){
     else if (choice !== 'no') {
       const bar = document.createElement('div');
       bar.className = 'consent'; bar.setAttribute('role', 'dialog'); bar.setAttribute('aria-label', 'Cookies');
-      bar.innerHTML = `<p>We use cookies to measure our ads and show RRR to more music fans. OK?</p><div><button type="button" class="btn primary" data-c="yes">Accept</button><button type="button" class="btn ghost" data-c="no">No thanks</button></div>`;
+      bar.innerHTML = `<p>We use cookies to count visits and measure our ads, so we can reach more music fans. OK?</p><div><button type="button" class="btn primary" data-c="yes">Accept</button><button type="button" class="btn ghost" data-c="no">No thanks</button></div>`;
       document.body.appendChild(bar);
       bar.addEventListener('click', e => { const c = e.target.dataset && e.target.dataset.c; if (!c) return; store.set('rrr-consent', c); if (c === 'yes') loadPixels(); bar.remove(); });
     }

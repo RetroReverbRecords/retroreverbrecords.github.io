@@ -100,7 +100,8 @@ window.RRR_CONFIG = {
   pixels: {
     metaPixelId: "",     // Meta (Facebook/Instagram) Pixel ID, e.g. "123456789012345"
     googleTagId: "",     // Google Analytics 4 / Google Ads tag, e.g. "G-XXXXXXX"
-    tiktokPixelId: ""    // TikTok Pixel ID
+    tiktokPixelId: "",   // TikTok Pixel ID
+    metricoolHash: "d2f746eef2d418f0a8379364d97d28bb"  // Metricool website visits tracker
   },
 
   // PLAYLISTS AND SUBMISSIONS

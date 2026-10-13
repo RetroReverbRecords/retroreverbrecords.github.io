@@ -59,6 +59,7 @@ const SETTINGS = {
     'tiktok': { label: 'TikTok', perDay: 2 }, 'yt-short': { label: 'YouTube Short', perDay: 1 },
     'discord': { label: 'Discord announcement', perDay: 3 }, 'tbh-shoutout': { label: 'Bandcamp Hour on-air shout-out', perDay: 5 } },
   freePostsPerMonth: 2,
+  discordInvite: 'https://discord.gg/P2sjDBEtN',   // change when the permanent invite is made
   paidKinds: ['bandcamp-release', 'streaming-release', 'youtube-upload', 'merch-listing'],
   // The Bandcamp Hour: the website shows a LIVE banner and player when the RRR YouTube channel is live.
   // Checked every 5 minutes. Menu: RRR → Bandcamp Hour: I'm live now / Show ended (instant, overrides the check).
@@ -236,6 +237,25 @@ function handleSignup_(p) {
 // ============================================================
 // BOOKINGS → sheet + calendar
 // ============================================================
+// "Get the most from your membership" block (welcome email)
+function bestOf_(u, dash, isArtist) {
+  const a = (href, t) => '<a href="' + href + '" style="color:#E0068A;font-weight:700">' + t + '</a>';
+  const tips = [
+    '📱 ' + a(dash + '#install', 'Put RRR on your phone') + ': on iPhone tap Share → Add to Home Screen; on Android tap ⋮ → Install app. It opens straight to your dashboard.',
+    '🔔 ' + a(dash, 'Check your notifications') + ' at the top of your dashboard: step-by-step guides, plus news like points, belts and your posts going live. Tap "Got it" to clear one.',
+    '🥋 ' + a(u + 'levels.html', 'Earn points and belts') + ' by backing other artists: buying, sharing, adding to playlists, helping out.',
+    '📻 ' + a(u + 'live.html', 'Tune in to The Bandcamp Hour') + ', live Sundays 3–5pm UK on Spectrum On Air. Catch the code word on air for bonus points.'
+  ];
+  if (isArtist) tips.push(
+    '📣 ' + a(u + 'book.html#social', 'Book your free social posts') + ': ' + SETTINGS.freePostsPerMonth + ' a month on the RRR accounts. Book at least ' + SETTINGS.socialLeadDays + ' days ahead.',
+    '🃏 ' + a(u + 'cards.html#claim', 'Claim your Synth Stars card') + ': free, one of a kind, designed for you within 4 weeks.',
+    '🎧 ' + a(u + 'submit.html', 'Send a track to curators') + ' with RRR Submit: radio shows, playlists and blogs, with honest feedback.',
+    '💿 ' + a(u + 'book.html', 'Book releases') + ' on Bandcamp, streaming or both, and keep 100% of your royalties.');
+  else tips.push('🃏 ' + a(u + 'cards.html', 'Collect Synth Stars cards') + ' of your favourite RRR artists.');
+  tips.push('💬 Join the family on ' + a(SETTINGS.discordInvite || (u + 'index.html#community'), 'Discord') + ' and follow the label on ' + a('https://retroreverbrecords.bandcamp.com', 'Bandcamp') + ' for release news and listening parties.');
+  return '<div style="background:#f7f4ff;border-radius:10px;padding:14px 16px;margin:0 0 18px"><p style="margin:0 0 8px;font-weight:700;color:#07061A">Get the most from your membership</p>' +
+    tips.map(t => '<p style="margin:0 0 8px;font:14px/1.5 Arial,sans-serif;color:#222">' + t + '</p>').join('') + '</div>';
+}
 // Welcome email: friendly first, the signed-agreement record underneath
 function welcomeEmail_(p, id, version, isArtist) {
   const u = SETTINGS.siteUrl, dash = u + 'member.html?id=' + id, demo = isDemo_(p.email);
@@ -261,6 +281,7 @@ function welcomeEmail_(p, id, version, isArtist) {
     '<div style="border:2px solid #3FD0FF;border-radius:10px;padding:14px 16px;margin:0 0 18px;text-align:center"><div style="font-size:12px;letter-spacing:.14em;color:#666">YOUR MEMBER ID</div><div style="font:700 28px/1.3 Courier New,monospace;letter-spacing:.1em;color:#07061A">' + id + '</div><div style="font-size:13px;color:#666">Keep it safe: it opens your dashboard and forms.</div></div>' +
     (demo ? '<p style="background:#fff3c4;padding:10px 12px;border-radius:8px;margin:0 0 16px"><b>Demo account:</b> payment skipped. This is a test account.</p>' : '') +
     '<p style="margin:0 0 6px;font-weight:700">What next</p><table role="presentation" style="border-collapse:collapse;margin:0 0 18px">' + steps.map((h, i) => step(i + 1, h)).join('') + '</table>' +
+    bestOf_(u, dash, isArtist) +
     '<p style="text-align:center;margin:0 0 22px">' + btn(dash, 'OPEN MY DASHBOARD') + '</p>' +
     '<p style="margin:0 0 18px">Questions? Just reply to this email.</p>' +
     '<p style="margin:0 0 4px">See you in the community,<br><b>Retro Reverb Records</b></p></div>' +

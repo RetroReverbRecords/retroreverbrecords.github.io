@@ -49,6 +49,7 @@ window.RRR_CONFIG = {
     ep: 2.50,                // Upload fee: EP, 2–5 tracks. Same price for Bandcamp, streaming or both
     album: 3.00,             // Upload fee: album, 6+ tracks. Same price for Bandcamp, streaming or both
     youtube: 1.00,           // YouTube upload, per video
+    statsPro: 1.00,          // Stats Pro add-on for artists, per month (on top of Artist membership)
     merch: 2.00              // Merch listing, per item (one-off). Sales are paid to the artist directly
   },
 

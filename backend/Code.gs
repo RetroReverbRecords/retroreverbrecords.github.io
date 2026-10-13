@@ -58,7 +58,7 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
@@ -188,9 +188,11 @@ function handleSignup_(p) {
     member_id: id, created: new Date(), type: p.type || 'fan', name: p.name, artist: p.artist,
     email: p.email, country: p.country, address_line1: p.address_line1, address_line2: p.address_line2,
     city: p.city, postcode: p.postcode, bandcamp: p.bandcamp, status: isDemo_(p.email) ? 'active (demo)' : 'pending payment',
-    plan: p.type === 'artist' ? 'Artist' : 'Fan', points: 0, rank: 'White belt', public: 'yes',
-    artist_type: p.type === 'artist' ? 'Member' : '', bandcamp_linked: p.type === 'artist' ? 'no' : ''
+    plan: p.type === 'artist' ? (String(p.stats_pro) === 'yes' ? 'Artist + Stats Pro' : 'Artist') : 'Fan', points: 0, rank: 'White belt', public: 'yes',
+    artist_type: p.type === 'artist' ? 'Member' : '', bandcamp_linked: p.type === 'artist' ? 'no' : '',
+    stats_pro: p.type === 'artist' && String(p.stats_pro) === 'yes' ? 'yes' : '', stats_link: String(p.stats_link || '').slice(0, 300)
   });
+  if (p.type === 'artist' && String(p.stats_pro) === 'yes') notify_('📈 Stats Pro sign-up: ' + (p.artist || p.name), 'Member ' + id + ' wants Stats Pro.\nTheir link: ' + (p.stats_link || 'none given') + '\n\nOnce they have paid, find them on Songstats and put their Songstats artist ID in Members → songstats_artist_id.\n' + sheetUrl_());
   if (isDemo_(p.email)) award_(id, 'joined'); // real members get their joining points when the first payment arrives
 
   // Signed agreement: stored, and a copy emailed to the member
@@ -417,6 +419,14 @@ function handlePayPal_(e) {
   append_('Payments', { received: new Date(), txn_type: p.txn_type, payment_status: p.payment_status, amount: p.mc_gross || p.mc_amount3 || '',
     currency: p.mc_currency, item_name: p.item_name, payer_email: p.payer_email, member_id: memberId, txn_id: p.txn_id || '', subscr_id: p.subscr_id || '', raw: raw.slice(0, 2000) });
 
+  // 3a. Stats Pro add-on bought separately (its own small subscription): only switches stats on or off
+  if (memberId && /stats pro add-on/i.test(String(p.item_name || ''))) {
+    const tt = p.txn_type;
+    if (tt === 'subscr_signup' || tt === 'subscr_payment') { updateRow_('Members', 'member_id', memberId, { stats_pro: 'yes' }); }
+    if (tt === 'subscr_cancel' || tt === 'subscr_eot') updateRow_('Members', 'member_id', memberId, { stats_pro: 'cancelled' });
+    paymentAlert_(p, memberId);
+    return text_('ok');
+  }
   // 3. Update the member
   const t = p.txn_type;
   const setStatus = (status) => { if (memberId) updateRow_('Members', 'member_id', memberId, { status: status, paypal_subscr_id: p.subscr_id || '' }); };
@@ -464,6 +474,7 @@ function recalcPoints_(memberId) {
 }
 function rankFor_(pts) { let r = RANKS[0]; RANKS.forEach(x => { if (pts >= x.min) r = x; }); return r; }
 
+function statsPro_(m) { return /^y/i.test(String(m.stats_pro || '')) || /honorary|owner/i.test(String(m.plan) + ' ' + String(m.status)); }
 function publicProfile_(m) {
   const id = m.member_id;
   const pts = Number(m.points) || 0;
@@ -474,6 +485,7 @@ function publicProfile_(m) {
     points: pts, rank: rank.name, nextRank: next ? next.name : null, nextAt: next ? next.min : null, rankFrom: rank.min,
     belt: rank.name, waiting: waiting, stars: pts > RANKS[RANKS.length - 1].min && /10th/.test(rank.name) ? Math.floor((pts - RANKS[RANKS.length - 1].min) / POINT_RULES.starEvery) : 0,
     youtubeName: m.youtube_name || '',
+    statsPro: m.type === 'artist' && statsPro_(m), statsConnected: !!m.songstats_artist_id,
     membershipActive: /active/i.test(String(m.status)) && standing_(m) !== 'suspended',
     standing: standing_(m),
     artistType: m.type === 'artist' ? (m.artist_type || 'Member') : '',
@@ -499,7 +511,8 @@ function publicProfile_(m) {
 function updateSongstats() {
   const key = PropertiesService.getScriptProperties().getProperty('SONGSTATS_API_KEY');
   if (!key) { log_('songstats', 'no API key set – skipped'); return; }
-  rows_('Members').filter(m => m.songstats_artist_id && /active/.test(m.status)).forEach(m => {
+  // Only Stats Pro members (and honorary/owner accounts) are requested: Songstats bills per artist per month
+  rows_('Members').filter(m => m.songstats_artist_id && /active/.test(m.status) && statsPro_(m)).forEach(m => {
     const get = (source) => {
       const res = UrlFetchApp.fetch(SETTINGS.songstatsBase + '/artists/stats?songstats_artist_id=' + encodeURIComponent(m.songstats_artist_id) + '&source=' + source,
         { headers: { apikey: key, Accept: 'application/json' }, muteHttpExceptions: true });

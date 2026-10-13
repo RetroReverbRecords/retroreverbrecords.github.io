@@ -305,7 +305,9 @@ window.rrrSend = function(url, data, onProblem){
   const signup = $('#signup');
   const isDemoEmail = e => { const x = String(e || '').trim().toLowerCase(); return !!C.demoEmailPrefix && x.indexOf(C.demoEmailPrefix) === 0 && /@gmail\.com$/.test(x); };
   const isFan = () => !!($('#type-fan') && $('#type-fan').checked);
-  const price = () => (C.membershipPrices || {})[isFan() ? 'fan' : 'artist'];
+  const statsPro = () => !isFan() && !!($('#f-statspro') && $('#f-statspro').checked);
+  const price = () => ((C.membershipPrices || {})[isFan() ? 'fan' : 'artist'] || 0) + (statsPro() ? ((C.prices || {}).statsPro || 0) : 0);
+  (function(){ const cb = $('#f-statspro'), ln = $('.statslink'); if (cb && ln) cb.addEventListener('change', () => { ln.hidden = !cb.checked; }); })();
   if (signup) {
     const open = !!(signupOn && endpoint);
     $('#signup-fields').disabled = !open;
@@ -320,7 +322,7 @@ window.rrrSend = function(url, data, onProblem){
       e.preventDefault();
       if (!open) return;
       if (!signup.checkValidity()) { signup.reportValidity(); return; }
-      const id = newMemberId(), fan = isFan(), amt = price();
+      const id = newMemberId(), fan = isFan(), amt = price(), sp = statsPro();
       const em = ((signup.querySelector('[name=email]') || {}).value || '').trim();
       const who = ((signup.querySelector('[name=artist]') || {}).value || (signup.querySelector('[name=name]') || {}).value || '').trim();
       const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist',
@@ -346,12 +348,12 @@ window.rrrSend = function(url, data, onProblem){
       fields.insertAdjacentElement('beforebegin', done);
       $('#signup-status').innerHTML = '';
       const cp = done.querySelector('.copy'); if (cp) cp.addEventListener('click', () => { try { navigator.clipboard.writeText(id); cp.textContent = 'Copied ✓'; } catch (e) {} });
-      if (!demo) { const pay = $('.pay', signup); if (pay) done.querySelector('.done-pay').appendChild(pay); renderPay(id, fan, amt); }
+      if (!demo) { const pay = $('.pay', signup); if (pay) done.querySelector('.done-pay').appendChild(pay); renderPay(id, fan, amt, sp); }
       try { done.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
       track('CompleteRegistration', { content_name: fan ? 'fan' : 'artist' });
     });
   }
-  function renderPay(memberId, fan, amt){
+  function renderPay(memberId, fan, amt, sp){
     const box = $('#paypal-buttons'); if (!box) return;
     $('#pay-note').hidden = !!memberId;
     if (!memberId) { box.innerHTML = ''; return; }
@@ -360,9 +362,9 @@ window.rrrSend = function(url, data, onProblem){
     if (P.membershipVia === 'bandcamp' && P.bandcampSubscribeUrl) {
       btn = `<a class="btn primary" href="${esc(P.bandcampSubscribeUrl)}" target="_blank" rel="noopener">Subscribe on Bandcamp</a>`;
     }
-    box.innerHTML = `<div class="welcome"><p><strong>Set up your monthly payment.</strong></p><div class="paybox">${btn}</div>
+    box.innerHTML = `<div class="welcome"><p><strong>Set up your monthly payment${amt ? ': €' + Number(amt).toFixed(2) + '/month' : ''}.</strong></p><p class="small">On a phone, open PayPal in Safari or Chrome, not inside WhatsApp or Instagram.</p><div class="paybox">${btn}</div>
       <p class="small">Your member ID is <b class="num">${esc(memberId)}</b>. Keep it: it opens your <a href="${esc(dash)}">member dashboard</a>.</p></div>`;
-    if (!btn && amt) payButtons(box.querySelector('.paybox'), { kind: 'sub', amount: amt, item: `RRR ${fan ? 'Fan' : 'Artist'} Membership`, custom: memberId,
+    if (!btn && amt) payButtons(box.querySelector('.paybox'), { kind: 'sub', amount: amt, item: `RRR ${fan ? 'Fan' : 'Artist'} Membership${sp ? ' + Stats Pro' : ''}`, custom: memberId,
       plan: ((PP.plans || {})[fan ? 'fan' : 'artist']) || '', returnUrl: (C.siteUrl || '') + dash });
   }
   renderPay();

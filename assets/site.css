@@ -874,3 +874,10 @@ fieldset{min-width:0;min-inline-size:0}
 .mycard .slot{margin:0}
 @media (max-width:560px){.mycard{grid-template-columns:1fr;justify-items:center;text-align:center}}
 .paynow{border-color:var(--pink)!important}
+
+/* Stats Pro add-on */
+.statspro{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:24px;margin-top:18px;border-color:var(--cyan)}
+.statspro h3{margin:6px 0}.price-inline{font:500 15px var(--mono);color:var(--cyan);margin-left:8px}
+.statsadd{margin:14px 0;display:grid;gap:10px}
+@media (max-width:760px){.statspro{grid-template-columns:1fr}}
+.statsadd .statslink{display:grid;gap:6px;font-size:14px;color:var(--muted)}

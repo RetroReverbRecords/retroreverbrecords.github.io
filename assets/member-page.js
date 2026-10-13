@@ -140,6 +140,19 @@
       <p><a class="btn primary" href="https://www.paypal.com/cgi-bin/webscr?${q.toString()}" target="_blank" rel="noopener">Pay with PayPal or card</a></p>
       <p class="small">On a phone, open this page in Safari or Chrome (not inside WhatsApp or Instagram) so PayPal loads properly.</p></div>`;
   }
+  // Stats: Stats Pro members wait for us to connect them; everyone else sees the offer
+  function statsEmpty(m, demo){
+    if (m.type !== 'artist') return '<div class="panel empty"><b>Stats are for artist members.</b></div>';
+    if (m.statsPro) return `<div class="panel empty"><b>${m.statsConnected ? 'Your first stats arrive tomorrow.' : 'Connecting your Stats Pro…'}</b><span>${m.statsConnected ? 'They update every day from now on.' : 'We link your artist profile within 2 working days, then your numbers update every day here.'}</span></div>`;
+    const P = C.payments || {}, add = (C.prices || {}).statsPro || 1;
+    let pay = '';
+    if (!demo && P.paypalEmail && m.membershipActive) {
+      const q = new URLSearchParams({ business: P.paypalEmail, currency_code: 'EUR', no_shipping: '1', charset: 'utf-8', cmd: '_xclick-subscriptions', item_name: 'RRR Stats Pro add-on', a3: Number(add).toFixed(2), p3: '1', t3: 'M', src: '1', custom: m.id, return: (C.siteUrl || '') + 'member.html?id=' + encodeURIComponent(m.id) });
+      if (C.automationUrl) q.set('notify_url', C.automationUrl);
+      pay = `<p><a class="btn primary" href="https://www.paypal.com/cgi-bin/webscr?${q.toString()}" target="_blank" rel="noopener">Add Stats Pro · €${Number(add).toFixed(2)}/month</a></p><p class="small">Then email us your Spotify artist link so we can connect you.</p>`;
+    }
+    return `<div class="panel nextstep statspro-up"><span class="label">Stats Pro</span><p><b>See your numbers grow, every day.</b> Spotify listeners and streams, YouTube and TikTok views, radio plays and playlists, growth over 7 and 28 days, playlist alerts and a weekly report. Powered by Songstats.</p>${pay}</div>`;
+  }
   // Your Synth Stars card (from cards.js), or a link to claim one
   function myCard(m, demo){
     const R = ((window.RRR_CARDS || {}).roster || {}), hit = [];
@@ -213,7 +226,7 @@
         <div class="panel tile"><span class="label">Playlists</span><b class="num">${num(s.playlists)}</b></div>
         <div class="panel tile"><span class="label">YouTube views</span><b class="num">${num(s.youtubeViews)}</b></div>
         <div class="panel tile"><span class="label">TikTok views</span><b class="num">${num(s.tiktokViews)}</b></div>
-      </div>` : `<div class="panel empty"><b>No stats yet.</b><span>Your streaming stats appear here once RRR connects your artist profile. We do this for you after your first release.</span></div>`}
+      </div>` : statsEmpty(m, demo)}
 
       <h3 class="subhead">Achievements <span class="small">${earned.size} of ${CATALOGUE.length}</span></h3>
       <div class="achs">${CATALOGUE.map(a => {

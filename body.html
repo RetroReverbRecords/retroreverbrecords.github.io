@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261012e">
+<link rel="stylesheet" href="assets/site.css?v=20261013a">
 
 <header>
   <div class="wrap">
@@ -248,6 +248,20 @@
         </article>
       </div>
 
+      <div class="panel statspro">
+        <div>
+          <p class="label">Artist add-on</p>
+          <h3>Stats Pro <span class="price-inline">+<b class="num" data-price="statsPro">€1.00</b>/month</span></h3>
+          <p>Your numbers in one place, updated every day on your member dashboard, plus a weekly report. Powered by Songstats.</p>
+        </div>
+        <ul class="ticks">
+          <li>Spotify monthly listeners and streams, YouTube and TikTok views</li>
+          <li>Radio plays and the playlists you're on, with an alert when you're added to a new one</li>
+          <li>Growth over 7 and 28 days, and a chart that builds over time</li>
+          <li>Weekly stats email, plus milestone badges and points (1k, 5k, 10k listeners…)</li>
+        </ul>
+      </div>
+
       <div class="panel pause">
         <div>
           <p class="label">Taking a break?</p>
@@ -442,6 +456,10 @@
               <label for="f-country">Country<input id="f-country" name="country" type="text" autocomplete="country-name"></label>
               <label for="f-bandcamp" class="artist-only wide">Bandcamp page (optional)<input id="f-bandcamp" name="bandcamp" type="url" placeholder="https://yourname.bandcamp.com"></label>
             </div>
+            <div class="artist-only statsadd">
+              <label class="agree"><input type="checkbox" id="f-statspro" name="stats_pro" value="yes"> <span><b>Add Stats Pro</b> (+<span data-price="statsPro">€1.00</span>/month): daily Spotify, YouTube, TikTok, radio and playlist stats on your dashboard, and a weekly report.</span></label>
+              <label for="f-statslink" class="statslink" hidden>Your Spotify artist link (or Songstats link)<input id="f-statslink" name="stats_link" type="url" placeholder="https://open.spotify.com/artist/…"></label>
+            </div>
             <div class="post">
               <span class="label">Want a printed card later? (optional)</span>
               <div class="fields">
@@ -550,7 +568,7 @@
   </div>
 </footer>
 
-<script src="assets/config.js?v=20261012a"></script>
+<script src="assets/config.js?v=20261013a"></script>
 <script src="assets/releases.js?v=20261008a"></script>
 <script src="assets/levels.js?v=20261012a"></script>
-<script src="assets/site.js?v=20261012b"></script>
+<script src="assets/site.js?v=20261013a"></script>

@@ -193,7 +193,7 @@
           <div class="tabpanel" id="panel-social" role="tabpanel" aria-labelledby="tab-social" hidden>
             <form class="panel booking-form" data-kind="social-post" novalidate>
               <h2>Social media post</h2>
-              <p class="intro">Book a promotional post on RRR community social media. Included with Artist Membership. Book at least 3 days ahead: we check every post first, email you when it's approved, and it goes out automatically on the day.</p>
+              <p class="intro">Book a promotional post on RRR community social media. Included with Artist Membership: 2 posts a month. Book at least 3 days ahead: we check every post first, email you when it's approved, and it goes out automatically on the day.</p>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
@@ -206,15 +206,21 @@
                   <label for="so-caption" class="wide">Caption idea and tags<textarea id="so-caption" name="caption"></textarea></label>
                 </div>
                 <div class="checks">
-                  <span class="label">Platforms</span>
-                  <label><input type="checkbox" name="platform" value="instagram" id="so-ig"> Instagram</label>
-                  <label><input type="checkbox" name="platform" value="facebook" id="so-fb"> Facebook</label>
-                  <label><input type="checkbox" name="platform" value="tiktok" id="so-tt"> TikTok</label>
-                  <label><input type="checkbox" name="platform" value="x" id="so-x"> X</label>
-                  <label><input type="checkbox" name="platform" value="bluesky" id="so-bs"> Bluesky</label>
-                  <label><input type="checkbox" name="platform" value="youtube" id="so-yt"> YouTube (Shorts / Community)</label>
-                  <label><input type="checkbox" name="platform" value="discord" id="so-dc"> Discord announcement</label>
-                  <label><input type="checkbox" name="platform" value="twitch" id="so-tw"> Twitch live shout-out</label>
+                  <span class="label">Where should it go? (pick any; daily limits in brackets)</span>
+                  <label><input type="checkbox" name="platform" value="ig-feed" id="so-igf"> Instagram post (2 a day)</label>
+                  <label><input type="checkbox" name="platform" value="ig-reel" id="so-igr"> Instagram Reel (1 a day)</label>
+                  <label><input type="checkbox" name="platform" value="ig-story" id="so-igs"> Instagram story (3 a day)</label>
+                  <label><input type="checkbox" name="platform" value="fb-feed" id="so-fbf"> Facebook post (2 a day)</label>
+                  <label><input type="checkbox" name="platform" value="fb-reel" id="so-fbr"> Facebook Reel (1 a day)</label>
+                  <label><input type="checkbox" name="platform" value="fb-story" id="so-fbs"> Facebook story (3 a day)</label>
+                  <label><input type="checkbox" name="platform" value="threads" id="so-th"> Threads (2 a day)</label>
+                  <label><input type="checkbox" name="platform" value="bluesky" id="so-bs"> Bluesky (5 a day)</label>
+                  <label><input type="checkbox" name="platform" value="x" id="so-x"> X (5 a day)</label>
+                  <label><input type="checkbox" name="platform" value="tiktok" id="so-tt"> TikTok (2 a day)</label>
+                  <label><input type="checkbox" name="platform" value="yt-short" id="so-yt"> YouTube Short (1 a day)</label>
+                  <label><input type="checkbox" name="platform" value="discord" id="so-dc"> Discord announcement (3 a day)</label>
+                  <label><input type="checkbox" name="platform" value="tbh-shoutout" id="so-tbh"> Shout-out on The Bandcamp Hour, read on the Sunday show on or after your date (5 a show)</label>
+                  <p class="small">Reels, TikTok and Shorts need a video; stories work best upright (9:16). Each artist gets 2 free posts a month (one booking = one post, wherever it goes).</p>
                 </div>
                 <label class="agree"><input type="checkbox" name="content_ok" value="yes" required> <span>My post follows the <a href="code-of-conduct.html">Code of Conduct</a>: no sexual, racist or hateful content. I understand RRR checks every post first and may refuse or take down a post that could harm RRR (<a href="terms.html#social-posts">terms</a>).</span></label>
                 <button class="btn primary" type="submit">Book social post</button>
@@ -374,9 +380,6 @@
 <script src="assets/config.js?v=20261013c"></script>
 <script src="assets/releases.js?v=20261008a"></script>
 <script src="assets/levels.js?v=20261012a"></script>
-<script src="assets/site.js?v=20261013b"></script>
-<script src="assets/config.js?v=20261013b"></script>
-<script src="assets/config.js?v=20261013a"></script>
-<script src="assets/site.js?v=20261013a"></script>
+<script src="assets/site.js?v=20261013c"></script>
 </body>
 </html>

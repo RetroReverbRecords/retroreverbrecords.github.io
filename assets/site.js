@@ -402,8 +402,11 @@ window.rrrSend = function(url, data, onProblem){
         const check = () => {
           const d = dateIn.value; if (!d) { msg.textContent = ''; return; }
           msg.textContent = 'Checking…'; slotOk = false;
-          fetch(endpoint + (endpoint.includes('?') ? '&' : '?') + 'slot=' + encodeURIComponent(f.dataset.kind) + '&date=' + d).then(r => r.json()).then(j => {
+          const chs = f.dataset.kind === 'social-post' ? $$('input[name=platform]:checked', f).map(x => x.value).join(',') : '';
+          if (f.dataset.kind === 'social-post' && !chs) { msg.textContent = 'Pick where it should go to check the date.'; slotOk = true; dateIn.setCustomValidity(''); return; }
+          fetch(endpoint + (endpoint.includes('?') ? '&' : '?') + 'slot=' + encodeURIComponent(f.dataset.kind) + '&date=' + d + (chs ? '&ch=' + encodeURIComponent(chs) : '')).then(r => r.json()).then(j => {
             if (dateIn.value !== d) return;
+            if (j.ok && !j.free && j.full) { slotOk = false; dateIn.setCustomValidity('Some of your picks are full that day.'); msg.innerHTML = '<b class="no">Full that day:</b> ' + j.full.map(x => esc(x.label) + (x.next ? ' (next free ' + esc(x.next) + ')' : '')).join(', ') + '. Untick it or pick another date.'; return; }
             if (!j.ok || j.free) { slotOk = true; dateIn.setCustomValidity(''); msg.innerHTML = '<b class="ok">✓ ' + esc(new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })) + ' is free.</b> It\'s yours when you pay.'; return; }
             slotOk = false; dateIn.setCustomValidity('That date is taken. Pick another date.');
             msg.innerHTML = '<b class="no">Taken.</b> ' + (j.next ? 'Next free day: <button type="button" class="copy">Use ' + esc(j.next) + '</button>' : 'Pick another date.');
@@ -411,6 +414,7 @@ window.rrrSend = function(url, data, onProblem){
           }).catch(() => { slotOk = true; dateIn.setCustomValidity(''); msg.textContent = 'Couldn\'t check the date right now. We\'ll confirm it when you pay.'; });
         };
         dateIn.addEventListener('change', check);
+        if (f.dataset.kind === 'social-post') $$('input[name=platform]', f).forEach(x => x.addEventListener('change', () => { if (dateIn.value) check(); }));
         // Availability calendar: free days in green, taken in red, too soon in grey. Click a free day to pick it.
         const DL = C.deadlines || {}, lead = { 'bandcamp-release': DL.bandcampAssetsDays ?? 14, 'streaming-release': DL.streamingAssetsDays ?? 21, 'youtube-upload': 3, 'social-post': 3 }[f.dataset.kind] ?? 3;
         const isoOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');

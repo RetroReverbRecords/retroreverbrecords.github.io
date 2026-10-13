@@ -50,7 +50,15 @@ const SETTINGS = {
   maxReleasesPerWeek: 0,       // release slots per week (Mon–Sun). 0 = no limit. Over the limit, bookings are flagged 'date full' for you
   // Slots per day. A date is only taken once the booking is PAID (first to pay gets it).
   // How many bookings each day can take. Change the numbers any time.
-  slotsPerDay: { 'bandcamp-release': 1, 'streaming-release': 3, 'youtube-upload': 2, 'social-post': 2 },
+  slotsPerDay: { 'bandcamp-release': 1, 'streaming-release': 3, 'youtube-upload': 2 },
+  // Social posts: daily limit per platform and post type (owner, 13 Oct 2026), and free posts per artist per month
+  socialChannels: {
+    'ig-feed': { label: 'Instagram post', perDay: 2 }, 'ig-reel': { label: 'Instagram Reel', perDay: 1 }, 'ig-story': { label: 'Instagram story', perDay: 3 },
+    'fb-feed': { label: 'Facebook post', perDay: 2 }, 'fb-reel': { label: 'Facebook Reel', perDay: 1 }, 'fb-story': { label: 'Facebook story', perDay: 3 },
+    'threads': { label: 'Threads post', perDay: 2 }, 'bluesky': { label: 'Bluesky post', perDay: 5 }, 'x': { label: 'X post', perDay: 5 },
+    'tiktok': { label: 'TikTok', perDay: 2 }, 'yt-short': { label: 'YouTube Short', perDay: 1 },
+    'discord': { label: 'Discord announcement', perDay: 3 }, 'tbh-shoutout': { label: 'Bandcamp Hour on-air shout-out', perDay: 5 } },
+  freePostsPerMonth: 2,
   paidKinds: ['bandcamp-release', 'streaming-release', 'youtube-upload', 'merch-listing'],
   // The Bandcamp Hour: the website shows a LIVE banner and player when the RRR YouTube channel is live.
   // Checked every 5 minutes. Menu: RRR → Bandcamp Hour: I'm live now / Show ended (instant, overrides the check).
@@ -155,6 +163,7 @@ function doGet(e) {
   if (q.unsubscribe) return unsubscribe_(q.unsubscribe);
   if (q.series) return json_({ ok: true, series: SERIES, releases: publicSelectedReleases_() });
   if (q.aiqueue) return aiQueue_(q.key);
+  if (q.slot === 'social-post') return json_(channelInfo_(q.ch, q.date));
   if (q.slot) return json_(slotInfo_(q.slot, q.date));
   if (q.slots) return json_(slotsFull_(q.slots));
   if (q.linkready) return linkReady_(q.linkready, q.json);
@@ -277,6 +286,13 @@ function handleBooking_(kind, p) {
     const min = new Date(); min.setHours(0, 0, 0, 0); min.setDate(min.getDate() + SETTINGS.socialLeadDays);
     if (!date || new Date(isoDate_(date) + 'T12:00:00') < min) return text_('refused: book social posts at least ' + SETTINGS.socialLeadDays + ' days ahead, so we can check the content in time');
     if (String(p.content_ok || '') !== 'yes') return text_('refused: please tick the content rules box');
+    const chans = [].concat(p.platform || []).map(String).filter(c => SETTINGS.socialChannels[c]);
+    if (!chans.length) return text_('refused: pick at least one platform and post type');
+    const iso = isoDate_(date), month = iso.slice(0, 7);
+    const used = rows_('Bookings').filter(r => r.kind === 'social-post' && r.member_id === memberId && holdsSlot_(r) && isoDate_(r.date).slice(0, 7) === month).length;
+    if (used >= SETTINGS.freePostsPerMonth) return text_('refused: you have used your ' + SETTINGS.freePostsPerMonth + ' free social posts for ' + Utilities.formatDate(new Date(iso + 'T12:00:00'), Session.getScriptTimeZone(), 'MMMM') + '. Pick a date next month');
+    const fullCh = chans.filter(c => !channelFree_(c, iso));
+    if (fullCh.length) return text_('refused: full on that day: ' + fullCh.map(c => SETTINGS.socialChannels[c].label + ' (next free ' + nextFreeChannel_(c, iso) + ')').join(', ') + '. Untick it or pick another date');
   }
   const title = p.title || p.link || '';
   let eventId = '';
@@ -1378,6 +1394,20 @@ function slotsTaken_(kind, iso) {
   return rows_('Bookings').filter(r => r.kind === kind && holdsSlot_(r) && isoDate_(r.date) === iso).length;
 }
 function isoDate_(d) { if (!d) return ''; if (d instanceof Date) return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); return String(d).slice(0, 10); }
+// Social posts: each platform + post type has its own daily limit
+function channelsOf_(r) { try { return [].concat(JSON.parse(r.details || '{}').platform || []).map(String); } catch (e) { return []; } }
+function channelFree_(ch, iso) {
+  const cap = (SETTINGS.socialChannels[ch] || {}).perDay; if (!cap) return true;
+  return rows_('Bookings').filter(r => r.kind === 'social-post' && holdsSlot_(r) && isoDate_(r.date) === iso && channelsOf_(r).indexOf(ch) >= 0).length < cap;
+}
+function nextFreeChannel_(ch, iso) { const d = new Date(iso + 'T12:00:00'); for (let i = 0; i < 366; i++) { const t = isoDate_(d); if (channelFree_(ch, t)) return t; d.setDate(d.getDate() + 1); } return ''; }
+function channelInfo_(chs, iso) {
+  iso = String(iso || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return { ok: false, error: 'bad date' };
+  const list = String(chs || '').split(',').filter(c => SETTINGS.socialChannels[c]);
+  const full = list.filter(c => !channelFree_(c, iso)).map(c => ({ ch: c, label: SETTINGS.socialChannels[c].label, next: nextFreeChannel_(c, iso) }));
+  return { ok: true, free: !full.length, limited: true, full: full };
+}
 function slotFree_(kind, iso) { const cap = SETTINGS.slotsPerDay[kind]; return !cap || slotsTaken_(kind, iso) < cap; }
 function nextFreeDate_(kind, iso) {
   const d = new Date(iso + 'T12:00:00');

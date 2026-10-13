@@ -542,6 +542,7 @@ function notifications_(m) {
   const bookings = rows_('Bookings').filter(r => r.member_id === id);
   // How-to guides (shown until they're done or dismissed)
   add('guide:welcome', 'guide', 'Welcome to the family! Here is how RRR works, step by step.', 'How it works', u + 'how-it-works.html');
+  add('guide:app', 'guide', 'Put RRR on your phone like an app: open your dashboard on your phone, then on iPhone tap Share → Add to Home Screen, on Android tap ⋮ → Install app (or Add to Home screen). It opens straight to your dashboard.', 'Open my dashboard', u + 'member.html?id=' + id + '#install');
   if (artist) {
     if (!bookings.some(r => /release/.test(r.kind))) add('guide:release', 'guide', 'Want to release with RRR? Pick a date for Bandcamp, streaming or both.', 'Book a release', u + 'book.html');
     if (!bookings.some(r => r.kind === 'social-post')) add('guide:social', 'guide', 'Want a post on the RRR socials? You get ' + SETTINGS.freePostsPerMonth + ' free posts a month. Book at least ' + SETTINGS.socialLeadDays + ' days ahead.', 'Book a post', u + 'book.html#social');

@@ -60,6 +60,15 @@ const SETTINGS = {
     'discord': { label: 'Discord announcement', perDay: 3 }, 'tbh-shoutout': { label: 'Bandcamp Hour on-air shout-out', perDay: 5 } },
   freePostsPerMonth: 2,
   discordInvite: 'https://discord.gg/P2sjDBEtN',   // change when the permanent invite is made
+  // BANDCAMP PAYOUTS: fans pay RRR's PayPal, RRR pays each artist their sales minus the standard Bandcamp and PayPal
+  // charges (RRR takes nothing and covers the PayPal Payouts fee). Report to the owner on the 30th (last day in February)
+  // for all unpaid sales up to the end of the previous month; one approve click sends the money.
+  payouts: {
+    day: 30, minimum: 25,                       // per currency; smaller amounts carry over to next month
+    bandcampShare: { digital: 0.15, physical: 0.10 }, // Bandcamp's standard revenue share – CHECK against your Bandcamp statements
+    paypalFeeEstimate: { pct: 0.034, fixed: 0.35 },   // only used when the real fee isn't known from PayPal – CHECK
+    excludeUrls: []                             // Bandcamp URLs (or parts) that are NOT paid out, e.g. old-deal releases
+  },
   paidKinds: ['bandcamp-release', 'streaming-release', 'youtube-upload', 'merch-listing'],
   // The Bandcamp Hour: the website shows a LIVE banner and player when the RRR YouTube channel is live.
   // Checked every 5 minutes. Menu: RRR → Bandcamp Hour: I'm live now / Show ended (instant, overrides the check).
@@ -68,12 +77,13 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
   Achievements: ['member_id','achievement','earned_on','points','note','key'],
-  Sales:        ['sale_id','date','member_id','artist','item','url','qty','price','currency','type','fan'],
+  Sales:        ['sale_id','date','member_id','artist','item','url','qty','price','currency','type','fan','payout_id'],
+  Payouts:      ['payout_id','period','created','member_id','artist','paypal','currency','sales','gross','bandcamp_share','paypal_fees','fee_basis','net','status','sent_at','paypal_batch','statement_sent','note'],
   CardClaims:   ['created','member_id','artist','email','style','photo','instrument','fun_stat','fact','ideas','status','due','card_no','notes'],
   Posts:        ['member_id','platform','date','link','status','caption','likes','views','booking_id','assets'],
   Stats:        ['member_id','updated','spotify_monthly_listeners','spotify_streams','playlists','youtube_views','tiktok_views','source'],
@@ -139,6 +149,8 @@ function doPost(e) {
     if (kind === 'withdrawal') return handleWithdrawal_(p);
     if (kind === 'card-claim') return handleCardClaim_(p);
     if (kind === 'notif-seen') return markSeen_(p);
+    if (kind === 'payout-approve') return payoutApprove_(p);
+    if (kind === 'payout-email') return payoutEmailRequest_(p);
     if (kind === 'ai-result') return handleAiResult_(p);
     if (kind === 'ai-dispute') return handleDispute_(p);
     if (kind === 'feedback') {
@@ -174,6 +186,8 @@ function doGet(e) {
   if (q.hq) return ownerStats_(q.hq);
   if (q.live) return json_(liveState_());
   if (q.review) return reviewPost_(q.review, q.d, q.t);
+  if (q.payout) return payoutPage_(q.payout, q.t);
+  if (q.payoutconfirm) return payoutEmailConfirm_(q.payoutconfirm);
   if (q.notices) return json_({ ok: true, notices: noticesPublic_() });
   if (q.hall) return json_(hallOfFame_());
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
@@ -204,7 +218,8 @@ function handleSignup_(p) {
     city: p.city, postcode: p.postcode, bandcamp: p.bandcamp, status: isDemo_(p.email) ? 'active (demo)' : 'pending payment',
     plan: p.type === 'artist' ? (String(p.stats_pro) === 'yes' ? 'Artist + Stats Pro' : 'Artist') : 'Fan', points: 0, rank: 'White belt', public: 'yes',
     artist_type: p.type === 'artist' ? 'Member' : '', bandcamp_linked: p.type === 'artist' ? 'no' : '',
-    stats_pro: p.type === 'artist' && String(p.stats_pro) === 'yes' ? 'yes' : '', stats_link: String(p.stats_link || '').slice(0, 300)
+    stats_pro: p.type === 'artist' && String(p.stats_pro) === 'yes' ? 'yes' : '', stats_link: String(p.stats_link || '').slice(0, 300),
+    paypal_payout: p.type === 'artist' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(p.payout_paypal || '').trim()) ? String(p.payout_paypal).trim().toLowerCase() : ''
   });
   if (p.type === 'artist' && String(p.stats_pro) === 'yes') notify_('📈 Stats Pro sign-up: ' + (p.artist || p.name), 'Member ' + id + ' wants Stats Pro.\nTheir link: ' + (p.stats_link || 'none given') + '\n\nOnce they have paid, find them on Songstats and put their Songstats artist ID in Members → songstats_artist_id.\n' + sheetUrl_());
   if (isDemo_(p.email)) award_(id, 'joined'); // real members get their joining points when the first payment arrives
@@ -533,6 +548,7 @@ function publicProfile_(m) {
     youtubeName: m.youtube_name || '',
     statsPro: m.type === 'artist' && statsPro_(m), statsConnected: !!m.songstats_artist_id,
     bandcampSales: m.type === 'artist' ? salesFor_(id) : null,
+    payoutPaypal: m.type === 'artist' && m.paypal_payout ? String(m.paypal_payout).replace(/^(.).*(@.*)$/, '$1•••$2') : '',
     membershipActive: /active/i.test(String(m.status)) && standing_(m) !== 'suspended',
     standing: standing_(m),
     artistType: m.type === 'artist' ? (m.artist_type || 'Member') : '',
@@ -662,6 +678,7 @@ function daily() {
   paymentChase_();
   try { cleanDisputeFiles_(); } catch (e) { log_('dispute cleanup failed', String(e)); }
   try { importBandcampSales_(); } catch (e) { log_('bandcamp sales import failed', String(e)); }
+  try { payoutTick_(); } catch (e) { log_('payout run failed', String(e)); }
   try { weeklyBulletin_(); } catch (e) { log_('bulletin failed', String(e)); }
   updateSongstats();
   newsletterTick_();
@@ -2035,3 +2052,216 @@ function showStarted_() {
   phonePush_('Code word: ' + code, msg);
 }
 
+
+// ============================================================
+// BANDCAMP PAYOUTS
+// Fans pay RRR's PayPal. On the 30th (last day of February) the owner gets a report of every member's unpaid
+// Bandcamp sales up to the end of the previous month (the month's wait lets refunds and reversals show up first).
+// Each artist gets their sales minus Bandcamp's standard share and PayPal's payment fee; RRR takes nothing and
+// covers the PayPal Payouts fee. Amounts under the minimum carry over. One approve click sends the money
+// (PayPal Payouts API if Script Properties PAYPAL_CLIENT_ID / PAYPAL_SECRET are set, otherwise a pay-by-hand list).
+// ============================================================
+function setSetting_(key, value) {
+  if (findRow_('Settings', 'key', key)) updateRow_('Settings', 'key', key, { value: value });
+  else append_('Settings', { key: key, value: value });
+}
+function moneyFmt_(n, c) { const s = { EUR: '€', GBP: '£', USD: '$' }[c] || ((c || '') + ' '); return s + (Math.round(n * 100) / 100).toFixed(2); }
+function periodName_(period) { const [y, m] = String(period).replace(/^m/, '').split('-').map(Number); return Utilities.formatDate(new Date(y, m - 1, 1), Session.getScriptTimeZone(), 'MMMM yyyy'); }
+function payoutDayToday_(now) {
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return now.getDate() === Math.min(SETTINGS.payouts.day, last);
+}
+function payoutTick_(force) {
+  const now = new Date();
+  if (!force && !payoutDayToday_(now)) return;
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const period = Utilities.formatDate(prev, Session.getScriptTimeZone(), 'yyyy-MM');
+  if (!force && setting_('payout_run_' + period, '')) return;
+  buildPayouts_(period, new Date(now.getFullYear(), now.getMonth(), 1));
+}
+// Run from the editor to build this month's report now (testing, or if the 30th was missed)
+function runPayoutReportNow() { payoutTick_(true); }
+
+// Real PayPal fee rate on Bandcamp sales, per currency, from the PayPal messages RRR received (fee ÷ amount)
+function bandcampFeeRates_() {
+  const since = new Date(Date.now() - 100 * 86400000), acc = {};
+  rows_('Payments').filter(r => new Date(r.received) >= since && /bandcamp/i.test(String(r.payer_email) + ' ' + String(r.raw))).forEach(r => {
+    const raw = String(r.raw || ''), get = k => { const m = raw.match(new RegExp('(?:^|&)' + k + '=([^&]*)')); return m ? Number(decodeURIComponent(m[1].replace(/\+/g, ' '))) : NaN; };
+    const gross = get('mc_gross'), fee = get('mc_fee'), cur = r.currency || '';
+    if (!(gross > 0) || !(fee >= 0)) return;
+    acc[cur] = acc[cur] || { gross: 0, fee: 0 }; acc[cur].gross += gross; acc[cur].fee += fee;
+  });
+  const out = {}; Object.keys(acc).forEach(c => { if (acc[c].gross > 0) out[c] = acc[c].fee / acc[c].gross; });
+  return out;
+}
+
+// One line per sale: what the fan paid, the charges, and what the artist gets
+function saleBreakdown_(s, rates) {
+  const P = SETTINGS.payouts, gross = (Number(s.price) || 0) * (Number(s.qty) || 1);
+  const share = gross * (s.type === 'physical' ? P.bandcampShare.physical : P.bandcampShare.digital);
+  const rate = rates[s.currency];
+  const pp = rate !== undefined ? (gross - share) * rate : gross * P.paypalFeeEstimate.pct + P.paypalFeeEstimate.fixed;
+  const r2 = n => Math.round(n * 100) / 100;
+  return { gross: r2(gross), share: r2(share), paypal: r2(pp), net: r2(Math.max(0, gross - share - pp)), basis: rate !== undefined ? 'actual' : 'estimate' };
+}
+
+function buildPayouts_(period, cutoff) {
+  const P = SETTINGS.payouts, rates = bandcampFeeRates_();
+  const members = {}; rows_('Members').forEach(m => members[m.member_id] = m);
+  const excluded = s => P.excludeUrls.some(u => u && String(s.url).indexOf(u) >= 0);
+  const sales = rows_('Sales').filter(s => s.member_id && !s.payout_id && new Date(s.date) < cutoff && !excluded(s));
+  const groups = {};
+  sales.forEach(s => { const k = s.member_id + '|' + (s.currency || 'EUR'); (groups[k] = groups[k] || []).push(s); });
+  const out = []; let n = 0;
+  // Replace any earlier unsent report for this period
+  const sh = sheet_('Payouts'), v = sh.getDataRange().getValues(), h = v[0], pi = h.indexOf('period'), si = h.indexOf('status');
+  for (let i = v.length - 1; i >= 1; i--) if (String(v[i][pi]) === period && !/^sent|^paid/i.test(String(v[i][si]))) sh.deleteRow(i + 1);
+  Object.keys(groups).forEach(k => {
+    const [mid, cur] = k.split('|'), m = members[mid] || {}, list = groups[k];
+    const t = { gross: 0, share: 0, paypal: 0, net: 0 }; let basis = 'actual';
+    list.forEach(s => { const b = saleBreakdown_(s, rates); t.gross += b.gross; t.share += b.share; t.paypal += b.paypal; t.net += b.net; if (b.basis === 'estimate') basis = 'estimate'; });
+    const r2 = x => Math.round(x * 100) / 100, net = r2(t.net);
+    const status = net < P.minimum ? 'carry over (under minimum)' : !m.paypal_payout ? 'held – no PayPal email' : /removed|suspended/i.test(String(m.standing)) ? 'held – member standing' : 'ready';
+    const row = { payout_id: 'PO-' + period + '-' + (++n), period: period, created: new Date(), member_id: mid, artist: m.artist || m.name || list[0].artist, paypal: m.paypal_payout || '',
+      currency: cur, sales: list.length, gross: r2(t.gross), bandcamp_share: r2(t.share), paypal_fees: r2(t.paypal), fee_basis: basis, net: net, status: status,
+      note: list.map(s => s.sale_id).join(',') };
+    append_('Payouts', row); out.push(row);
+  });
+  const token = Utilities.getUuid().replace(/-/g, '');
+  setSetting_('payout_run_' + period, new Date().toISOString());
+  setSetting_('payout_token_' + period, token);
+  payoutReportEmail_(period, out, token, rates, sales.filter(s => !s.member_id).length);
+  return out;
+}
+
+function payoutReportEmail_(period, rows, token, rates, unmatched) {
+  const url = ScriptApp.getService().getUrl() + '?payout=' + period + '&t=' + token;
+  const ready = rows.filter(r => r.status === 'ready');
+  const tot = {}; ready.forEach(r => tot[r.currency] = (tot[r.currency] || 0) + r.net);
+  const cell = 'padding:6px 8px;border-bottom:1px solid #2a2550';
+  const table = rows.length ? '<table style="border-collapse:collapse;font-size:14px"><tr>' + ['Artist', 'Sales', 'Fans paid', 'Bandcamp share', 'PayPal fees', 'Artist gets', 'PayPal', 'Status']
+    .map(x => '<th style="' + cell + ';text-align:left">' + x + '</th>').join('') + '</tr>' + rows.map(r => '<tr>' + [r.artist, r.sales, moneyFmt_(r.gross, r.currency), moneyFmt_(r.bandcamp_share, r.currency),
+    moneyFmt_(r.paypal_fees, r.currency) + (r.fee_basis === 'estimate' ? ' (est.)' : ''), '<b>' + moneyFmt_(r.net, r.currency) + '</b>', r.paypal || '<i>missing</i>', r.status]
+    .map(x => '<td style="' + cell + '">' + x + '</td>').join('') + '</tr>').join('') + '</table>' : '<p>No unpaid member sales this time.</p>';
+  const est = rows.some(r => r.fee_basis === 'estimate');
+  const html = '<div style="font:15px/1.5 Arial;background:#07061A;color:#F3EEFF;padding:24px"><h2 style="color:#FF2FA8">Bandcamp payouts – ' + periodName_(period) + '</h2>' +
+    '<p>Unpaid member sales up to the end of ' + periodName_(period) + '. Each artist gets what fans paid, minus Bandcamp\'s share and PayPal\'s payment fee. RRR covers the payout fee.</p>' + table +
+    '<p><b>To send now:</b> ' + (Object.keys(tot).map(c => moneyFmt_(tot[c], c)).join(' + ') || 'nothing') + ' to ' + ready.length + ' artist' + (ready.length === 1 ? '' : 's') + '.</p>' +
+    (ready.length ? '<p><a href="' + url + '" style="display:inline-block;background:#FF2FA8;color:#fff;padding:12px 22px;border-radius:24px;text-decoration:none;font-weight:bold">Review and approve payouts</a></p>' : '') +
+    '<p style="color:#b9b3d9;font-size:13px">Under ' + moneyFmt_(SETTINGS.payouts.minimum, 'EUR') + ' carries over to next month. Held = the artist hasn\'t given a PayPal email yet (they\'re emailed when you approve).' +
+    (est ? ' <b>(est.)</b> = no PayPal fee data from Bandcamp sales yet, so the fee is an estimate (SETTINGS.payouts.paypalFeeEstimate) – check one Bandcamp PayPal receipt.' : '') +
+    (unmatched ? '<br>' + unmatched + ' sale(s) weren\'t matched to a member and are not paid out (label releases, old-deal artists or unknown names – see the Sales tab).' : '') +
+    '<br>Details: ' + sheetUrl_() + ' (Payouts tab)</p></div>';
+  MailApp.sendEmail({ to: SETTINGS.ownerEmail, subject: '💸 RRR payouts ready to approve – ' + periodName_(period) + (ready.length ? ' (' + ready.length + (ready.length === 1 ? ' artist)' : ' artists)') : ''), htmlBody: html,
+    body: 'Bandcamp payouts for ' + periodName_(period) + '. Open in HTML to see the table, or the Payouts tab: ' + sheetUrl_() + (ready.length ? '\nApprove: ' + url : '') });
+}
+
+function payoutHtml_(title, body) {
+  return HtmlService.createHtmlOutput('<div style="font:16px/1.5 Arial;max-width:640px;margin:30px auto;padding:24px;border-radius:12px;background:#110E2B;color:#F3EEFF"><h2 style="color:#FF2FA8;margin:0 0 10px">' + title + '</h2>' + body + '</div>').setTitle('RRR payouts');
+}
+function payoutRows_(period) { return rows_('Payouts').filter(r => String(r.period) === String(period)); }
+function payoutTokenOk_(period, t) { const want = setting_('payout_token_' + period, ''); return want && t && String(t) === String(want); }
+
+// The approve link opens this page (a page, not an action, so email link-checkers can't trigger payments)
+function payoutPage_(period, t) {
+  if (!payoutTokenOk_(period, t)) return payoutHtml_('Link not valid', '<p>This payout link is wrong or out of date. Use the newest payout email.</p>');
+  const rows = payoutRows_(period), ready = rows.filter(r => r.status === 'ready'), manual = rows.filter(r => /^approved/.test(String(r.status)));
+  const list = arr => '<ul>' + arr.map(r => '<li>' + r.artist + ': <b>' + moneyFmt_(Number(r.net), r.currency) + '</b> → ' + r.paypal + '</li>').join('') + '</ul>';
+  const action = ScriptApp.getService().getUrl();
+  const button = (label, extra) => '<form method="post" action="' + action + '" target="_top"><input type="hidden" name="form" value="payout-approve"><input type="hidden" name="period" value="' + period + '"><input type="hidden" name="t" value="' + t + '">' + (extra || '') +
+    '<button style="background:#FF2FA8;color:#fff;border:0;padding:12px 22px;border-radius:24px;font-weight:bold;font-size:16px;cursor:pointer">' + label + '</button></form>';
+  if (manual.length) return payoutHtml_('Send these by hand', '<p>Send each amount from the RRR PayPal (Send money, to the email shown). When they\'re all sent, press the button so each artist gets their statement.</p>' + list(manual) + button('I\'ve sent them all', '<input type="hidden" name="manual" value="done">'));
+  if (!ready.length) return payoutHtml_('Nothing to send', '<p>All payouts for ' + periodName_(period) + ' are done or waiting. Check the Payouts tab: <a style="color:#3FD0FF" href="' + sheetUrl_() + '">sheet</a></p>');
+  const api = PropertiesService.getScriptProperties().getProperty('PAYPAL_CLIENT_ID');
+  return payoutHtml_('Approve payouts – ' + periodName_(period), '<p>These artists will be paid:</p>' + list(ready) +
+    '<p>' + (api ? 'PayPal sends the money straight away. RRR pays PayPal\'s payout fee.' : 'PayPal Payouts isn\'t connected yet, so next you\'ll get the list to send by hand.') + '</p>' + button('Approve and pay'));
+}
+
+function payoutApprove_(p) {
+  const period = String(p.period || ''), t = p.t;
+  if (!payoutTokenOk_(period, t)) return payoutHtml_('Link not valid', '<p>Nothing was paid.</p>');
+  const rows = payoutRows_(period);
+  if (p.manual === 'done') {
+    const sent = rows.filter(r => /^approved/.test(String(r.status)));
+    sent.forEach(r => payoutMarkSent_(r, 'sent by hand', ''));
+    payoutHeldNotices_(rows);
+    return payoutHtml_('Done', '<p>' + sent.length + ' payout(s) marked as sent. Each artist has been emailed their statement.</p>');
+  }
+  const ready = rows.filter(r => r.status === 'ready');
+  if (!ready.length) return payoutHtml_('Nothing to send', '<p>These payouts were already approved.</p>');
+  const props = PropertiesService.getScriptProperties(), id = props.getProperty('PAYPAL_CLIENT_ID'), secret = props.getProperty('PAYPAL_SECRET');
+  if (!id || !secret) {
+    ready.forEach(r => updateRow_('Payouts', 'payout_id', r.payout_id, { status: 'approved – send by hand' }));
+    return payoutPage_(period, t);
+  }
+  try {
+    const tok = JSON.parse(UrlFetchApp.fetch('https://api-m.paypal.com/v1/oauth2/token', { method: 'post', payload: 'grant_type=client_credentials',
+      headers: { Authorization: 'Basic ' + Utilities.base64Encode(id + ':' + secret) } }).getContentText()).access_token;
+    const byCur = {}; ready.forEach(r => (byCur[r.currency] = byCur[r.currency] || []).push(r));
+    Object.keys(byCur).forEach(cur => {
+      const body = { sender_batch_header: { sender_batch_id: 'RRR-' + period + '-' + cur + '-' + Date.now(), email_subject: 'Your Retro Reverb Records Bandcamp payout', email_message: 'Your Bandcamp sales for ' + periodName_(period) + '. Your statement is on its way by email.' },
+        items: byCur[cur].map(r => ({ recipient_type: 'EMAIL', receiver: r.paypal, sender_item_id: r.payout_id, note: 'RRR Bandcamp payout ' + periodName_(period), amount: { value: Number(r.net).toFixed(2), currency: cur } })) };
+      const res = UrlFetchApp.fetch('https://api-m.paypal.com/v1/payments/payouts', { method: 'post', contentType: 'application/json', payload: JSON.stringify(body), headers: { Authorization: 'Bearer ' + tok }, muteHttpExceptions: true });
+      const j = JSON.parse(res.getContentText() || '{}');
+      if (res.getResponseCode() >= 300) throw new Error('PayPal ' + res.getResponseCode() + ': ' + (j.message || res.getContentText()).slice(0, 300));
+      byCur[cur].forEach(r => payoutMarkSent_(r, 'sent', j.batch_header && j.batch_header.payout_batch_id || ''));
+    });
+    payoutHeldNotices_(rows);
+    return payoutHtml_('Paid', '<p>' + ready.length + ' payout(s) sent through PayPal. Artists get the money and their statement by email.</p>');
+  } catch (e) {
+    log_('payout API failed', String(e));
+    notify_('⚠️ RRR payouts failed', 'PayPal refused the payout: ' + String(e) + '\nNothing was marked as paid. You can try the approve link again, or remove PAYPAL_CLIENT_ID from Script Properties to pay by hand.');
+    return payoutHtml_('PayPal said no', '<p>' + String(e).slice(0, 400) + '</p><p>Nothing was marked as paid.</p>');
+  }
+}
+
+function payoutMarkSent_(r, how, batch) {
+  updateRow_('Payouts', 'payout_id', r.payout_id, { status: how, sent_at: new Date(), paypal_batch: batch || '-' });
+  const ids = new Set(String(r.note || '').split(',').filter(String));
+  const sh = sheet_('Sales'), v = sh.getDataRange().getValues(), h = v[0], ii = h.indexOf('sale_id'), pi = h.indexOf('payout_id');
+  const sales = [];
+  for (let i = 1; i < v.length; i++) if (ids.has(String(v[i][ii]))) { sh.getRange(i + 1, pi + 1).setValue(r.payout_id); sales.push(Object.fromEntries(h.map((k, c) => [k, v[i][c]]))); }
+  try { payoutStatement_(r, sales); updateRow_('Payouts', 'payout_id', r.payout_id, { statement_sent: new Date() }); } catch (e) { log_('payout statement failed', r.payout_id + ' ' + e); }
+}
+
+function payoutStatement_(r, sales) {
+  const m = findRow_('Members', 'member_id', r.member_id); if (!m || !m.email) return;
+  const rates = bandcampFeeRates_(), cur = r.currency, f = n => moneyFmt_(n, cur), tz = Session.getScriptTimeZone();
+  const lines = sales.map(s => { const b = saleBreakdown_(s, rates); return Utilities.formatDate(new Date(s.date), tz, 'd MMM') + '  ' + s.item + (Number(s.qty) > 1 ? ' ×' + s.qty : '') + (s.type === 'physical' ? ' (merch)' : '') +
+    '\n   fan paid ' + f(b.gross) + ' · Bandcamp ' + f(b.share) + ' · PayPal ' + f(b.paypal) + ' · you get ' + f(b.net); });
+  MailApp.sendEmail({ to: m.email, subject: 'Your RRR Bandcamp payout – ' + periodName_(r.period) + ': ' + f(Number(r.net)),
+    body: 'Hi ' + (m.artist || m.name || '') + ',\n\nYour Bandcamp sales for ' + periodName_(r.period) + (sales.length && new Date(sales[0].date) < new Date(String(r.period) + '-01') ? ' (and earlier sales carried over)' : '') + ' have been paid to your PayPal (' + r.paypal + ').\n\n' +
+      lines.join('\n') + '\n\nFans paid: ' + f(Number(r.gross)) + '\nBandcamp\'s share: −' + f(Number(r.bandcamp_share)) + '\nPayPal payment fees: −' + f(Number(r.paypal_fees)) + '\nPaid to you: ' + f(Number(r.net)) +
+      '\n\nYou keep 100% of your royalties. The only deductions are the standard Bandcamp and PayPal charges every Bandcamp artist pays. RRR takes nothing and covers the cost of sending your payout.' +
+      '\n\nPayouts go out on the 30th of each month for the previous month\'s sales, once you\'re owed ' + moneyFmt_(SETTINGS.payouts.minimum, 'EUR') + ' or more (smaller amounts carry over).' +
+      '\n\nQuestions? Just reply to this email.\n\nRetro Reverb Records' });
+}
+
+// Artists who are owed money but haven't given a PayPal email: remind them (once per period)
+function payoutHeldNotices_(rows) {
+  rows.filter(r => /no PayPal/.test(String(r.status)) && !r.statement_sent).forEach(r => {
+    const m = findRow_('Members', 'member_id', r.member_id); if (!m || !m.email) return;
+    MailApp.sendEmail({ to: m.email, subject: 'You have Bandcamp sales waiting to be paid – add your PayPal', body: 'Hi ' + (m.artist || m.name || '') + ',\n\nYou\'re owed ' + moneyFmt_(Number(r.net), r.currency) + ' from your Bandcamp sales, but we don\'t have a PayPal email to pay you.\n\nAdd it on your dashboard (Payouts → PayPal email): ' + SETTINGS.siteUrl + 'member.html\n\nIt will be paid on the next payout day (the 30th).\n\nRetro Reverb Records' });
+    updateRow_('Payouts', 'payout_id', r.payout_id, { statement_sent: 'PayPal reminder ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'd MMM') });
+  });
+}
+
+// Members set or change their payout PayPal from the dashboard. For safety the change only happens after they
+// confirm it from the email address on their account.
+function payoutEmailRequest_(p) {
+  const m = findRow_('Members', 'member_id', String(p.member_id || '').toUpperCase());
+  const pp = String(p.paypal || '').trim().toLowerCase();
+  if (!m || m.type !== 'artist' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(pp)) return json_({ ok: false, error: 'Check your member ID and PayPal email.' });
+  const token = Utilities.getUuid().replace(/-/g, '');
+  updateRow_('Members', 'member_id', m.member_id, { paypal_pending: pp, paypal_token: token });
+  MailApp.sendEmail({ to: m.email, subject: 'Confirm your PayPal for RRR payouts', body: 'Hi ' + (m.artist || m.name || '') + ',\n\nSomeone (hopefully you) asked for your RRR Bandcamp payouts to go to this PayPal:\n\n   ' + pp +
+    '\n\nTo confirm, open this link:\n' + ScriptApp.getService().getUrl() + '?payoutconfirm=' + token + '\n\nIf this wasn\'t you, ignore this email and nothing changes.\n\nRetro Reverb Records' });
+  return json_({ ok: true });
+}
+function payoutEmailConfirm_(token) {
+  const m = token && rows_('Members').find(r => String(r.paypal_token) === String(token));
+  if (!m || !m.paypal_pending) return payoutHtml_('Link not valid', '<p>This link is wrong or has already been used.</p>');
+  updateRow_('Members', 'member_id', m.member_id, { paypal_payout: m.paypal_pending, paypal_pending: '-', paypal_token: 'used ' + new Date().toISOString() });
+  notify_('PayPal payout email changed: ' + (m.artist || m.name), m.member_id + ' now gets payouts at ' + m.paypal_pending + (m.paypal_payout ? ' (was ' + m.paypal_payout + ')' : '') + '.');
+  return payoutHtml_('PayPal confirmed', '<p>Your Bandcamp payouts will go to <b>' + m.paypal_pending + '</b>.</p><p><a style="color:#3FD0FF" href="' + SETTINGS.siteUrl + 'member.html">Back to your dashboard</a></p>');
+}

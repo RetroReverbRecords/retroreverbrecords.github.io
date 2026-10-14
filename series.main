@@ -1,0 +1,174 @@
+<main>
+  <div class="pagehead">
+    <div class="wrap">
+      <p class="label">RRR Series · Selected Releases</p>
+      <h1>Join RRR without giving up your <em>independence</em></h1>
+      <p class="lede">Release independently when you want. Work with other labels when you want. Release selected projects through RetroReverbRecords when it makes sense.</p>
+      <div class="ctas-left"><a class="btn primary" href="#submit">Submit a release</a><a class="btn ghost" href="#how">How it works</a></div>
+    </div>
+  </div>
+
+  <section class="side" id="selected">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">A</span><h2>Selected releases</h2><p>Every release here was chosen for an RRR series and carries its own catalogue number. Buy on Bandcamp and the money goes straight to the artist.</p></div>
+      <div class="serieschips" id="series-chips" role="tablist" aria-label="Series"></div>
+      <div class="selgrid" id="sel-grid"><div class="panel empty"><b>Loading…</b></div></div>
+    </div>
+  </section>
+
+  <section class="side" id="how">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">B</span><h2>How it works</h2><p>RRR membership is non-exclusive, and every release stays 100% yours: your rights, your money. RRR releases stay in the RRR Bandcamp catalogue permanently, and RRR is the only streaming distributor for each release for 18 months. Bandcamp and YouTube are never exclusive. Releases you choose to put forward, and we select, also become RRR releases, with the label behind them.</p></div>
+
+      <div class="grid2">
+        <div class="panel pad">
+          <p class="label">You choose, release by release</p>
+          <h3>Only what you submit is RRR</h3>
+          <ul class="affex">
+            <li><b>Album A</b><span>you release independently</span><em class="aff ind">Independent</em></li>
+            <li><b>Single B</b><span>you release with another label</span><em class="aff oth">Other label</em></li>
+            <li><b>EP C</b><span>you submit to RRR and it's approved</span><em class="aff rrr">RRR release</em></li>
+          </ul>
+          <p class="small">All three stay 100% yours. Only EP C is an RRR release. Album A and Single B stay completely outside the RRR programme. Your independence remains intact: RRR involvement is release-specific, not catalogue-wide.</p>
+        </div>
+        <div class="panel pad">
+          <p class="label">Direct payment</p>
+          <h3>Bandcamp pays you, not us</h3>
+          <div class="payflow" aria-label="Bandcamp customer, then your release, then paid to you directly">
+            <span>Bandcamp customer</span><i aria-hidden="true">→</i><span>Your Bandcamp release</span><i aria-hidden="true">→</i><span class="you">Paid to you directly</span>
+          </div>
+          <p class="small">Your Bandcamp account must be linked to RetroReverbRecords before an RRR release can be approved. This keeps RRR releases connected to the label. Fans' payments go to RRR and are paid on to you in full every month (minus only Bandcamp's and PayPal's standard charges). RRR takes nothing.</p>
+        </div>
+      </div>
+
+      <ol class="steps">
+        <li><div><h3>Be an active artist member</h3><p>Join as an artist on the <a href="index.html#join">membership page</a>.</p></div></li>
+        <li><div><h3>Link your Bandcamp to the RRR label</h3><p>Two ways: <b>password linking</b> (recommended, full promotion and stats) or a <b>Bandcamp invite</b>. <a href="#linking">Compare them</a>. Linking doesn't make you exclusive, and it gets you <b>free Bandcamp VIP membership</b>.</p></div></li>
+        <li><div><h3>Submit a specific release</h3><p>Tell us which release, and why it fits an RRR series.</p></div></li>
+        <li><div><h3>RRR reviews it</h3><p>We approve it into a series or let you know it wasn't selected this time.</p></div></li>
+        <li><div><h3>Only that release gets RRR status</h3><p>It gets a series badge and a catalogue number, like <b class="num">RRSYN-001</b>. The rest of your music is unaffected.</p></div></li>
+      </ol>
+
+      <div class="panel pad linkcmp" id="linking">
+        <p class="label">Linking your Bandcamp</p>
+        <h3>What linking means, and what it doesn't</h3>
+        <div class="grid2 linkwhy">
+          <div>
+            <p class="label">What linking does</p>
+            <ul class="ticks">
+              <li>Your RRR releases appear on <b>your</b> Bandcamp page <b>and</b> the RRR label page, in front of RRR's followers.</li>
+              <li>Bandcamp pays you <b>directly</b>. RRR never touches your money.</li>
+              <li>You get <b>free Bandcamp VIP</b>.</li>
+              <li>With password linking, RRR can also use Bandcamp's promotion tools for your RRR releases: promo codes, features and page help.</li>
+            </ul>
+          </div>
+          <div>
+            <p class="label">What it doesn't change</p>
+            <ul class="ticks">
+              <li><b>Only your RRR releases are affected.</b> All your other releases stay exactly as they are.</li>
+              <li>Keep releasing on your own, with <b>collaborators</b> and with <b>other labels</b>. Bandcamp lets an artist link to any number of labels.</li>
+              <li>Your <b>payment settings</b> stay yours. RRR never views or changes them.</li>
+              <li><b>The link is permanent, and you never need to unlink.</b> It only covers your RRR releases, and the only limit is the 18-month streaming window on each RRR recording. Everything else stays free: <b>sign with other labels</b>, <b>release independently</b>, do <b>remixes</b>, <b>sync deals</b> and <b>collaborations</b>, all without unlinking. Keeping the link keeps the RRR catalogue complete.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="tablewrap">
+          <table class="cmp">
+            <thead><tr><th scope="col"></th><th scope="col" class="us">Password linking · recommended</th><th scope="col">Bandcamp invite</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">How it works</th><td class="us">We email you a one-off <b>placeholder password</b>. You set it on Bandcamp for a few minutes, we link your page, then you change your password to a new private one.</td><td>RRR sends you an invite from the RRR label on Bandcamp. You accept it.</td></tr>
+              <tr><th scope="row">What RRR can do</th><td class="us">In Bandcamp's words, "full access": add RRR releases, promote them (codes, features), and help with your page design and profile when you ask.</td><td>Add releases to your page. Nothing else.</td></tr>
+              <tr><th scope="row">What RRR promises</th><td class="us">We only use it for your RRR releases and things you ask for. Never your payments, your other releases or messages to your fans. It's in the <a href="terms.html#t3">Terms</a>.</td><td>Not needed: access is limited.</td></tr>
+              <tr><th scope="row">Payments</th><td class="us">Paid on to you monthly, in full.</td><td>Paid directly to you.</td></tr>
+              <tr><th scope="row">Your real password</th><td class="us">Never shared. You only ever use our placeholder, then change it.</td><td>Never shared.</td></tr>
+              <tr><th scope="row">Best for</th><td class="us">Artists who want RRR's full promotion support.</td><td>Artists who want RRR to have as little access as possible.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 style="margin-top:18px">How password linking works</h3>
+        <ol class="safe">
+          <li>Ask below. We email you a <b>placeholder password</b> made just for you.</li>
+          <li>On Bandcamp, set your password to the placeholder (Settings → Account), then press <b>"Done, I've set it"</b> in the email.</li>
+          <li>We link your page, usually within a few hours, and email you <b>"Linked ✓"</b>.</li>
+          <li><b>Change your password</b> to a new private one straight away. Your page stays linked.</li>
+        </ol>
+        <p class="small">RRR will never ask for your real password, by email, message or on this website.</p>
+
+        <form class="panel booking-form" id="link-form" novalidate>
+          <div class="status" role="status" id="link-status"></div>
+          <fieldset id="link-fields">
+            <p class="label">Link my Bandcamp</p>
+            <div class="fields">
+              <label for="lf-id">Your member ID<input id="lf-id" name="member_id" type="text" required placeholder="RRR-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+              <label for="lf-bc">Your Bandcamp page<input id="lf-bc" name="bandcamp_url" type="url" required placeholder="https://yourname.bandcamp.com"></label>
+            </div>
+            <div class="radios" role="radiogroup" aria-label="How do you want to link?">
+              <label><input type="radio" name="method" value="password" checked> Password linking with a placeholder (recommended)</label>
+              <label><input type="radio" name="method" value="invite"> Bandcamp invite</label>
+            </div>
+            <label class="agree"><input type="checkbox" name="understood" value="yes" required> <span>I understand linking only affects my RRR releases. My other releases, collaborations, other labels and payments stay mine.</span></label>
+            <button class="btn primary" type="submit">Send me the next step</button>
+            <p class="small">We email the next step to the address on your membership.</p>
+          </fieldset>
+        </form>
+      </div>
+
+      <div class="grid2">
+        <div class="panel pad"><p class="label">RRR Member Artist</p><p>An independent artist whose Bandcamp is linked to RRR so they can use the Selected Release programme and direct Bandcamp payments. Not signed, not exclusive.</p></div>
+        <div class="panel pad"><p class="label">RRR Signed Artist</p><p>An artist with a separate, traditional agreement with RRR. Only artists who have signed one are Signed Artists.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="side" id="submit">
+    <div class="wrap">
+      <div class="side-head"><span class="tag">C</span><h2>Submit a release</h2><p>Start with your member ID. We check your membership and Bandcamp link first.</p></div>
+      <form class="lookup" id="sel-lookup" novalidate>
+        <label for="sel-id" class="small">Member ID</label>
+        <input id="sel-id" type="text" placeholder="RRR-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <button class="btn primary" type="submit">Check</button>
+      </form>
+      <div id="sel-status"></div>
+
+      <form class="panel booking-form" id="sel-form" hidden novalidate>
+        <div class="status" role="status" id="sel-form-status"></div>
+        <fieldset id="sel-fields">
+          <div class="radios" role="radiogroup" aria-label="What is this release?">
+            <label><input type="radio" name="intent" value="rrr" checked> Submit it for an RRR series</label>
+            <label><input type="radio" name="intent" value="log"> Just add it to my profile (not an RRR release)</label>
+          </div>
+          <div class="fields">
+            <label for="sf-artist">Artist name<input id="sf-artist" name="artist" type="text" required></label>
+            <label for="sf-title">Release title<input id="sf-title" name="title" type="text" required></label>
+            <label for="sf-bc" class="wide">Bandcamp link to the release<input id="sf-bc" name="bandcamp_url" type="url" required placeholder="https://yourname.bandcamp.com/album/..."></label>
+            <label for="sf-date">Release date<input id="sf-date" name="release_date" type="date" required></label>
+            <label for="sf-genre">Genre<select id="sf-genre" name="genre" required data-genres></select></label>
+            <label for="sf-sub">Subgenre<input id="sf-sub" name="subgenre" type="text" placeholder="e.g. Outrun"></label>
+            <label for="sf-series" class="rrr-only">Which series fits best?<select id="sf-series" name="series"></select></label>
+            <label for="sf-aff" class="log-only" hidden>This release is<select id="sf-aff" name="affiliation"><option>Independent</option><option>Other Label</option></select></label>
+            <label for="sf-desc" class="wide">Short description<textarea id="sf-desc" name="description" maxlength="600" required placeholder="A couple of lines about the release"></textarea></label>
+            <label for="sf-why" class="wide rrr-only">Why does it fit the RRR series?<textarea id="sf-why" name="why_fit" maxlength="800" required></textarea></label>
+            <label for="sf-audio" class="wide">Private listening link (optional)<input id="sf-audio" name="audio_url" type="url" placeholder="Google Drive / Dropbox link to the WAV or MP3, shared as 'anyone with the link'. Leave empty if your Bandcamp page can already be played."></label>
+            <label for="sf-art" class="wide">Artwork link (optional)<input id="sf-art" name="artwork_url" type="url" placeholder="Leave empty: we take the cover from your Bandcamp page"></label>
+            <label for="sf-sp">Spotify link (optional)<input id="sf-sp" name="spotify_url" type="url"></label>
+            <label for="sf-yt">YouTube link (optional)<input id="sf-yt" name="youtube_url" type="url"></label>
+          </div>
+          <fieldset class="aidecl wide"><legend class="label">AI use in this release · required</legend>
+            <label><input type="radio" name="ai_use" value="none" required> No AI</label>
+            <label><input type="radio" name="ai_use" value="partial"> AI-assisted (made by me, AI tools helped)</label>
+            <label><input type="radio" name="ai_use" value="heavy"> AI-generated (wholly or mostly)</label>
+            <a class="small" href="terms.html#ai" target="_blank">What counts?</a>
+          </fieldset>
+          <div class="panel aiwarn">
+            <p><b>Robot checks.</b> Every release gets an automatic sound check and an AI check. The AI check only raises a flag: a person listens, or you tell us about AI use. Nobody is turned down by a robot.</p>
+            <p><b>Bandcamp bans music made "wholly or in substantial part" by AI</b> and removes releases it suspects. AI-generated music can be released <b>through streaming only</b>, the one fully safe route. Undeclared AI use is at your own risk: if Bandcamp removes a release, RRR doesn't refund it.</p>
+            <p class="heavy-note" hidden><b>You chose AI-generated:</b> this release can't go on Bandcamp. <a href="book.html#streaming">Book a streaming release</a> instead, or change your answer if it's AI-assisted.</p>
+          </div>
+          <label class="agree"><input type="checkbox" name="ai_policy" value="yes" required> <span>I've declared AI use honestly and understand the Bandcamp AI policy and the no-refund rule above.</span></label>
+          <label class="agree rrr-only"><input type="checkbox" id="sf-ok" name="understood" value="yes" required> <span>I understand that only this release would become an RRR release, my other music is unaffected, and Bandcamp sales of this release are paid on to me monthly by RRR.</span></label>
+          <button class="btn primary" type="submit" id="sf-btn">Submit for review</button>
+        </fieldset>
+      </form>
+    </div>
+  </section>
+</main>

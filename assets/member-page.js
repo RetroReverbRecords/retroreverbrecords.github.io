@@ -157,6 +157,26 @@
       ${(b.recent || []).length ? `<ul class="list">${b.recent.map(r => `<li class="panel"><div><b>${esc(r.item)}</b><span class="small">${esc(fmt(r.on))} · ${r.type === 'physical' ? '📦 physical' : '💾 digital'}${r.fan ? ' · bought by ' + esc(r.fan) : ''}</span></div><span class="pill">${esc(money({ [r.currency || 'EUR']: r.price }))}</span></li>`).join('')}</ul>`
         : '<div class="panel empty"><b>No Bandcamp sales recorded yet.</b><span>Sales of your RRR releases show here the day after they happen.</span></div>'}`;
   }
+  // Bandcamp payouts: where the money goes, and a form to set or change the PayPal email (confirmed by email)
+  function payoutPanel(m, demo){
+    const has = m.payoutPaypal;
+    return `<div class="panel nextstep" id="payout-box"><span class="label">Payouts</span>
+      <p><b>${has ? 'Your Bandcamp sales are paid to ' + esc(has) : 'Add your PayPal email so we can pay you'}</b></p>
+      <p class="small">Fans' payments for your RRR releases come to RRR. On the 30th of each month we pay you the previous month's sales, minus only Bandcamp's and PayPal's standard charges, with a statement by email. RRR takes nothing and covers the payout fee. Under €25 carries over to next month. <a href="terms.html#payouts">How payouts work</a></p>
+      <form id="payout-form" class="row-form"><label>PayPal email for payouts<input type="email" name="paypal" required placeholder="you@example.com" autocomplete="email"></label>
+      <button class="btn ${has ? 'ghost' : 'primary'}" type="submit">${has ? 'Change PayPal' : 'Save PayPal'}</button></form>
+      <p class="small" id="payout-msg" role="status"></p></div>`;
+  }
+  function wirePayout(m, demo){
+    const f = document.getElementById('payout-form'); if (!f) return;
+    f.addEventListener('submit', e => {
+      e.preventDefault(); const msg = document.getElementById('payout-msg');
+      if (demo || !url) { msg.textContent = 'Demo: in a real account we email you a link to confirm.'; return; }
+      const d = new URLSearchParams({ form: 'payout-email', member_id: m.id, paypal: f.paypal.value.trim() });
+      (window.rrrSend ? window.rrrSend(url, d, () => {}) : fetch(url, { method: 'POST', body: d }));
+      msg.textContent = 'Check your account email: click the link we sent to confirm the change.'; f.reset();
+    });
+  }
   // Stats: Stats Pro members wait for us to connect them; everyone else sees the offer
   function statsEmpty(m, demo){
     if (m.type !== 'artist') return '<div class="panel empty"><b>Stats are for artist members.</b></div>';
@@ -256,7 +276,7 @@
       ${(m.recentPoints || []).length ? `<ul class="list ptlog">${m.recentPoints.map(r => `<li class="panel"><div><b>${esc(String(r.note || 'Points').replace(/^Claim: /, ''))}</b><span class="small">${esc(fmt(r.on))}${/^Claim: /.test(r.note || '') ? ' · checked by RRR' : ''}</span></div><em class="num pts">+${num(r.points)}</em></li>`).join('')}</ul>`
         : `<div class="panel empty"><b>No points yet beyond your badges.</b><span>Support another member's release, then <a href="levels.html#claim">claim your points</a>.</span></div>`}
 
-      ${m.type === 'artist' ? bcSales(m.bandcampSales) : ''}
+      ${m.type === 'artist' ? bcSales(m.bandcampSales) + payoutPanel(m, demo) : ''}
       <h3 class="subhead">Stats${s && s.updated ? ` <span class="small">updated ${esc(fmt(s.updated))}${s.source ? ' · via ' + esc(s.source) : ''}</span>` : ''}</h3>
       ${s ? `<div class="tiles">
         <div class="panel tile"><span class="label">Spotify monthly listeners</span><b class="num">${num(s.spotifyListeners)}</b></div>
@@ -286,6 +306,7 @@
       </div>`;
     const tl = document.getElementById('try-levelup'); if (tl) tl.addEventListener('click', () => celebrate('Orange belt'));
     wireNotifs(m, demo);
+    wirePayout(m, demo);
     checkLevelUp(m, demo);
   }
 })();

@@ -542,6 +542,8 @@ function recalcPoints_(memberId) {
 }
 function rankFor_(pts) { let r = RANKS[0]; RANKS.forEach(x => { if (pts >= x.min) r = x; }); return r; }
 
+// Stats only while the membership is active, paid, not paused and not suspended (Songstats bills per artist per month)
+function statsAllowed_(m) { return /active/i.test(String(m.status)) && !/pause|supporter|locked|archived|lapsed|cancel/i.test(String(m.status) + ' ' + String(m.plan)) && standing_(m) !== 'suspended' && statsPro_(m); }
 function statsPro_(m) { return /^y/i.test(String(m.stats_pro || '')) || /honorary|owner/i.test(String(m.plan) + ' ' + String(m.status)); }
 function publicProfile_(m) {
   const id = m.member_id;
@@ -553,7 +555,7 @@ function publicProfile_(m) {
     points: pts, rank: rank.name, nextRank: next ? next.name : null, nextAt: next ? next.min : null, rankFrom: rank.min,
     belt: rank.name, waiting: waiting, stars: pts > RANKS[RANKS.length - 1].min && /10th/.test(rank.name) ? Math.floor((pts - RANKS[RANKS.length - 1].min) / POINT_RULES.starEvery) : 0,
     youtubeName: m.youtube_name || '',
-    statsPro: m.type === 'artist' && statsPro_(m), statsConnected: !!m.songstats_artist_id,
+    statsPro: m.type === 'artist' && statsPro_(m), statsConnected: !!m.songstats_artist_id, statsLocked: m.type === 'artist' && statsPro_(m) && !statsAllowed_(m),
     bandcampSales: m.type === 'artist' ? salesFor_(id) : null,
     founder: m.founder === 'yes',
     payoutPaypal: m.type === 'artist' && m.paypal_payout ? String(m.paypal_payout).replace(/^(.).*(@.*)$/, '$1•••$2') : '',
@@ -571,7 +573,7 @@ function publicProfile_(m) {
     posts: rows_('Posts').filter(r => r.member_id === id).map(r => ({ platform: r.platform, date: r.date, link: r.link, status: r.status })),
     links: { bandcamp: /^https:\/\//.test(String(m.bandcamp)) ? m.bandcamp : '', spotify: /^https:\/\/open\.spotify\.com\//.test(String(m.spotify)) ? m.spotify : '' },
     notifications: notifications_(m),
-    stats: stats ? { updated: stats.updated, spotifyListeners: stats.spotify_monthly_listeners, spotifyStreams: stats.spotify_streams, playlists: stats.playlists, youtubeViews: stats.youtube_views, tiktokViews: stats.tiktok_views, source: stats.source } : null
+    stats: stats && statsAllowed_(m) ? { updated: stats.updated, spotifyListeners: stats.spotify_monthly_listeners, spotifyStreams: stats.spotify_streams, playlists: stats.playlists, youtubeViews: stats.youtube_views, tiktokViews: stats.tiktok_views, source: stats.source } : null
     // Note: email, address and payment details are never included.
   };
 }
@@ -633,7 +635,7 @@ function updateSongstats() {
   const key = PropertiesService.getScriptProperties().getProperty('SONGSTATS_API_KEY');
   if (!key) { log_('songstats', 'no API key set – skipped'); return; }
   // Only Stats Pro members (and honorary/owner accounts) are requested: Songstats bills per artist per month
-  rows_('Members').filter(m => m.songstats_artist_id && /active/.test(m.status) && statsPro_(m)).forEach(m => {
+  rows_('Members').filter(m => m.songstats_artist_id && statsAllowed_(m)).forEach(m => {
     const get = (source) => {
       const res = UrlFetchApp.fetch(SETTINGS.songstatsBase + '/artists/stats?songstats_artist_id=' + encodeURIComponent(m.songstats_artist_id) + '&source=' + source,
         { headers: { apikey: key, Accept: 'application/json' }, muteHttpExceptions: true });
@@ -1290,11 +1292,11 @@ function startPaymentChase_(m) {
 }
 function chaseEmail_(m, step) {
   if (!m.email) return;
-  const pause = 'Need a break instead? Pausing costs €1 a month for artists (€0.50 for fans) and keeps your belt and points: reply "pause".';
+  const pause = 'Need a break instead? Pausing costs €1 a month for artists (€0.50 for fans) and keeps your belt and points (your stats pause until you\'re back): reply "pause".';
   const texts = {
     day0: ['Quick one about your RRR membership', 'PayPal couldn\'t take your membership payment. It happens: an expired card, a new bank card, low balance.\n\nTo fix it, update your card in PayPal (Settings → Payments → Manage automatic payments), or restart your membership here: ' + SETTINGS.siteUrl + 'index.html#join\n\nPayPal will also try again in a few days.\n\n' + pause],
     day7: ['Reminder: your RRR membership payment', 'Your membership payment still hasn\'t gone through. If it isn\'t sorted within a week, your account will be locked (nothing is deleted: your belt, points and releases stay safe).\n\nUpdate your card in PayPal or restart here: ' + SETTINGS.siteUrl + 'index.html#join\n\n' + pause],
-    day14: ['Your RRR account is locked (nothing is deleted)', 'We still haven\'t received your membership payment, so your account is locked: you can see your belt and points, but bookings, claims and Series submissions are paused.\n\nPay and everything unlocks straight away: ' + SETTINGS.siteUrl + 'index.html#join\n\n' + pause],
+    day14: ['Your RRR account is locked (nothing is deleted)', 'We still haven\'t received your membership payment, so your account is locked: you can see your belt and points, but bookings, claims, Series submissions and your stats are paused.\n\nPay and everything unlocks straight away: ' + SETTINGS.siteUrl + 'index.html#join\n\n' + pause],
     day90: ['Your RRR account has been archived', 'Your membership has been unpaid for 90 days, so we\'ve archived your account. Your points stay on record for 12 months: rejoin any time and pick up where you left off: ' + SETTINGS.siteUrl + 'index.html#join']
   }[step];
   try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: texts[0], body: 'Hi ' + (m.artist || m.name || '') + ',\n\n' + texts[1] + '\n\nRetro Reverb Records' }); } catch (e) { log_('chase email failed', String(e)); }
@@ -1939,7 +1941,7 @@ function handleModAction_(p) {
   updateRow_('Members', 'member_id', id, { standing: action, admin_notes: (m.admin_notes ? m.admin_notes + ' | ' : '') + new Date().toISOString().slice(0, 10) + ' ' + action + ' by ' + (a.artist || a.name) + ': ' + reason });
   append_('ModLog', { when: new Date(), admin_id: a.member_id, admin_name: a.artist || a.name, member_id: id, member_name: m.artist || m.name, action: action, reason: reason });
   if (action === 'suspended' || action === 'removed') processStanding_();
-  const words = { good: 'Your RRR membership is back in good standing.', warning: 'This is a formal warning about your behaviour in the RRR community.', suspended: 'Your RRR membership is suspended for up to 30 days. Bookings, claims and submissions are paused, and your membership fee is paused too.', removed: 'Your RRR membership has been ended and you have been removed from the community.' };
+  const words = { good: 'Your RRR membership is back in good standing.', warning: 'This is a formal warning about your behaviour in the RRR community.', suspended: 'Your RRR membership is suspended for up to 30 days. Bookings, claims, submissions and stats are paused, and your membership fee is paused too.', removed: 'Your RRR membership has been ended and you have been removed from the community.' };
   if (m.email) try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: 'About your RRR membership',
     body: 'Hi ' + (m.name || '') + ',\n\n' + words[action] + '\n\nReason: ' + reason + '\n\nOur Code of Conduct: ' + SETTINGS.siteUrl + 'code-of-conduct.html' + (action !== 'good' ? '\n\nIf you think this is wrong, reply to this email within 14 days to appeal. A different person will look at it.' : '') + '\n\nRetro Reverb Records' }); } catch (e) { log_('mod email failed', String(e)); }
   notify_('Moderation: ' + (a.artist || a.name) + ' set ' + (m.artist || m.name) + ' (' + id + ') to ' + action.toUpperCase(), 'Reason: ' + reason + '\n\nUndo: set standing back in the Members tab.\n' + sheetUrl_());

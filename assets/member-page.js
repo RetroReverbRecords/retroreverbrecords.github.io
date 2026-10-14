@@ -180,6 +180,7 @@
   // Stats: Stats Pro members wait for us to connect them; everyone else sees the offer
   function statsEmpty(m, demo){
     if (m.type !== 'artist') return '<div class="panel empty"><b>Stats are for artist members.</b></div>';
+    if (m.statsLocked) return `<div class="panel empty"><b>Your stats are paused.</b><span>Stats only run while your membership is active. Restart your membership and they come back the next day: <a href="index.html#join">restart</a>.</span></div>`;
     if (m.statsPro) return `<div class="panel empty"><b>${m.statsConnected ? 'Your first stats arrive tomorrow.' : 'Connecting your Stats Pro…'}</b><span>${m.statsConnected ? 'They update every day from now on.' : 'We link your artist profile within 2 working days, then your numbers update every day here.'}</span></div>`;
     const P = C.payments || {}, add = (C.prices || {}).statsPro || 1;
     let pay = '';
@@ -188,7 +189,7 @@
       if (C.automationUrl) q.set('notify_url', C.automationUrl);
       pay = `<p><a class="btn primary" href="https://www.paypal.com/cgi-bin/webscr?${q.toString()}" target="_blank" rel="noopener">Add Stats Pro · €${Number(add).toFixed(2)}/month</a></p><p class="small">Then email us your Spotify artist link so we can connect you.</p>`;
     }
-    return `<div class="panel nextstep statspro-up"><span class="label">Stats Pro</span><p><b>See your numbers grow, every day.</b> Spotify listeners and streams, YouTube and TikTok views, radio plays and playlists, growth over 7 and 28 days, playlist alerts and a weekly report. Powered by Songstats.</p>${pay}</div>`;
+    return `<div class="panel nextstep statspro-up"><span class="label">Stats Pro</span><p><b>See your numbers grow, every day.</b> Spotify listeners and streams, YouTube and TikTok views, radio plays and playlists, growth over 7 and 28 days, playlist alerts and a weekly report. Powered by Songstats. Stats run while your membership is active.</p>${pay}</div>`;
   }
   // Your Synth Stars card (from cards.js), or a link to claim one
   function myCard(m, demo){
@@ -230,7 +231,7 @@
     const kindLabel = k => ({ 'bandcamp-release': 'Bandcamp', 'streaming-release': 'Streaming' }[k] || k);
     const s = m.stats;
     $('#dash').innerHTML = `
-      ${m.standing === 'suspended' ? `<div class="panel empty" style="border-color:#ff8a8a"><b>Your membership is suspended.</b><span>Bookings, claims and submissions are paused. We've emailed you why and how to appeal. Questions: ${esc(C.email)}</span></div>` : ''}
+      ${m.standing === 'suspended' ? `<div class="panel empty" style="border-color:#ff8a8a"><b>Your membership is suspended.</b><span>Bookings, claims, submissions and stats are paused. We've emailed you why and how to appeal. Questions: ${esc(C.email)}</span></div>` : ''}
       ${notifPanel(m, demo)}
       ${demo ? `<p class="prov"><span>Example</span> ${notLive ? 'Member dashboards go live when the RRR automation is switched on. This is an example.' : 'This is an example dashboard with made-up numbers.'}</p>` : ''}
       <div class="dash-top">

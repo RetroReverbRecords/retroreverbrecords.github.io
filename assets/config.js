@@ -74,7 +74,7 @@ window.RRR_CONFIG = {
 
   // Current version of the Terms. Change the date when the Terms change;
   // new sign-ups then sign the new version.
-  termsVersion: "2026-10-14-beta7",
+  termsVersion: "2026-10-14-beta8",
 
   // DISCORD. Paste a permanent invite (discord.gg/...) into invite to replace
   // the Disboard page. Members-only channels unlock once they link their ID.

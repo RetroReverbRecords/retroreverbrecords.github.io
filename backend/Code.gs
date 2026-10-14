@@ -724,7 +724,16 @@ function weeklyBulletin_() {
 function digest_() {
   const since = new Date(Date.now() - 24 * 3600 * 1000);
   const newM = rows_('Members').filter(r => new Date(r.created) >= since);
-  const pays = rows_('Payments').filter(r => new Date(r.received) >= since);
+  const allPays = rows_('Payments').filter(r => new Date(r.received) >= since);
+  // Only real money in counts as a payment; sign-ups/cancellations are listed once each as events.
+  const pays = allPays.filter(r => !/^subscr_(signup|cancel|eot|modify|failed)$/.test(r.txn_type));
+  const seenEv = {};
+  const events = allPays.filter(r => /^subscr_(signup|cancel|eot|modify|failed)$/.test(r.txn_type)).filter(r => {
+    const k = r.txn_type + '|' + (r.subscr_id || r.member_id || r.payer_email);
+    return seenEv[k] ? false : (seenEv[k] = true);
+  });
+  const total = pays.reduce((t, r) => t + (Number(r.amount) || 0), 0);
+  const evName = { subscr_signup: 'New subscription', subscr_cancel: 'Subscription cancelled', subscr_eot: 'Subscription ended', subscr_modify: 'Subscription changed', subscr_failed: 'Payment failed' };
   const books = rows_('Bookings').filter(r => new Date(r.created) >= since);
   const soon = new Date(Date.now() + 7 * 24 * 3600 * 1000);
   const deadlines = getCalendar_().getEvents(new Date(), soon).filter(ev => /^DEADLINE/.test(ev.getTitle())).map(ev => '• ' + ev.getAllDayStartDate().toDateString() + ' – ' + ev.getTitle());
@@ -733,7 +742,8 @@ function digest_() {
   notify_('RRR daily digest – ' + newM.length + ' new members, ' + pays.length + ' payments, ' + books.length + ' bookings',
     'Active members: ' + active +
     '\n\nNew members:\n' + (newM.map(r => '• ' + (r.artist || r.name) + ' (' + r.type + ', ' + r.status + ')').join('\n') || '–') +
-    '\n\nPayments:\n' + (pays.map(r => '• ' + r.txn_type + ' ' + r.amount + ' ' + r.currency + ' – ' + (r.member_id || r.payer_email)).join('\n') || '–') +
+    '\n\nMoney in: €' + total.toFixed(2) + '\n' + (pays.map(r => '• €' + Number(r.amount).toFixed(2) + ' – ' + (r.item_name || r.txn_type) + ' – ' + (r.member_id || r.payer_email)).join('\n') || '–') +
+    (events.length ? '\n\nSubscription updates:\n' + events.map(r => '• ' + (evName[r.txn_type] || r.txn_type) + ' – ' + (r.member_id || r.payer_email)).join('\n') : '') +
     '\n\nBookings:\n' + (books.map(r => '• ' + r.kind + ' – ' + r.artist + ' – ' + r.title + ' – ' + r.date).join('\n') || '–') +
     '\n\nDeadlines in the next 7 days:\n' + (deadlines.join('\n') || '–') +
     '\n\nSheet: ' + sheetUrl_());

@@ -892,3 +892,5 @@ fieldset{min-width:0;min-inline-size:0}
 .notifbox .nf-x{background:none;border:1px solid rgba(255,255,255,.25);color:inherit;border-radius:999px;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer}
 .notifbox .nf-x:hover{border-color:#3FD0FF;color:#3FD0FF}
 @media (max-width:560px){.notifbox .nf-list li{grid-template-columns:auto 1fr}.notifbox .nf-list li .btn,.notifbox .nf-list li .nf-x{grid-column:2;justify-self:start}}
+fieldset>*,.booking-form>*{min-width:0}
+.neonstars{flex-wrap:wrap}.neonstars .starword{min-width:0}

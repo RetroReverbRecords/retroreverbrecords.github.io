@@ -52,6 +52,11 @@ window.RRR_CONFIG = {
     statsPro: 1.00,          // Stats Pro add-on for artists, per month (on top of Artist membership)
     merch: 2.00              // Merch listing, per item (one-off). Sales are paid to the artist directly
   },
+  // Yearly artist membership (same price as 12 months, one payment = far lower PayPal fees for RRR)
+  yearly: { artist: 24.00 },
+  // FOUNDING ARTISTS (original RRR artists invited by email with a link ending ?founder=1):
+  // €2/month or €24/year for life with stats included, first month free, and these upload prices for life.
+  founder: { trialMonths: 1, fees: { single: 1.50, ep: 2.00, album: 2.50 } },
 
   // SELL YOUR MERCH WITH US
   // Merch is sold from the artist's own linked Bandcamp page and paid to the artist.

@@ -77,7 +77,7 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
@@ -188,6 +188,7 @@ function doGet(e) {
   if (q.review) return reviewPost_(q.review, q.d, q.t);
   if (q.payout) return payoutPage_(q.payout, q.t);
   if (q.payoutconfirm) return payoutEmailConfirm_(q.payoutconfirm);
+  if (q.isfounder) { const fm = findRow_('Members', 'email', String(q.isfounder).trim()); return json_({ ok: true, founder: !!(fm && fm.founder === 'yes') }); }
   if (q.notices) return json_({ ok: true, notices: noticesPublic_() });
   if (q.hall) return json_(hallOfFame_());
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
@@ -219,8 +220,14 @@ function handleSignup_(p) {
     plan: p.type === 'artist' ? (String(p.stats_pro) === 'yes' ? 'Artist + Stats Pro' : 'Artist') : 'Fan', points: 0, rank: 'White belt', public: 'yes',
     artist_type: p.type === 'artist' ? 'Member' : '', bandcamp_linked: p.type === 'artist' ? 'no' : '',
     stats_pro: p.type === 'artist' && String(p.stats_pro) === 'yes' ? 'yes' : '', stats_link: String(p.stats_link || '').slice(0, 300),
+    founder: p.type === 'artist' && p.founder === 'yes' ? (isFounderEmail_(p.email) ? 'yes' : 'claimed – check') : '',
+    billing: p.type === 'artist' && p.billing === 'yearly' ? 'yearly' : 'monthly',
     paypal_payout: p.type === 'artist' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(p.payout_paypal || '').trim()) ? String(p.payout_paypal).trim().toLowerCase() : ''
   });
+  if (p.type === 'artist' && p.founder === 'yes') {
+    if (isFounderEmail_(p.email)) { updateRow_('Members', 'member_id', id, { stats_pro: 'yes', plan: 'Founding Artist' + (p.billing === 'yearly' ? ' (yearly)' : '') }); notify_('🌟 Founding Artist joined: ' + (p.artist || p.name), id + ' (' + (p.billing === 'yearly' ? 'yearly' : 'monthly') + ', first month free). Stats are included: find them on Songstats and put their artist ID in Members → songstats_artist_id.\n' + sheetUrl_()); }
+    else notify_('Founder link used by someone not on the founder list: ' + (p.artist || p.name), (p.email || '') + ' signed up through a founder link but isn\'t in Settings → founder_emails. If they are an original RRR artist, add their email there and set Members → founder to yes; otherwise set it to no. Their first PayPal payment is free for a month either way.\n' + sheetUrl_());
+  }
   if (p.type === 'artist' && String(p.stats_pro) === 'yes') notify_('📈 Stats Pro sign-up: ' + (p.artist || p.name), 'Member ' + id + ' wants Stats Pro.\nTheir link: ' + (p.stats_link || 'none given') + '\n\nOnce they have paid, find them on Songstats and put their Songstats artist ID in Members → songstats_artist_id.\n' + sheetUrl_());
   if (isDemo_(p.email)) award_(id, 'joined'); // real members get their joining points when the first payment arrives
 
@@ -548,6 +555,7 @@ function publicProfile_(m) {
     youtubeName: m.youtube_name || '',
     statsPro: m.type === 'artist' && statsPro_(m), statsConnected: !!m.songstats_artist_id,
     bandcampSales: m.type === 'artist' ? salesFor_(id) : null,
+    founder: m.founder === 'yes',
     payoutPaypal: m.type === 'artist' && m.paypal_payout ? String(m.paypal_payout).replace(/^(.).*(@.*)$/, '$1•••$2') : '',
     membershipActive: /active/i.test(String(m.status)) && standing_(m) !== 'suspended',
     standing: standing_(m),
@@ -2264,4 +2272,10 @@ function payoutEmailConfirm_(token) {
   updateRow_('Members', 'member_id', m.member_id, { paypal_payout: m.paypal_pending, paypal_pending: '-', paypal_token: 'used ' + new Date().toISOString() });
   notify_('PayPal payout email changed: ' + (m.artist || m.name), m.member_id + ' now gets payouts at ' + m.paypal_pending + (m.paypal_payout ? ' (was ' + m.paypal_payout + ')' : '') + '.');
   return payoutHtml_('PayPal confirmed', '<p>Your Bandcamp payouts will go to <b>' + m.paypal_pending + '</b>.</p><p><a style="color:#3FD0FF" href="' + SETTINGS.siteUrl + 'member.html">Back to your dashboard</a></p>');
+}
+
+// Founding Artists: original RRR artists invited by email (Settings → founder_emails, comma separated)
+function isFounderEmail_(email) {
+  const e = String(email || '').trim().toLowerCase(); if (!e) return false;
+  return String(setting_('founder_emails', '')).toLowerCase().split(/[\s,;]+/).indexOf(e) >= 0;
 }

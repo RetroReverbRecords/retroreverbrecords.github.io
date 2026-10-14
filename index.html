@@ -468,6 +468,11 @@
             <div class="artist-only statsadd">
               <label class="agree"><input type="checkbox" id="f-statspro" name="stats_pro" value="yes"> <span><b>Add Stats Pro</b> (+<span data-price="statsPro">€1.00</span>/month): daily Spotify, YouTube, TikTok, radio and playlist stats on your dashboard, and a weekly report.</span></label>
               <label for="f-statslink" class="statslink" hidden>Your Spotify artist link (or Songstats link)<input id="f-statslink" name="stats_link" type="url" placeholder="https://open.spotify.com/artist/…"></label>
+              <fieldset class="artist-only billing" id="f-billing"><legend>How do you want to pay?</legend>
+                <label class="agree"><input type="radio" name="billing" value="monthly" checked> <span><b>Monthly</b>: <span data-billing="monthly">€2.00 a month</span></span></label>
+                <label class="agree"><input type="radio" name="billing" value="yearly"> <span><b>Yearly</b>: <span data-billing="yearly">€24 a year</span>, one payment, nothing to think about for 12 months</span></label>
+              </fieldset>
+              <div class="panel nextstep founder-box" id="founder-box" hidden><span class="label">Founding Artist</span><p><b>Welcome back, original RRR artist.</b> Your founder deal: €2 a month or €24 a year locked in for life with your stats dashboard included, your first month free, and founder upload prices for life (single €1.50, EP €2, album €2.50).</p></div>
             </div>
             <div class="post">
               <span class="label">Want a printed card later? (optional)</span>
@@ -580,6 +585,6 @@
 <script src="assets/config.js?v=20261014a"></script>
 <script src="assets/releases.js?v=20261008a"></script>
 <script src="assets/levels.js?v=20261012a"></script>
-<script src="assets/site.js?v=20261013c"></script>
+<script src="assets/site.js?v=20261014a"></script>
 </body>
 </html>

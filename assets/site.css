@@ -896,3 +896,9 @@ fieldset>*,.booking-form>*{min-width:0}
 .neonstars{flex-wrap:wrap}.neonstars .starword{min-width:0}
 
 .nb-news{background:var(--cyan)}
+
+/* Stats Pro shop-front: RRR's own numbers */
+.panel.showcase{display:grid;gap:18px;padding:24px;margin-top:20px;border-color:var(--cyan)}
+.panel.showcase .bignums{margin-top:0}
+.panel.showcase h3 em{color:var(--pink);font-style:normal}
+.panel.showcase .onair .ticks{margin:6px 0 0}

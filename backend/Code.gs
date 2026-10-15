@@ -77,7 +77,7 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
@@ -188,7 +188,7 @@ function doGet(e) {
   if (q.review) return reviewPost_(q.review, q.d, q.t);
   if (q.payout) return payoutPage_(q.payout, q.t);
   if (q.payoutconfirm) return payoutEmailConfirm_(q.payoutconfirm);
-  if (q.isfounder) { const fm = findRow_('Members', 'email', String(q.isfounder).trim()); return json_({ ok: true, founder: !!(fm && fm.founder === 'yes') }); }
+  if (q.isfounder) { const fm = findRow_('Members', 'email', String(q.isfounder).trim()); return json_({ ok: true, founder: !!(fm && fm.founder === 'yes'), freeRelease: !!(fm && Number(fm.free_release) > 0) }); }
   if (q.notices) return json_({ ok: true, notices: noticesPublic_() });
   if (q.hall) return json_(hallOfFame_());
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
@@ -352,12 +352,14 @@ function handleBooking_(kind, p) {
     if (isDemo_(p.email)) confirmBooking_(String(p.booking_id).toUpperCase(), 'demo', 'DEMO');
     return text_('ok');
   }
+  const freeRel = !!(member && /release/.test(kind) && !p.booking_id && String(p.free_release) === 'yes' && Number(member.free_release) > 0);
   const dayFull = !!(date && SETTINGS.slotsPerDay[kind] && !slotFree_(kind, isoDate_(date)));
   if (dayFull) { append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email, title: title, date: date, details: JSON.stringify(p).slice(0, 1500), status: 'date full – suggest another date' });
     notify_('Booking date full: ' + kind + ' – ' + (p.artist || ''), date + ' was already full. Reply with the next free day: ' + nextFreeDate_(kind, isoDate_(date)) + '\n' + sheetUrl_()); return text_('ok'); }
   if (date && !full) eventId = addToCalendar_(kind, p, date);
+  if (freeRel && !full) updateRow_('Members', 'member_id', memberId, { free_release: Number(member.free_release) - 1 });
   append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
-    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : kind === 'social-post' ? 'awaiting review' : 'requested', calendar_event_id: eventId,
+    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : kind === 'social-post' ? 'awaiting review' : freeRel && !full ? 'confirmed (free release – Black Belt)' : 'requested', calendar_event_id: eventId,
     booking_id: kind === 'social-post' ? socialId : '', review_token: kind === 'social-post' ? Utilities.getUuid().replace(/-/g, '') : '' });
   if (kind === 'social-post' && p.email) try {
     MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Social post booked: we\'re checking it (' + socialId + ')',
@@ -980,8 +982,13 @@ function promote_(memberId, pts) {
   updateRow_('Members', 'member_id', memberId, { rank: nb.name, rank_since: new Date() });
   if (isDemo_(m.email)) return;
   notice_('belt', memberId, (m.artist || m.name) + ' earned ' + nb.name.replace(' · ', ' ') + ' 🥋', 'Say well done', 'member.html?id=' + memberId);
+  const black = /^Black belt/i.test(nb.name);
+  if (black) { // Black Belt reward: next release upload free, Discord role, Bandcamp Hour shout-out
+    updateRow_('Members', 'member_id', memberId, { free_release: (Number(m.free_release) || 0) + 1 });
+    notify_('🥋 Black Belt: ' + (m.artist || m.name), memberId + ' just reached Black Belt.\n\nTheir next release upload is free (automatic when they book).\nYour checklist:\n1. Give them the Black Belt role on Discord.\n2. Give them a shout-out on The Bandcamp Hour.\n' + sheetUrl_());
+  }
   if (m.email) try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: '🥋 You earned ' + nb.name + '!',
-    body: 'Congratulations! You are now ' + nb.name + ' in the RRR community, with ' + pts + ' points.\n\nSee your belt: ' + SETTINGS.siteUrl + 'member.html?id=' + memberId + '\n\nRetro Reverb Records\nWelcome to the family' }); } catch (e) {}
+    body: 'Congratulations! You are now ' + nb.name + ' in the RRR community, with ' + pts + ' points.\n\n' + (black ? 'Your Black Belt rewards:\n- your next release upload is free (it shows when you book with this email)\n- the Black Belt role on our Discord\n- a shout-out on The Bandcamp Hour\n\n' : '') + 'See your belt: ' + SETTINGS.siteUrl + 'member.html?id=' + memberId + '\n\nRetro Reverb Records\nWelcome to the family' }); } catch (e) {}
 }
 function beltWaiting_(m) { // for the dashboard: next belt earned by points but waiting for time in grade
   const pts = Number(m.points) || 0, target = rankIndex_(rankFor_(pts).name), cur = Math.max(0, rankIndex_(m.rank));

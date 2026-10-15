@@ -458,12 +458,13 @@ window.rrrSend = function(url, data, onProblem){
         dateIn.addEventListener('change', () => { if (dateIn.value) { const d = new Date(dateIn.value + 'T12:00:00'); month = new Date(d.getFullYear(), d.getMonth(), 1); } draw(); });
       }
       // Founding artists pay founder upload prices: we look up the member ID they type
-      let isFounder = false; const ff = ((C.founder || {}).fees) || {};
+      let isFounder = false, freeRelease = false; const ff = ((C.founder || {}).fees) || {};
       const emIn = f.querySelector('[name=email]');
       const checkFounder = () => { const v = (emIn && emIn.value || '').trim(); if (!endpoint || !/@/.test(v)) { isFounder = false; return; }
-        fetch(endpoint + '?isfounder=' + encodeURIComponent(v)).then(r => r.json()).then(j => { isFounder = !!(j && j.founder); const n = f.querySelector('.founder-note'); if (n) n.hidden = !isFounder; }).catch(() => {}); };
+        fetch(endpoint + '?isfounder=' + encodeURIComponent(v)).then(r => r.json()).then(j => { isFounder = !!(j && j.founder); freeRelease = !!(j && j.freeRelease) && /release/.test(f.dataset.kind); const n = f.querySelector('.founder-note'); if (n) n.hidden = !isFounder;
+          let fr = f.querySelector('.free-note'); if (!fr && emIn) { fr = document.createElement('p'); fr.className = 'small free-note'; fr.innerHTML = '🥋 <b>Black Belt reward:</b> this release upload is free.'; (emIn.closest('label') || emIn).insertAdjacentElement('afterend', fr); } if (fr) fr.hidden = !freeRelease; }).catch(() => {}); };
       if (emIn) emIn.addEventListener('change', checkFounder);
-      const amount = () => { const key = (pl && pl.dataset.amount) ? pl.dataset.amount : (sel ? sel.value : null); if (key == null) return null; return isFounder && ff[key] != null ? ff[key] : fees0[key]; };
+      const amount = () => { const key = (pl && pl.dataset.amount) ? pl.dataset.amount : (sel ? sel.value : null); if (key == null) return null; if (freeRelease && /^(single|ep|album)$/.test(key)) return 0; return isFounder && ff[key] != null ? ff[key] : fees0[key]; };
       f.addEventListener('submit', async e => {
         e.preventDefault();
         if (!open) return;
@@ -474,7 +475,7 @@ window.rrrSend = function(url, data, onProblem){
         const selfUpload = !!f.querySelector('input[name=upload_by][value=artist]:checked');
         const amt = amount();
         const bookingId = 'BK-' + Array.from(crypto.getRandomValues(new Uint8Array(6)), x => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[x % 31]).join('');
-        const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : {});
+        const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : freeRelease ? { free_release: 'yes' } : {});
         if (!ok) return;
         track('Schedule', { content_name: f.dataset.kind });
         const demo = isDemoEmail(email), kindName = (($('[role=tab][aria-selected=true]') || {}).textContent || f.dataset.kind.replace('-', ' ')).trim();

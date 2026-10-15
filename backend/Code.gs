@@ -221,11 +221,11 @@ function handleSignup_(p) {
     artist_type: p.type === 'artist' ? 'Member' : '', bandcamp_linked: p.type === 'artist' ? 'no' : '',
     stats_pro: p.type === 'artist' && String(p.stats_pro) === 'yes' ? 'yes' : '', stats_link: String(p.stats_link || '').slice(0, 300),
     founder: p.type === 'artist' && p.founder === 'yes' ? (isFounderEmail_(p.email) ? 'yes' : 'claimed – check') : '',
-    billing: p.type === 'artist' && p.billing === 'yearly' ? 'yearly' : 'monthly',
+    billing: p.type === 'artist' && ['yearly', '3 months', '6 months', '9 months'].indexOf(p.billing) >= 0 ? p.billing : 'monthly',
     paypal_payout: p.type === 'artist' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(p.payout_paypal || '').trim()) ? String(p.payout_paypal).trim().toLowerCase() : ''
   });
   if (p.type === 'artist' && p.founder === 'yes') {
-    if (isFounderEmail_(p.email)) { updateRow_('Members', 'member_id', id, { stats_pro: 'yes', plan: 'Founding Artist' + (p.billing === 'yearly' ? ' (yearly)' : '') }); notify_('🌟 Founding Artist joined: ' + (p.artist || p.name), id + ' (' + (p.billing === 'yearly' ? 'yearly' : 'monthly') + ', first month free). Stats are included: find them on Songstats and put their artist ID in Members → songstats_artist_id.\n' + sheetUrl_()); }
+    if (isFounderEmail_(p.email)) { updateRow_('Members', 'member_id', id, { stats_pro: 'yes', plan: 'Founding Artist' + (p.billing === 'yearly' ? ' (yearly)' : /months/.test(String(p.billing)) ? ' (every ' + p.billing + ')' : '') }); notify_('🌟 Founding Artist joined: ' + (p.artist || p.name), id + ' (' + (p.billing === 'yearly' ? 'yearly' : 'monthly') + ', first month free). Stats are included: find them on Songstats and put their artist ID in Members → songstats_artist_id.\n' + sheetUrl_()); }
     else notify_('Founder link used by someone not on the founder list: ' + (p.artist || p.name), (p.email || '') + ' signed up through a founder link but isn\'t in Settings → founder_emails. If they are an original RRR artist, add their email there and set Members → founder to yes; otherwise set it to no. Their first PayPal payment is free for a month either way.\n' + sheetUrl_());
   }
   if (p.type === 'artist' && String(p.stats_pro) === 'yes') notify_('📈 Stats Pro sign-up: ' + (p.artist || p.name), 'Member ' + id + ' wants Stats Pro.\nTheir link: ' + (p.stats_link || 'none given') + '\n\nOnce they have paid, find them on Songstats and put their Songstats artist ID in Members → songstats_artist_id.\n' + sheetUrl_());

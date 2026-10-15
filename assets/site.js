@@ -153,12 +153,12 @@ window.rrrSend = function(url, data, onProblem){
   function payButtons(box, o){
     const fallback = () => {
       const params = o.kind === 'sub'
-        ? Object.assign({ cmd: '_xclick-subscriptions', item_name: o.item, a3: o.amount.toFixed(2), p3: '1', t3: o.period || 'M', src: '1', custom: o.custom, return: o.returnUrl || '' },
+        ? Object.assign({ cmd: '_xclick-subscriptions', item_name: o.item, a3: o.amount.toFixed(2), p3: String(o.period === 'Y' ? 1 : (o.months || 1)), t3: o.period === 'Y' ? 'Y' : 'M', src: '1', custom: o.custom, return: o.returnUrl || '' },
             o.trialMonths ? { a1: '0', p1: String(o.trialMonths), t1: 'M' } : {})
         : { cmd: '_xclick', item_name: o.item.slice(0, 120), amount: o.amount.toFixed(2), custom: o.custom };
-      box.innerHTML = `<a class="btn primary" href="${esc(paypalUrl(params))}" target="_blank" rel="noopener">${o.trialMonths ? 'Start your free month, then ' : 'Pay '}€${o.amount.toFixed(2)}${o.kind === 'sub' ? (o.period === 'Y' ? '/year' : '/month') : ''} with PayPal or card</a> ${o.note ? `<span class="small">${o.note}</span>` : ''}`;
+      box.innerHTML = `<a class="btn primary" href="${esc(paypalUrl(params))}" target="_blank" rel="noopener">${o.trialMonths ? 'Start your free month, then ' : 'Pay '}€${o.amount.toFixed(2)}${o.kind === 'sub' ? (o.period === 'Y' ? '/year' : (o.months || 1) > 1 ? ' every ' + o.months + ' months' : '/month') : ''} with PayPal or card</a> ${o.note ? `<span class="small">${o.note}</span>` : ''}`;
     };
-    const useSdk = PP.clientId && (o.kind === 'one-off' || (o.plan && !o.trialMonths && o.period !== 'Y'));
+    const useSdk = PP.clientId && (o.kind === 'one-off' || (o.plan && !o.trialMonths && o.period !== 'Y' && (o.months || 1) === 1));
     if (!useSdk) { if (P.paypalEmail) fallback(); return; }
     box.innerHTML = `<div class="pp-sdk"></div>${o.note ? `<p class="small">${o.note}</p>` : ''}`;
     loadSdk(o.kind === 'sub').then(paypal => {
@@ -309,13 +309,17 @@ window.rrrSend = function(url, data, onProblem){
   const statsPro = () => !isFan() && !!($('#f-statspro') && $('#f-statspro').checked);
   // Founding artists arrive from their invite email with ?founder=1 (remembered for this visit)
   const founderMode = (() => { let f = /[?&]founder=1\b/.test(location.search); try { if (f) sessionStorage.setItem('rrr-founder', '1'); else f = sessionStorage.getItem('rrr-founder') === '1'; } catch (e) {} return f; })();
-  const yearly = () => !isFan() && !!$('input[name=billing][value=yearly]:checked');
-  const price = () => yearly() ? ((C.yearly || {}).artist || 24) : ((C.membershipPrices || {})[isFan() ? 'fan' : 'artist'] || 0) + (statsPro() && !founderMode ? ((C.prices || {}).statsPro || 0) : 0);
+  const billMonths = () => { if (isFan()) return 1; const r = $('input[name=billing]:checked'); return r ? (Number(r.dataset.months) || 1) : 1; };
+  const yearly = () => billMonths() === 12;
+  const monthly = () => ((C.membershipPrices || {})[isFan() ? 'fan' : 'artist'] || 0);
+  const addOn = () => statsPro() && !founderMode ? ((C.prices || {}).statsPro || 0) : 0;
+  const price = () => { const m = billMonths(); return (m === 12 ? ((C.yearly || {}).artist || monthly() * 12) : monthly() * m) + addOn() * m; };
   (function(){
     const fb = $('#founder-box'); if (fb) fb.hidden = !founderMode;
     if (founderMode) { const sp = $('#f-statspro'); if (sp) { const l = sp.closest('label'); if (l) l.hidden = true; } }
-    const yb = $('[data-billing=yearly]'); if (yb) yb.textContent = '€' + Number((C.yearly || {}).artist || 24).toFixed(0) + ' a year' + (founderMode ? ', first month free' : '');
-    const mb = $('[data-billing=monthly]'); if (mb) mb.textContent = '€' + Number((C.membershipPrices || {}).artist || 2).toFixed(2) + ' a month' + (founderMode ? ', first month free' : '');
+    const a = Number((C.membershipPrices || {}).artist || 2), yr = Number((C.yearly || {}).artist || a * 12);
+    $$('[data-billing]').forEach(el => { const m = Number(el.dataset.billing) || 1; const v = m === 12 ? yr : a * m;
+      el.textContent = (m === 1 ? '€' + v.toFixed(2) + ' a month' : m === 12 ? '€' + v.toFixed(0) + ' a year' : '€' + v.toFixed(0) + ' every ' + m + ' months') + (founderMode ? ', first month free' : ''); });
   })();
   (function(){ const cb = $('#f-statspro'), ln = $('.statslink'); if (cb && ln) cb.addEventListener('change', () => { ln.hidden = !cb.checked; }); })();
   if (signup) {
@@ -332,10 +336,10 @@ window.rrrSend = function(url, data, onProblem){
       e.preventDefault();
       if (!open) return;
       if (!signup.checkValidity()) { signup.reportValidity(); return; }
-      const id = newMemberId(), fan = isFan(), amt = price(), sp = statsPro() || (founderMode && !fan), yr = yearly();
+      const id = newMemberId(), fan = isFan(), amt = price(), sp = statsPro() || (founderMode && !fan), bm = fan ? 1 : billMonths();
       const em = ((signup.querySelector('[name=email]') || {}).value || '').trim();
       const who = ((signup.querySelector('[name=artist]') || {}).value || (signup.querySelector('[name=name]') || {}).value || '').trim();
-      const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist', founder: founderMode && !fan ? 'yes' : '', billing: yr ? 'yearly' : 'monthly',
+      const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist', founder: founderMode && !fan ? 'yes' : '', billing: ({1: 'monthly', 3: '3 months', 6: '6 months', 9: '9 months', 12: 'yearly'})[bm] || 'monthly',
         terms_version: C.termsVersion || '', signed_at: new Date().toISOString(), user_agent: navigator.userAgent.slice(0, 250), signed_on_page: location.href.split('?')[0] });
       if (!ok) return;
       try { localStorage.setItem('rrr-member-id', id); } catch (e) {}
@@ -349,7 +353,7 @@ window.rrrSend = function(url, data, onProblem){
         ${demo ? '<p class="paid"><strong>Demo account: payment skipped.</strong> Your account is active straight away.</p>' : '<div class="done-pay"></div>'}
         <p class="label" style="margin-top:14px">What next</p>
         <ol class="nextsteps">
-          ${demo ? '' : '<li><b>Set up your monthly payment</b> with the button above. Your account goes live when it arrives.</li>'}
+          ${demo ? '' : '<li><b>Set up your payment</b> with the button above. Your account goes live when it arrives.</li>'}
           <li><a href="${esc(dash)}"><b>Open your member dashboard</b></a>: your belt, points and releases. Save it to your home screen.</li>
           ${fan ? '<li><a href="cards.html"><b>Start collecting Synth Stars cards</b></a></li>' : '<li><a href="series.html#linking"><b>Link your Bandcamp to RRR</b></a>: needed for Bandcamp releases, and it gets you free Bandcamp VIP.</li><li><a href="book.html"><b>Book your first release</b></a></li>'}
         </ol>
@@ -358,14 +362,14 @@ window.rrrSend = function(url, data, onProblem){
       fields.insertAdjacentElement('beforebegin', done);
       $('#signup-status').innerHTML = '';
       const cp = done.querySelector('.copy'); if (cp) cp.addEventListener('click', () => { try { navigator.clipboard.writeText(id); cp.textContent = 'Copied ✓'; } catch (e) {} });
-      if (!demo) { const pay = $('.pay', signup); if (pay) done.querySelector('.done-pay').appendChild(pay); renderPay(id, fan, amt, sp, { yearly: yr, founder: founderMode && !fan }); }
+      if (!demo) { const pay = $('.pay', signup); if (pay) done.querySelector('.done-pay').appendChild(pay); renderPay(id, fan, amt, sp, { months: bm, founder: founderMode && !fan }); }
       try { done.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
       track('CompleteRegistration', { content_name: fan ? 'fan' : 'artist' });
     });
   }
   function renderPay(memberId, fan, amt, sp, opt){
     opt = opt || {};
-    const per = opt.yearly ? 'year' : 'month', trial = opt.founder ? (((C.founder || {}).trialMonths) || 1) : 0;
+    const months = opt.months || (opt.yearly ? 12 : 1), per = months === 12 ? 'year' : months > 1 ? months + ' months' : 'month', trial = opt.founder ? (((C.founder || {}).trialMonths) || 1) : 0;
     const box = $('#paypal-buttons'); if (!box) return;
     $('#pay-note').hidden = !!memberId;
     if (!memberId) { box.innerHTML = ''; return; }
@@ -374,10 +378,10 @@ window.rrrSend = function(url, data, onProblem){
     if (P.membershipVia === 'bandcamp' && P.bandcampSubscribeUrl) {
       btn = `<a class="btn primary" href="${esc(P.bandcampSubscribeUrl)}" target="_blank" rel="noopener">Subscribe on Bandcamp</a>`;
     }
-    box.innerHTML = `<div class="welcome"><p><strong>${trial ? 'Start your free month' : 'Set up your ' + (opt.yearly ? 'yearly' : 'monthly') + ' payment'}${amt ? ': ' + (trial ? 'then ' : '') + '€' + Number(amt).toFixed(2) + '/' + per : ''}.</strong></p>${trial ? '<p class="small">PayPal takes nothing today. Your first payment is in a month; cancel any time before then and you pay nothing.</p>' : ''}<p class="small">On a phone, open PayPal in Safari or Chrome, not inside WhatsApp or Instagram.</p><div class="paybox">${btn}</div>
+    box.innerHTML = `<div class="welcome"><p><strong>${trial ? 'Start your free month' : 'Set up your payment'}${amt ? ': ' + (trial ? 'then ' : '') + '€' + Number(amt).toFixed(2) + (months > 1 && months < 12 ? ' every ' + per : '/' + per) : ''}.</strong></p>${trial ? '<p class="small">PayPal takes nothing today. Your first payment is in a month; cancel any time before then and you pay nothing.</p>' : ''}<p class="small">On a phone, open PayPal in Safari or Chrome, not inside WhatsApp or Instagram.</p><div class="paybox">${btn}</div>
       <p class="small">Your member ID is <b class="num">${esc(memberId)}</b>. Keep it: it opens your <a href="${esc(dash)}">member dashboard</a>.</p></div>`;
-    if (!btn && amt) payButtons(box.querySelector('.paybox'), { kind: 'sub', amount: amt, item: `RRR ${fan ? 'Fan' : opt.founder ? 'Founding Artist' : 'Artist'} Membership${opt.yearly ? ' (yearly)' : ''}${sp && !opt.founder ? ' + Stats Pro' : ''}`, custom: memberId,
-      plan: ((PP.plans || {})[fan ? 'fan' : 'artist']) || '', returnUrl: (C.siteUrl || '') + dash, period: opt.yearly ? 'Y' : 'M', trialMonths: trial });
+    if (!btn && amt) payButtons(box.querySelector('.paybox'), { kind: 'sub', amount: amt, item: `RRR ${fan ? 'Fan' : opt.founder ? 'Founding Artist' : 'Artist'} Membership${months === 12 ? ' (yearly)' : months > 1 ? ' (every ' + months + ' months)' : ''}${sp && !opt.founder ? ' + Stats Pro' : ''}`, custom: memberId,
+      plan: ((PP.plans || {})[fan ? 'fan' : 'artist']) || '', returnUrl: (C.siteUrl || '') + dash, period: months === 12 ? 'Y' : 'M', months: months === 12 ? 1 : months, trialMonths: trial });
   }
   renderPay();
 

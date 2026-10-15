@@ -229,6 +229,7 @@
             <h3>Artist Membership</h3>
           </div>
           <div class="price"><b class="num" data-price="artist">€2.00</b><span>per month</span></div>
+          <p class="small">Pay monthly, or every 3, 6, 9 or 12 months in one go. Same price.</p>
           <ul class="ticks">
             <li>Membership of the RRR Community, a unique artist-focused community</li>
             <li>Book promotional posts on community social media</li>
@@ -470,8 +471,12 @@
               <label class="agree"><input type="checkbox" id="f-statspro" name="stats_pro" value="yes"> <span><b>Add Stats Pro</b> (+<span data-price="statsPro">€1.00</span>/month): daily Spotify, YouTube, TikTok, radio and playlist stats on your dashboard, and a weekly report.</span></label>
               <label for="f-statslink" class="statslink" hidden>Your Spotify artist link (or Songstats link)<input id="f-statslink" name="stats_link" type="url" placeholder="https://open.spotify.com/artist/…"></label>
               <fieldset class="artist-only billing" id="f-billing"><legend>How do you want to pay?</legend>
-                <label class="agree"><input type="radio" name="billing" value="monthly" checked> <span><b>Monthly</b>: <span data-billing="monthly">€2.00 a month</span></span></label>
-                <label class="agree"><input type="radio" name="billing" value="yearly"> <span><b>Yearly</b>: <span data-billing="yearly">€24 a year</span>, one payment, nothing to think about for 12 months</span></label>
+                <label class="agree"><input type="radio" name="billing" value="monthly" data-months="1" checked> <span><b>Monthly</b>: <span data-billing="1">€2.00 a month</span></span></label>
+                <label class="agree"><input type="radio" name="billing" value="3 months" data-months="3"> <span><b>3 months</b>: <span data-billing="3">€6 every 3 months</span></span></label>
+                <label class="agree"><input type="radio" name="billing" value="6 months" data-months="6"> <span><b>6 months</b>: <span data-billing="6">€12 every 6 months</span></span></label>
+                <label class="agree"><input type="radio" name="billing" value="9 months" data-months="9"> <span><b>9 months</b>: <span data-billing="9">€18 every 9 months</span></span></label>
+                <label class="agree"><input type="radio" name="billing" value="yearly" data-months="12"> <span><b>Yearly</b>: <span data-billing="12">€24 a year</span>, one payment, nothing to think about for 12 months</span></label>
+                <p class="small">Same price whichever you choose: pay less often if you prefer. It renews automatically; cancel any time in PayPal.</p>
               </fieldset>
               <div class="panel nextstep founder-box" id="founder-box" hidden><span class="label">Founding Artist</span><p><b>Welcome back, original RRR artist.</b> Your founder deal: €2 a month or €24 a year locked in for life with your stats dashboard included, your first month free, and founder upload prices for life (single €1.50, EP €2, album €2.50).</p></div>
             </div>
@@ -583,9 +588,9 @@
   </div>
 </footer>
 
-<script src="assets/config.js?v=20261014b"></script>
+<script src="assets/config.js?v=20261015a"></script>
 <script src="assets/releases.js?v=20261008a"></script>
 <script src="assets/levels.js?v=20261012a"></script>
-<script src="assets/site.js?v=20261014a"></script>
+<script src="assets/site.js?v=20261015a"></script>
 </body>
 </html>

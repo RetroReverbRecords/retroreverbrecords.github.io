@@ -894,3 +894,5 @@ fieldset{min-width:0;min-inline-size:0}
 @media (max-width:560px){.notifbox .nf-list li{grid-template-columns:auto 1fr}.notifbox .nf-list li .btn,.notifbox .nf-list li .nf-x{grid-column:2;justify-self:start}}
 fieldset>*,.booking-form>*{min-width:0}
 .neonstars{flex-wrap:wrap}.neonstars .starword{min-width:0}
+
+.nb-news{background:var(--cyan)}

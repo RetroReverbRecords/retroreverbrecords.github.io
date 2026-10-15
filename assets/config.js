@@ -103,7 +103,7 @@ window.RRR_CONFIG = {
   // MARKETING PIXELS. Paste IDs to switch on. They only load after a visitor
   // clicks "Accept" on the cookie banner (required in the EU).
   pixels: {
-    metaPixelId: "",     // Meta (Facebook/Instagram) Pixel ID, e.g. "123456789012345"
+    metaPixelId: "1771881454036034",     // Meta (Facebook/Instagram) Pixel ID, e.g. "123456789012345"
     googleTagId: "",     // Google Analytics 4 / Google Ads tag, e.g. "G-XXXXXXX"
     tiktokPixelId: "",   // TikTok Pixel ID
     metricoolHash: "d2f746eef2d418f0a8379364d97d28bb"  // Metricool website visits tracker

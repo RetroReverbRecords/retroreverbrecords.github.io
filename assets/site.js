@@ -759,3 +759,14 @@ document.querySelectorAll('[data-discord]').forEach(a => { const c = window.RRR_
   ['blur', 'change'].forEach(t => document.addEventListener(t, e => fix(e.target), true));
   document.addEventListener('submit', e => { e.target.querySelectorAll && e.target.querySelectorAll('input[type=url]').forEach(fix); }, true);
 })();
+
+// Invite codes: a link like /?ref=RRR-XXXXX#join fills "Who invited you?" (kept for this visit)
+(function(){
+  let ref = '';
+  try { ref = new URLSearchParams(location.search).get('ref') || ''; } catch (e) {}
+  ref = ref.trim().slice(0, 40);
+  try { if (ref) sessionStorage.setItem('rrrRef', ref); else ref = sessionStorage.getItem('rrrRef') || ''; } catch (e) {}
+  if (!ref) return;
+  const fill = () => { const el = document.getElementById('f-ref'); if (el && !el.value) el.value = ref; };
+  fill(); document.addEventListener('DOMContentLoaded', fill); setTimeout(fill, 1500);
+})();

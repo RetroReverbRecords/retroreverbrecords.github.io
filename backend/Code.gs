@@ -31,7 +31,7 @@ const SETTINGS = {
   demoEmailPrefix: 'retroreverbrecords+',
   paypalEmail: 'retroreverbrecords@gmail.com',      // PayPal account that receives money
   calendarName: 'RRR Releases',
-  siteUrl: 'https://retroreverbrecords.github.io/',
+  siteUrl: 'https://retroreverbrecords.com/',
   songstatsBase: 'https://api.songstats.com/enterprise/v1', // confirm in Songstats docs
   songstatsLabelId: 'ywz70gl4',                      // from songstats.com/label/ywz70gl4
   // Deadlines (days before release) — keep in step with assets/config.js
@@ -98,6 +98,8 @@ const TABS = {
   Feedback:     ['created','type','rating','message','page','email','member_id','status'],
   ModLog:       ['when','admin_id','admin_name','member_id','member_name','action','reason'],
   Links:        ['created','member_id','artist','email','bandcamp_url','method','temp_password','token','status','ready_at','linked_at','notified'],
+  Providers:    ['provider_id','created','status','name','contact_name','email','services','genres','description','prices','website','social','country','notes'],
+  ProviderReviews: ['review_id','created','provider_id','reviewer_name','email','stars','comment','token','status'],
   Disputes:     ['case','created','release_id','member_id','artist','email','title','reason','proof_types','proof_links','files','used_ai_tools','status','decision_notes','notified'],
   Newsletter:   ['month','created','subject','sent_to','queued','status'],
   Queue:        ['email','month','sent'],
@@ -158,6 +160,8 @@ function doPost(e) {
       notify_('RRR feedback (' + (p.type || 'other') + (p.rating ? ', ' + p.rating + '/5' : '') + ')', String(p.message || '') + '\n\nPage: ' + (p.page || '-') + '\nReply to: ' + (p.email || 'no email given') + '\n' + sheetUrl_());
       return text_('ok');
     }
+    if (kind === 'provider-apply') return handleProviderApply_(p);
+    if (kind === 'provider-review') return handleProviderReview_(p);
     if (kind === 'link-request') return handleLinkRequest_(p);
     if (kind === 'mod-action') return handleModAction_(p);
     if (/^submit-/.test(kind) && typeof handleSubmitForm_ === 'function') return handleSubmitForm_(kind, p); // RRR Submit (Submit.gs)
@@ -189,6 +193,8 @@ function doGet(e) {
   if (q.payout) return payoutPage_(q.payout, q.t);
   if (q.payoutconfirm) return payoutEmailConfirm_(q.payoutconfirm);
   if (q.isfounder) { const fm = findRow_('Members', 'email', String(q.isfounder).trim()); return json_({ ok: true, founder: !!(fm && fm.founder === 'yes'), freeRelease: !!(fm && Number(fm.free_release) > 0) }); }
+  if (q.providers) return json_(providersPublic_());
+  if (q.provreview) return providerReviewConfirm_(q.provreview);
   if (q.notices) return json_({ ok: true, notices: noticesPublic_() });
   if (q.hall) return json_(hallOfFame_());
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
@@ -2287,4 +2293,69 @@ function payoutEmailConfirm_(token) {
 function isFounderEmail_(email) {
   const e = String(email || '').trim().toLowerCase(); if (!e) return false;
   return String(setting_('founder_emails', '')).toLowerCase().split(/[\s,;]+/).indexOf(e) >= 0;
+}
+
+
+// ============================================================
+// SERVICES DIRECTORY (mixing, mastering, production, artwork)
+// Free listing. Providers apply → Providers tab (status "pending") → owner sets status to "approved" to publish.
+// Reviews: one per email per provider, confirmed by an emailed link, 1–5 stars + short comment.
+// RRR doesn't check or guarantee any provider: the page says so.
+// ============================================================
+const PROVIDER_SERVICES = ['Mixing', 'Mastering', 'Production', 'Artwork'];
+function clean_(v, n) { return String(v || '').replace(/[<>]/g, '').trim().slice(0, n || 200); }
+function handleProviderApply_(p) {
+  const email = clean_(p.email, 120).toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !clean_(p.name)) return text_('error');
+  const services = String(p.services || '').split(',').map(x => x.trim()).filter(x => PROVIDER_SERVICES.indexOf(x) >= 0);
+  if (!services.length) return text_('error');
+  const existing = rows_('Providers').find(r => String(r.email).toLowerCase() === email && !/removed/i.test(String(r.status)));
+  const id = existing ? existing.provider_id : 'PRO-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  const row = { name: clean_(p.name, 80), contact_name: clean_(p.contact_name, 80), email: email, services: services.join(', '),
+    genres: clean_(p.genres, 160), description: clean_(p.description, 600), prices: clean_(p.prices, 300),
+    website: clean_(p.website, 200), social: clean_(p.social, 200), country: clean_(p.country, 60), status: 'pending' };
+  if (existing) updateRow_('Providers', 'provider_id', id, row);
+  else append_('Providers', Object.assign({ provider_id: id, created: new Date() }, row));
+  notify_('Services directory: ' + (existing ? 'updated' : 'new') + ' listing from ' + row.name,
+    row.name + ' (' + row.services + ')\n' + row.description + '\nPrices: ' + (row.prices || '-') + '\nWebsite: ' + (row.website || '-') + '\nEmail: ' + email +
+    '\n\nTo publish it: in the Providers tab set status to "approved" for ' + id + '.\n' + sheetUrl_());
+  try { MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', subject: 'Your RRR Services listing is being checked',
+    body: 'Hi ' + (row.contact_name || row.name) + ',\n\nThanks for listing with Retro Reverb Records. We check every listing by hand and you\'ll see it on ' + SETTINGS.siteUrl + 'services.html once it\'s approved.\n\nYou\'re also welcome in the RRR Discord, where you\'ll get the Service Provider badge: https://discord.gg/P2sjDBEtN (say hi and tag Cole). Points, belts and member rewards come with RRR membership, if you\'d like to join as an artist or fan.\n\nTo change your listing later, just fill in the form again with the same email.\n\nRetro Reverb Records' }); } catch (e) {}
+  return text_('ok');
+}
+function handleProviderReview_(p) {
+  const pid = clean_(p.provider_id, 20).toUpperCase(), email = clean_(p.email, 120).toLowerCase();
+  const stars = Math.round(Number(p.stars)), comment = clean_(p.comment, 300);
+  const prov = rows_('Providers').find(r => String(r.provider_id).toUpperCase() === pid && /^approved/i.test(String(r.status)));
+  if (!prov || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !(stars >= 1 && stars <= 5)) return text_('error');
+  if (String(prov.email).toLowerCase() === email) return text_('own');
+  const already = rows_('ProviderReviews').find(r => String(r.provider_id).toUpperCase() === pid && String(r.email).toLowerCase() === email && !/removed/i.test(String(r.status)));
+  if (already) return text_('already');
+  const token = Utilities.getUuid().replace(/-/g, '');
+  append_('ProviderReviews', { review_id: 'REV-' + Math.random().toString(36).slice(2, 8).toUpperCase(), created: new Date(), provider_id: pid,
+    reviewer_name: clean_(p.reviewer_name, 60) || 'Anonymous', email: email, stars: stars, comment: comment, token: token, status: 'unconfirmed' });
+  try { MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', subject: 'Confirm your review of ' + prov.name,
+    body: 'Thanks for reviewing ' + prov.name + ' (' + stars + '/5).\n\nTo publish it, open this link:\n' + ScriptApp.getService().getUrl() + '?provreview=' + token +
+      '\n\nOne review per person per provider. If this wasn\'t you, ignore this email and nothing is published.\n\nRetro Reverb Records' }); } catch (e) {}
+  return text_('ok');
+}
+function providerReviewConfirm_(token) {
+  const page = (t, m) => HtmlService.createHtmlOutput('<div style="font:16px/1.6 Arial,sans-serif;max-width:520px;margin:40px auto;padding:24px;background:#07061A;color:#F3EEFF;border-radius:14px;text-align:center"><h2 style="color:#FF2FA8">' + t + '</h2><p>' + m + '</p><p><a style="color:#3FD0FF" href="' + SETTINGS.siteUrl + 'services.html">Back to the Services directory</a></p></div>').setTitle('RRR review');
+  const r = token && rows_('ProviderReviews').find(x => String(x.token) === String(token));
+  if (!r) return page('Link not valid', 'This link is wrong or has expired.');
+  if (/^live/i.test(String(r.status))) return page('Already published', 'Your review is already live. Thank you!');
+  updateRow_('ProviderReviews', 'review_id', r.review_id, { status: 'live' });
+  notify_('New review: ' + r.stars + '/5 for ' + r.provider_id, (r.reviewer_name || '') + ': ' + (r.comment || '(no comment)') + '\n\nTo hide it, set status to "removed" in the ProviderReviews tab.\n' + sheetUrl_());
+  return page('Review published', 'Thanks! Your review is now live.');
+}
+function providersPublic_() {
+  const reviews = rows_('ProviderReviews').filter(r => /^live/i.test(String(r.status)));
+  const list = rows_('Providers').filter(r => /^approved/i.test(String(r.status))).map(r => {
+    const rv = reviews.filter(x => String(x.provider_id).toUpperCase() === String(r.provider_id).toUpperCase());
+    const avg = rv.length ? Math.round(rv.reduce((a, x) => a + Number(x.stars || 0), 0) / rv.length * 10) / 10 : 0;
+    return { id: r.provider_id, name: r.name, services: String(r.services || '').split(/\s*,\s*/).filter(String), genres: r.genres, description: r.description,
+      prices: r.prices, website: r.website, social: r.social, country: r.country, rating: avg, count: rv.length,
+      reviews: rv.slice(-20).reverse().map(x => ({ name: x.reviewer_name, stars: Number(x.stars), comment: x.comment, date: x.created })) };
+  });
+  return { ok: true, services: PROVIDER_SERVICES, providers: list };
 }

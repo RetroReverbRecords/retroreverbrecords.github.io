@@ -1,0 +1,80 @@
+<main>
+  <div class="pagehead">
+    <div class="wrap">
+      <p class="label">Services directory</p>
+      <h1>Find a <em>pro</em> for your release</h1>
+      <p class="lede">Mixing, mastering, production and artwork from people who know synthwave, darksynth and retrowave. Browse, read reviews from real customers, and contact them directly.</p>
+    </div>
+  </div>
+  <section class="side">
+    <div class="wrap">
+      <p class="note sv-note"><b>A directory only.</b> RRR doesn't check, guarantee or take part in any service listed here, and isn't responsible for the work, prices or payments. Agree everything directly with the provider before you pay.</p>
+      <div class="sv-filter" role="group" aria-label="Filter by service">
+        <button type="button" class="chip" data-f="" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-f="Mixing" aria-pressed="false">Mixing</button>
+        <button type="button" class="chip" data-f="Mastering" aria-pressed="false">Mastering</button>
+        <button type="button" class="chip" data-f="Production" aria-pressed="false">Production</button>
+        <button type="button" class="chip" data-f="Artwork" aria-pressed="false">Artwork</button>
+      </div>
+      <div id="sv-list" class="sv-list" aria-live="polite"><div class="empty panel"><b>Loading the directory…</b></div></div>
+    </div>
+  </section>
+
+  <section class="side" id="review">
+    <div class="wrap">
+      <h2>Leave a review</h2>
+      <p class="small">Worked with someone listed here? One review per person per provider. We email you a link to confirm it before it goes live.</p>
+      <form class="panel booking-form" id="rv-form" novalidate>
+        <div class="status" role="status" id="rv-status"></div>
+        <fieldset>
+          <div class="fields">
+            <label for="rv-provider" class="wide">Who are you reviewing?<select id="rv-provider" name="provider_id" required><option value="">Choose…</option></select></label>
+          </div>
+          <span class="label">Your rating</span>
+          <div class="neonstars" role="radiogroup" aria-label="Rating out of 5">
+            <input type="radio" id="s5" name="stars" value="5" required><label for="s5" aria-label="5 out of 5">★</label><input type="radio" id="s4" name="stars" value="4"><label for="s4" aria-label="4 out of 5">★</label><input type="radio" id="s3" name="stars" value="3"><label for="s3" aria-label="3 out of 5">★</label><input type="radio" id="s2" name="stars" value="2"><label for="s2" aria-label="2 out of 5">★</label><input type="radio" id="s1" name="stars" value="1"><label for="s1" aria-label="1 out of 5">★</label>
+          </div>
+          <div class="fields">
+            <label for="rv-comment" class="wide">Short comment (optional, up to 300 characters)<textarea id="rv-comment" name="comment" maxlength="300" placeholder="What did they do for you, and how was it?"></textarea></label>
+            <label for="rv-name">Your name or artist name (shown)<input id="rv-name" name="reviewer_name" type="text" maxlength="60" required></label>
+            <label for="rv-email">Your email (not shown, used to confirm)<input id="rv-email" name="email" type="email" autocomplete="email" required></label>
+          </div>
+          <button class="btn primary" type="submit">Send review</button>
+        </fieldset>
+      </form>
+    </div>
+  </section>
+
+  <section class="side" id="list-yours">
+    <div class="wrap">
+      <h2>List your service, free</h2>
+      <p class="small">For mixing and mastering engineers, producers and artwork designers. <b>Promoters, radio shows and playlists:</b> join <a href="submit.html#curators-join">RRR Submit</a> instead, where you're paid to review tracks.</p>
+      <p class="small">Listed providers are welcome in the RRR Discord with a <b>Service Provider</b> badge. Points, belts and member rewards come with <a href="index.html#membership">RRR membership</a>, if you'd like to join too.</p>
+      <form class="panel booking-form" id="sp-form" novalidate>
+        <div class="status" role="status" id="sp-status"></div>
+        <fieldset>
+          <span class="label">What do you offer?</span>
+          <div class="checks">
+            <label><input type="checkbox" name="svc" value="Mixing"> Mixing</label>
+            <label><input type="checkbox" name="svc" value="Mastering"> Mastering</label>
+            <label><input type="checkbox" name="svc" value="Production"> Production</label>
+            <label><input type="checkbox" name="svc" value="Artwork"> Artwork</label>
+          </div>
+          <div class="fields">
+            <label for="sp-name">Business or artist name (shown)<input id="sp-name" name="name" type="text" maxlength="80" required></label>
+            <label for="sp-contact">Your name<input id="sp-contact" name="contact_name" type="text" maxlength="80"></label>
+            <label for="sp-email">Email (artists contact you here)<input id="sp-email" name="email" type="email" autocomplete="email" required></label>
+            <label for="sp-country">Country<input id="sp-country" name="country" type="text" maxlength="60"></label>
+            <label for="sp-genres" class="wide">Genres you work with<input id="sp-genres" name="genres" type="text" maxlength="160" placeholder="e.g. synthwave, darkwave, dream pop"></label>
+            <label for="sp-desc" class="wide">Short description (up to 600 characters)<textarea id="sp-desc" name="description" maxlength="600" required placeholder="What you do, who you've worked with, turnaround time"></textarea></label>
+            <label for="sp-prices" class="wide">Prices (optional)<input id="sp-prices" name="prices" type="text" maxlength="300" placeholder="e.g. Mastering from €40 per track"></label>
+            <label for="sp-web">Website or portfolio<input id="sp-web" name="website" type="url" maxlength="200" placeholder="https://"></label>
+            <label for="sp-social">Instagram or SoundCloud<input id="sp-social" name="social" type="url" maxlength="200" placeholder="https://"></label>
+          </div>
+          <label class="agree"><input type="checkbox" id="sp-agree" required> <span>I understand this is a free directory listing, RRR checks listings before they go live, and RRR isn't part of any deal between me and artists.</span></label>
+          <button class="btn primary" type="submit">Send my listing</button>
+        </fieldset>
+      </form>
+    </div>
+  </section>
+</main>

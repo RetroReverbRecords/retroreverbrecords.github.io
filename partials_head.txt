@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+__TITLE__
+<meta name="theme-color" content="#07061A">
+<meta name="robots" content="index, follow, noai, noimageai">
+<meta name="copyright" content="© 2018–2026 Retro Reverb Records. All rights reserved.">
+<link rel="icon" href="assets/rrr-logo-stack.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RRR">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css?v=20261016a">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/rrr-logo-long.png" alt="Retro Reverb Records home"></a>
+    <nav aria-label="Sections">
+      <a href="index.html#membership">Membership</a>
+      <a href="index.html#catalogue">Catalogue</a>
+      <a href="series.html">Series</a>
+      <a href="index.html#merch">Merch</a>
+      <a href="cards.html">Cards</a>
+      <a href="levels.html">Levels</a>
+      <a href="together.html">Together</a>
+      <a href="live.html">Live</a>
+      <a href="book.html">Book</a>
+      <a href="member.html">My dashboard</a>
+      <a class="btn primary small-btn" href="index.html#join">Create account</a>
+      <label class="lang" title="Translate this site"><span aria-hidden="true">🌐</span><span class="sr">Language</span><select id="lang-select" aria-label="Language"><option value="en">English</option><option value="it">Italiano</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="sv">Svenska</option><option value="el">Ελληνικά</option><option value="tr">Türkçe</option><option value="ru">Русский</option><option value="uk">Українська</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh-CN">中文</option></select></label>
+      <div class="a11y"><button type="button" class="a11y-btn" id="a11y-btn" aria-expanded="false" aria-controls="a11y-panel" title="Reading and accessibility options"><span aria-hidden="true">Aa</span><span class="sr">Reading and accessibility options</span></button>
+        <div class="a11y-panel panel" id="a11y-panel" hidden>
+          <p class="label">Make it easier to read</p>
+          <label><input type="checkbox" data-a11y="easy"> <span>Easy-read text<small>Dyslexia-friendly font and spacing</small></span></label>
+          <label><input type="checkbox" data-a11y="big"> Bigger text</label>
+          <label><input type="checkbox" data-a11y="contrast"> High contrast</label>
+          <label><input type="checkbox" data-a11y="still"> Stop animations</label>
+          <label><input type="checkbox" data-a11y="mute"> Turn off sounds</label>
+          <button type="button" class="btn ghost" id="a11y-read">🔊 Read this page aloud</button>
+          <p class="small">Selected some text? It reads just that.</p>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>

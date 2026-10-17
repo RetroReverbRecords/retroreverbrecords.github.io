@@ -242,6 +242,14 @@ function handleSignup_(p) {
   }
   if (p.type === 'artist' && String(p.stats_pro) === 'yes') notify_('📈 Stats Pro sign-up: ' + (p.artist || p.name), 'Member ' + id + ' wants Stats Pro.\nTheir link: ' + (p.stats_link || 'none given') + '\n\nOnce they have paid, find them on Songstats and put their Songstats artist ID in Members → songstats_artist_id.\n' + sheetUrl_());
   if (isDemo_(p.email)) award_(id, 'joined'); // real members get their joining points when the first payment arrives
+  // Owner alert for every new sign-up (owner request 17 Oct 2026). Payment alerts still come separately.
+  else try {
+    notify_('⚠️ New RRR member: ' + (p.artist || p.name || '(no name)') + ' (' + (p.type === 'artist' ? 'artist' : 'fan') + ')',
+      'Member ID: ' + id + '\nName: ' + (p.name || '-') + (p.artist ? '\nArtist: ' + p.artist : '') + '\nType: ' + (p.type === 'artist' ? 'Artist' : 'Fan') +
+      '\nEmail: ' + (p.email || '-') + '\nCountry: ' + (p.country || '-') + (p.bandcamp ? '\nBandcamp: ' + p.bandcamp : '') +
+      '\nStatus: waiting for first payment' + (p.referred_by ? '\nInvited by: ' + p.referred_by : '') +
+      '\n\nDashboard: ' + SETTINGS.siteUrl + 'member.html?id=' + id + '\n' + sheetUrl_());
+  } catch (e) { log_('new member alert failed', String(e)); }
 
   // Signed agreement: stored, and a copy emailed to the member
   const isArtist = p.type === 'artist';

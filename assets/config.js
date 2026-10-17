@@ -14,8 +14,8 @@ window.RRR_CONFIG = {
   // Walkthrough/demo accounts: emails starting with this skip payment (the backend has the same rule).
   demoEmailPrefix: "retroreverbrecords+",
 
-  // Booking forms on book.html. Keep false until launch.
-  bookingOpen: false,
+  // Booking forms on book.html. Opened 17 Oct 2026.
+  bookingOpen: true,
 
   // Older setting, kept for compatibility. Use automationUrl instead.
   formEndpoint: "",

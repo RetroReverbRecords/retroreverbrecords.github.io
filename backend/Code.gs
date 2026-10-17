@@ -705,6 +705,7 @@ function daily() {
   processDisputes_();
   processLinks_();
   if (typeof submitDaily_ === 'function') submitDaily_(); // RRR Submit (Submit.gs)
+  try { announceListings_(); } catch (e) { log_('listing announcements failed', String(e)); }
   morningJobs_();
   expireUnpaidBookings_();
   paymentChase_();
@@ -1055,6 +1056,15 @@ function referralPoints_(newId) {
 function notice_(type, memberId, text, actionText, actionUrl) {
   if (type === 'joined' && rows_('Notices').some(n => n.type === 'joined' && n.member_id === memberId)) return;
   append_('Notices', { created: new Date(), type: type, member_id: memberId || '', name: '', text: String(text).slice(0, 200), action_text: actionText || '', action_url: actionUrl || '', public: 'yes' });
+}
+// New promoters (RRR Submit curators) and Services providers go on the Notice Board once approved (owner request 17 Oct 2026)
+function announceListings_() {
+  const done = new Set(rows_('Notices').filter(n => /^(provider|promoter)$/.test(n.type)).map(n => String(n.member_id)));
+  rows_('Providers').filter(r => /^approved/i.test(String(r.status)) && r.provider_id && !done.has('prov:' + r.provider_id)).forEach(r =>
+    notice_('provider', 'prov:' + r.provider_id, String(r.name || 'A new provider').slice(0, 80) + ' joined the RRR Services directory 🛠' + (r.services ? ' (' + String(r.services).slice(0, 60) + ')' : ''), 'See their services', 'services.html'));
+  if (!ss_().getSheetByName('Curators')) return;
+  rows_('Curators').filter(r => r.status === 'active' && r.curator_id && r.curator_id !== 'CUR-001' && !done.has('cur:' + r.curator_id)).forEach(r =>
+    notice_('promoter', 'cur:' + r.curator_id, String(r.name || 'A new promoter').slice(0, 80) + ' is now an RRR Submit promoter 📻' + (r.type ? ' (' + String(r.type).slice(0, 40) + ')' : ''), 'Send them a track', 'submit.html'));
 }
 function noticesPublic_() {
   return rows_('Notices').filter(n => n.public !== 'no').slice(-20).reverse().map(n => ({ type: n.type, text: n.text, action: n.action_text, url: n.action_url, at: n.created }));

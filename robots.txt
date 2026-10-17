@@ -45,4 +45,4 @@ Disallow: /curator.html
 Disallow: /hq.html
 Allow: /
 
-Sitemap: https://retroreverbrecords.github.io/sitemap.xml
+Sitemap: https://retroreverbrecords.com/sitemap.xml

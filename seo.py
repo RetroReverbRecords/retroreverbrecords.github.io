@@ -24,6 +24,8 @@ DESC = {
  'submit': 'RRR Submit: send your synthwave track to radio shows, playlists and blogs. €1.50 per curator, a real listen and written feedback within 14 days.',
  'terms': 'Retro Reverb Records membership terms: prices, what is included, your rights, and how to cancel.',
  'together': 'Stronger Together: how Retro Reverb Records artists and fans support each other on Bandcamp, YouTube, Discord and live shows.',
+ 'news': 'What\'s on at Retro Reverb Records: open calls like the free Halloween compilation, new releases, premieres and community news.',
+ 'contact': 'Contact Retro Reverb Records, or request a refund: what can and can\'t be refunded, and a simple form.',
  'withdraw': 'Withdraw from your Retro Reverb Records contract within 14 days for a full refund, using this simple form.',
 }
 NOINDEX = {'member', 'body', 'hq', 'mod', 'linked', 'curator'}

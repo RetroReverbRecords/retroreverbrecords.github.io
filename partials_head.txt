@@ -17,7 +17,7 @@ __TITLE__
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261016a">
+<link rel="stylesheet" href="assets/site.css?v=20261017c">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -32,6 +32,7 @@ __TITLE__
       <a href="cards.html">Cards</a>
       <a href="levels.html">Levels</a>
       <a href="together.html">Together</a>
+      <a href="news.html">What's on</a>
       <a href="live.html">Live</a>
       <a href="book.html">Book</a>
       <a href="member.html">My dashboard</a>

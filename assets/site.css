@@ -926,3 +926,6 @@ fieldset>*,.booking-form>*{min-width:0}
 .rf-rules ul{margin:6px 0 8px;padding-left:18px;display:grid;gap:6px}
 label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
 @media (max-width:760px){.rf-rules{grid-template-columns:1fr}}
+.nb-provider{background:#7CFFB2;box-shadow:0 0 8px #7CFFB2}.nb-promoter{background:#ff9f3b;box-shadow:0 0 8px #ff9f3b}
+.whatson{display:block;margin-top:24px;text-decoration:none;color:inherit}.whatson:hover{border-color:var(--cyan)}
+#calls .grid2{align-items:start}#calls .shorts{grid-template-columns:minmax(200px,280px)}

@@ -11,8 +11,27 @@ window.rrrProblem = function(why){
   t.innerHTML = '<b>That didn’t go through.</b> <span>' + (why ? e(why.charAt(0).toUpperCase() + why.slice(1)) + '. ' : 'Something went wrong on our side. ') + 'Nothing was saved. Questions: ' + e(mail) + '</span><button type="button" aria-label="Close">×</button>';
   t.querySelector('button').onclick = () => t.remove();
 };
+/* Bot protection: every form gets a hidden "rrr_trap" box that people never see (bots fill it in),
+   and each send says how many seconds the page was open. The backend quietly drops obvious bots. */
+window.rrrOpenedAt = window.rrrOpenedAt || Date.now();
+(function(){
+  const add = () => document.querySelectorAll('form').forEach(f => {
+    if (f.querySelector('input[name="rrr_trap"]')) return;
+    const w = document.createElement('div');
+    w.setAttribute('aria-hidden', 'true');
+    w.style.cssText = 'position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden';
+    w.innerHTML = '<label>Leave this empty<input type="text" name="rrr_trap" tabindex="-1" autocomplete="off"></label>';
+    f.appendChild(w);
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add();
+  setTimeout(add, 2000);
+})();
 window.rrrSend = function(url, data, onProblem){
   const body = data instanceof URLSearchParams ? data : new URLSearchParams(data);
+  try {
+    if (!body.has('rrr_trap')) body.set('rrr_trap', [...document.querySelectorAll('input[name="rrr_trap"]')].map(i => i.value).join(''));
+    if (!body.has('_t')) body.set('_t', String(Math.round((Date.now() - window.rrrOpenedAt) / 1000)));
+  } catch (e) {}
   const req = fetch(url, { method: 'POST', body, keepalive: body.toString().length < 60000 })
     .then(r => r.text()).then(t => { t = String(t || '').trim();
       if (/^(refused|error)/i.test(t)) (onProblem || window.rrrProblem)(/^refused/i.test(t) ? t.replace(/^refused:?\s*/i, '') : '');

@@ -77,6 +77,7 @@ const SETTINGS = {
 
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
+  Spam:         ['received','form','email','reason','fields'],
   Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
@@ -140,6 +141,7 @@ function doPost(e) {
     const p = (e && e.parameter) || {};
     if (p.txn_type || p.payment_status || p.ipn_track_id) return handlePayPal_(e);
     const kind = p.form || 'unknown';
+    if (isSpam_(kind, p)) return text_('ok'); // bot protection: quietly drop, logged in the Spam tab
     if (kind === 'signup') return handleSignup_(p);
     // Bookings: exact names only (an earlier loose match sent 'rrr-release' Series submissions here by mistake)
     if (/^(bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing)$/.test(kind)) return handleBooking_(kind, p);
@@ -900,6 +902,32 @@ function paymentAlert_(p, memberId) {
 function notify_(subject, body) { MailApp.sendEmail(SETTINGS.ownerEmail, subject, body); }
 function log_(what, detail) { try { sheet_('Log').appendRow([new Date(), what, detail]); } catch (e) {} }
 function text_(s) { return ContentService.createTextOutput(s); }
+
+// ---------- Bot protection ----------
+// Public forms carry a hidden "rrr_trap" box (people never see it; bots fill it) and "_t",
+// the seconds since the page opened. Junk like "KtshHFuUuUYEAEct" in two or more fields is also refused.
+const SPAM_FORMS_ = /^(signup|newsletter|press|feedback|provider-apply|provider-review|claim|rrr-release|card-claim|bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing|submit-.*)$/;
+function gibberish_(v) {
+  v = String(v || '').trim(); if (v.length < 6 || /\s/.test(v) || /^https?:/i.test(v)) return false;
+  const inner = (v.slice(1).match(/[A-Z]/g) || []).length, lower = (v.match(/[a-z]/g) || []).length;
+  if (v.length >= 10 && inner >= 3 && lower >= 3) return true;          // oOzqsDDIAzKjiUVd
+  return /[bcdfghjklmnpqrstvwxz]{6,}/i.test(v);                          // Ntxtxrwtn
+}
+function isSpam_(kind, p) {
+  if (!SPAM_FORMS_.test(kind)) return false;
+  let reason = '';
+  if (String(p.rrr_trap || '').trim()) reason = 'hidden box filled';
+  else if (p._t !== undefined && p._t !== '' && Number(p._t) < 3) reason = 'sent in ' + p._t + 's';
+  else {
+    const f = ['name','artist','referred_by','city','address_line1','address_line2','country','title','outlet','message']
+      .filter(k => gibberish_(p[k]));
+    if (f.length >= 2) reason = 'junk in ' + f.join(', ');
+  }
+  if (!reason) return false;
+  try { append_('Spam', { received: new Date(), form: kind, email: String(p.email || '').slice(0, 120), reason: reason,
+    fields: JSON.stringify(p).slice(0, 1500) }); } catch (e) {}
+  return true;
+}
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
 

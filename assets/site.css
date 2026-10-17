@@ -917,3 +917,12 @@ fieldset>*,.booking-form>*{min-width:0}
 .sv-tags .tag{display:inline-block;font-size:12px;padding:2px 8px;margin:0 6px 4px 0;border-radius:6px;background:rgba(63,208,255,.12);color:#9fe6ff}
 .sv-reviews{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:10px}
 .sv-reviews li span{color:#cfc8e6;font-size:14px}
+
+/* contact + refund page */
+.ct-direct{margin:10px 0 14px;color:#c9c4e0}
+.rf-rules{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 18px}
+.rf-rules>div{border:1px solid #3a2f6b;border-radius:10px;padding:14px 16px;background:rgba(255,255,255,.02)}
+.rf-yes{border-left:4px solid #2ecc8f!important}.rf-no{border-left:4px solid #ff4d6d!important}
+.rf-rules ul{margin:6px 0 8px;padding-left:18px;display:grid;gap:6px}
+label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
+@media (max-width:760px){.rf-rules{grid-template-columns:1fr}}

@@ -78,6 +78,8 @@ const SETTINGS = {
 // Sheet tabs and their columns. Created automatically on first run.
 const TABS = {
   Spam:         ['received','form','email','reason','fields'],
+  Contact:      ['received','name','email','member_id','topic','message','status'],
+  RefundRequests: ['received','request_id','name','email','member_id','payment_for','payment_date','amount','paypal_txn','reason','description','status'],
   Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
@@ -151,6 +153,8 @@ function doPost(e) {
     if (kind === 'claim') return handleClaim_(p);
     if (kind === 'rrr-release') return handleReleaseSubmission_(p);
     if (kind === 'withdrawal') return handleWithdrawal_(p);
+    if (kind === 'contact') return handleContact_(p);
+    if (kind === 'refund-request') return handleRefundRequest_(p);
     if (kind === 'card-claim') return handleCardClaim_(p);
     if (kind === 'notif-seen') return markSeen_(p);
     if (kind === 'payout-approve') return payoutApprove_(p);
@@ -906,7 +910,7 @@ function text_(s) { return ContentService.createTextOutput(s); }
 // ---------- Bot protection ----------
 // Public forms carry a hidden "rrr_trap" box (people never see it; bots fill it) and "_t",
 // the seconds since the page opened. Junk like "KtshHFuUuUYEAEct" in two or more fields is also refused.
-const SPAM_FORMS_ = /^(signup|newsletter|press|feedback|provider-apply|provider-review|claim|rrr-release|card-claim|bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing|submit-.*)$/;
+const SPAM_FORMS_ = /^(contact|refund-request|signup|newsletter|press|feedback|provider-apply|provider-review|claim|rrr-release|card-claim|bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing|submit-.*)$/;
 function gibberish_(v) {
   v = String(v || '').trim(); if (v.length < 6 || /\s/.test(v) || /^https?:/i.test(v)) return false;
   const inner = (v.slice(1).match(/[A-Z]/g) || []).length, lower = (v.match(/[a-z]/g) || []).length;
@@ -919,7 +923,7 @@ function isSpam_(kind, p) {
   if (String(p.rrr_trap || '').trim()) reason = 'hidden box filled';
   else if (p._t !== undefined && p._t !== '' && Number(p._t) < 3) reason = 'sent in ' + p._t + 's';
   else {
-    const f = ['name','artist','referred_by','city','address_line1','address_line2','country','title','outlet','message']
+    const f = ['name','artist','referred_by','city','address_line1','address_line2','country','title','outlet','message','description']
       .filter(k => gibberish_(p[k]));
     if (f.length >= 2) reason = 'junk in ' + f.join(', ');
   }
@@ -1386,6 +1390,36 @@ function processStandingNow() {
 // The website's "Withdraw from contract here" page sends here. The person gets an
 // acknowledgement email straight away (required), and you get a refund reminder.
 // ============================================================
+// ---------- Contact us + Request a refund (contact.html) ----------
+function handleContact_(p) {
+  const now = new Date(), email = String(p.email || '').trim().slice(0, 120), msg = String(p.message || '').slice(0, 3000);
+  append_('Contact', { received: now, name: String(p.name || '').slice(0, 100), email: email, member_id: String(p.member_id || '').toUpperCase().slice(0, 20),
+    topic: String(p.topic || '').slice(0, 60), message: msg, status: 'new' });
+  try { MailApp.sendEmail({ to: SETTINGS.ownerEmail, replyTo: email || SETTINGS.ownerEmail,
+    subject: 'RRR contact: ' + (p.topic || 'message') + ' – ' + (p.name || email),
+    body: msg + '\n\nFrom: ' + (p.name || '-') + ' <' + email + '>\nMember ID: ' + (p.member_id || '-') + '\n\nJust press Reply to answer them.\n' + sheetUrl_() }); } catch (e) { log_('contact notify failed', String(e)); }
+  if (email) try { MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: 'We got your message',
+    body: 'Hi ' + (p.name || '') + ',\n\nThanks for getting in touch. We reply within 7 days, usually much sooner.\n\nYour message:\n' + msg + '\n\nRetro Reverb Records' }); } catch (e) { log_('contact ack failed', String(e)); }
+  return text_('ok');
+}
+function handleRefundRequest_(p) {
+  const now = new Date(), email = String(p.email || '').trim().slice(0, 120);
+  const id = 'REF-' + Utilities.formatDate(now, 'UTC', 'yyMMdd') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+  const row = { received: now, request_id: id, name: String(p.name || '').slice(0, 100), email: email, member_id: String(p.member_id || '').toUpperCase().slice(0, 20),
+    payment_for: String(p.payment_for || '').slice(0, 60), payment_date: String(p.payment_date || '').slice(0, 20), amount: String(p.amount || '').slice(0, 12),
+    paypal_txn: String(p.paypal_txn || '').slice(0, 40), reason: String(p.reason || '').slice(0, 80), description: String(p.description || '').slice(0, 3000), status: 'new' };
+  append_('RefundRequests', row);
+  try { MailApp.sendEmail({ to: SETTINGS.ownerEmail, replyTo: email || SETTINGS.ownerEmail, subject: 'REFUND REQUEST ' + id + ': €' + row.amount + ' – ' + row.payment_for,
+    body: 'Reason: ' + row.reason + '\nPayment: ' + row.payment_for + ', €' + row.amount + ' on ' + row.payment_date + (row.paypal_txn ? ' (PayPal ' + row.paypal_txn + ')' : '') +
+      '\nFrom: ' + row.name + ' <' + email + '>, member ' + (row.member_id || '-') + '\n\n' + row.description +
+      '\n\nReply within 7 days. If agreed, refund in PayPal within 14 days and set status in the RefundRequests tab.\n' + sheetUrl_() }); } catch (e) { log_('refund notify failed', String(e)); }
+  if (email) try { MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: 'We received your refund request (' + id + ')',
+    body: 'Hi ' + (row.name || '') + ',\n\nWe received your refund request on ' + now.toUTCString() + '.\n\nReference: ' + id + '\nPayment: ' + row.payment_for + ', €' + row.amount + ' on ' + row.payment_date +
+      '\nReason: ' + row.reason + '\n\nWe reply within 7 days. If the refund is agreed, it goes back to the payment method you used within 14 days.\n' +
+      'Our Refund Policy: ' + SETTINGS.siteUrl + 'refunds.html\n\nKeep this email as your receipt.\n\nRetro Reverb Records' }); } catch (e) { log_('refund ack failed', String(e)); }
+  return text_('ok');
+}
+
 function handleWithdrawal_(p) {
   const now = new Date(), refundBy = new Date(now.getTime() + 14 * 86400000);
   const email = String(p.email || '').trim();

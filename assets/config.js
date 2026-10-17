@@ -155,7 +155,11 @@ window.RRR_CONFIG = {
     { name: "RRR ALTERNATIVE", prefix: "RRALT",  about: "Alternative, indie, rock, experimental", color: "#9B5CFF" }
   ],
 
-  email: "retroreverbrecords@gmail.com"
+  email: "retroreverbrecords@gmail.com",
+  // Contact page extras. Leave "" to hide. WhatsApp in international format, e.g. "+39 379 ...".
+  whatsapp: "",
+  // Discord DM: your Discord user ID (Discord: Settings > Advanced > Developer Mode, then right-click your name > Copy User ID).
+  discordUserId: ""
 };
 
 // Older names some code still reads — kept in step automatically. Don't edit these.

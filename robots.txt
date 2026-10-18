@@ -1,10 +1,6 @@
 # Retro Reverb Records · © 2016–2026 All rights reserved.
-# Search engines are welcome. AI training crawlers and scrapers are not.
+# Search engines and AI search tools (ChatGPT search, Perplexity) are welcome. AI training crawlers and scrapers are not.
 User-agent: GPTBot
-Disallow: /
-User-agent: ChatGPT-User
-Disallow: /
-User-agent: OAI-SearchBot
 Disallow: /
 User-agent: CCBot
 Disallow: /
@@ -15,8 +11,6 @@ Disallow: /
 User-agent: ClaudeBot
 Disallow: /
 User-agent: Claude-Web
-Disallow: /
-User-agent: PerplexityBot
 Disallow: /
 User-agent: Bytespider
 Disallow: /

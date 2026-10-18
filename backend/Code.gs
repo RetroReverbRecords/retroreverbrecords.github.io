@@ -79,6 +79,7 @@ const SETTINGS = {
 const TABS = {
   Spam:         ['received','form','email','reason','fields'],
   Contact:      ['received','name','email','member_id','topic','message','status'],
+  Giveaway:     ['received','giveaway','name','email','username','platform','newsletter','status'],
   RefundRequests: ['received','request_id','name','email','member_id','payment_for','payment_date','amount','paypal_txn','reason','description','status'],
   Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
@@ -155,6 +156,7 @@ function doPost(e) {
     if (kind === 'withdrawal') return handleWithdrawal_(p);
     if (kind === 'contact') return handleContact_(p);
     if (kind === 'refund-request') return handleRefundRequest_(p);
+    if (kind === 'giveaway') return handleGiveaway_(p);
     if (kind === 'card-claim') return handleCardClaim_(p);
     if (kind === 'notif-seen') return markSeen_(p);
     if (kind === 'payout-approve') return payoutApprove_(p);
@@ -919,7 +921,7 @@ function text_(s) { return ContentService.createTextOutput(s); }
 // ---------- Bot protection ----------
 // Public forms carry a hidden "rrr_trap" box (people never see it; bots fill it) and "_t",
 // the seconds since the page opened. Junk like "KtshHFuUuUYEAEct" in two or more fields is also refused.
-const SPAM_FORMS_ = /^(contact|refund-request|signup|newsletter|press|feedback|provider-apply|provider-review|claim|rrr-release|card-claim|bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing|submit-.*)$/;
+const SPAM_FORMS_ = /^(giveaway|contact|refund-request|signup|newsletter|press|feedback|provider-apply|provider-review|claim|rrr-release|card-claim|bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing|submit-.*)$/;
 function gibberish_(v) {
   v = String(v || '').trim(); if (v.length < 6 || /\s/.test(v) || /^https?:/i.test(v)) return false;
   const inner = (v.slice(1).match(/[A-Z]/g) || []).length, lower = (v.match(/[a-z]/g) || []).length;
@@ -1409,6 +1411,22 @@ function processStandingNow() {
 // acknowledgement email straight away (required), and you get a refund reminder.
 // ============================================================
 // ---------- Contact us + Request a refund (contact.html) ----------
+
+// GIVEAWAY: launch show 25 Oct 2026, 1 winner, 6 months free membership. Entries close 25 Oct 17:45 Italy time (owner, 18 Oct 2026).
+// Owner pastes the names from the Giveaway tab into wheelofnames.com on air, then emails the winner after the show.
+const GIVEAWAY_ = { id: 'Launch 25 Oct 2026', closes: new Date('2026-10-25T17:45:00+01:00') };
+function handleGiveaway_(p) {
+  const email = String(p.email || '').trim().toLowerCase().slice(0, 120);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || p.agree !== 'yes') return text_('ok');
+  if (new Date() > GIVEAWAY_.closes) return json_({ ok: false, error: 'closed' });
+  const dup = rows_('Giveaway').some(r => String(r.email).toLowerCase() === email && r.giveaway === GIVEAWAY_.id);
+  if (!dup) append_('Giveaway', { received: new Date(), giveaway: GIVEAWAY_.id, name: String(p.name || '').slice(0, 100), email: email,
+    username: String(p.username || '').slice(0, 60), platform: String(p.platform || '').slice(0, 30), newsletter: p.newsletter === 'yes' ? 'yes' : 'no', status: 'entered' });
+  if (p.newsletter === 'yes') try { handleSubscribe_({ email: email, consent: 'yes', source: 'giveaway' }); } catch (e) {}
+  if (!dup) try { MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: "You're in the RRR giveaway 🎉",
+    body: 'Hi ' + (p.name || '') + ',\n\nYou\'re entered to win 6 months of free Retro Reverb Records membership.\n\nThe winner is spun live on The Bandcamp Hour on Sunday 25 October (show 16:00 to 18:00 Italy time, 15:00 to 17:00 UK). Entries close at 17:45 Italy time (16:45 UK).\nWatch live: ' + SETTINGS.siteUrl + 'live.html\n\nWe email the winner after the show. Good luck!\n\nRetro Reverb Records' }); } catch (e) { log_('giveaway ack failed', String(e)); }
+  return text_('ok');
+}
 function handleContact_(p) {
   const now = new Date(), email = String(p.email || '').trim().slice(0, 120), msg = String(p.message || '').slice(0, 3000);
   append_('Contact', { received: now, name: String(p.name || '').slice(0, 100), email: email, member_id: String(p.member_id || '').toUpperCase().slice(0, 20),

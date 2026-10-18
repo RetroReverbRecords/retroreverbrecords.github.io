@@ -25,6 +25,7 @@ DESC = {
  'terms': 'Retro Reverb Records membership terms: prices, what is included, your rights, and how to cancel.',
  'together': 'Stronger Together: how Retro Reverb Records artists and fans support each other on Bandcamp, YouTube, Discord and live shows.',
  'news': 'What\'s on at Retro Reverb Records: open calls like the free Halloween compilation, new releases, premieres and community news.',
+ 'giveaway': 'Win 6 months of free Retro Reverb Records membership. Free to enter, winner spun live on The Bandcamp Hour on Sunday 25 October 2026.',
  'contact': 'Contact Retro Reverb Records, or request a refund: what can and can\'t be refunded, and a simple form.',
  'withdraw': 'Withdraw from your Retro Reverb Records contract within 14 days for a full refund, using this simple form.',
 }

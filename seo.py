@@ -27,6 +27,8 @@ DESC = {
  'news': 'What\'s on at Retro Reverb Records: open calls like the free Halloween compilation, new releases, premieres and community news.',
  'giveaway': 'Win 6 months of free Retro Reverb Records membership. Free to enter, winner spun live on The Bandcamp Hour on Sunday 25 October 2026.',
  'release': 'Release your synthwave, darksynth or retrowave on Bandcamp and Spotify with Retro Reverb Records. From €2 a month, keep 100% of your royalties, non-exclusive, with community promotion.',
+ 'promote': 'Promote your synthwave music with Retro Reverb Records: free social posts, the RRR YouTube channel, The Bandcamp Hour radio show and a network of curators.',
+ 'community': 'Join the Retro Reverb Records synthwave community: artists and fans supporting each other, with points, belts, Synth Stars cards, a weekly radio show and Discord.',
  'contact': 'Contact Retro Reverb Records, or request a refund: what can and can\'t be refunded, and a simple form.',
  'withdraw': 'Withdraw from your Retro Reverb Records contract within 14 days for a full refund, using this simple form.',
 }

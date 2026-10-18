@@ -941,3 +941,8 @@ label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
 .onair{margin-bottom:20px;border-color:#ff2fa8}
 .onair .liveplayer{margin:12px 0}
 .sched .livedot,.onair .livedot{display:inline-block;vertical-align:middle;width:9px;height:9px}
+.artist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.artist-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+.artist-main{display:grid;gap:16px}
+.artist-card{width:100%;height:auto;border-radius:14px;box-shadow:0 0 24px rgba(255,47,168,.25)}
+@media (max-width:760px){.artist-wrap{grid-template-columns:1fr}.artist-side{max-width:320px}}

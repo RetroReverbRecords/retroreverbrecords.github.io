@@ -929,3 +929,5 @@ label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
 .nb-provider{background:#7CFFB2;box-shadow:0 0 8px #7CFFB2}.nb-promoter{background:#ff9f3b;box-shadow:0 0 8px #ff9f3b}
 .whatson{display:block;margin-top:24px;text-decoration:none;color:inherit}.whatson:hover{border-color:var(--cyan)}
 #calls .grid2{align-items:start}#calls .shorts{grid-template-columns:minmax(200px,280px)}
+.tz-list{list-style:none;padding:0;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:6px 18px;color:#c9c4e0;font-size:.92rem}
+.tz-list b{color:#fff;font-weight:600}

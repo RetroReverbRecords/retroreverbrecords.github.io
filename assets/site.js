@@ -737,8 +737,10 @@ document.querySelectorAll('[data-discord]').forEach(a => { const c = window.RRR_
     let bar = document.getElementById('livebar');
     window.rrrLive = d;
     document.dispatchEvent(new CustomEvent('rrr-live', { detail: d }));
-    if (!d || !d.live) { if (bar) bar.remove(); return; }
+    const other = d && !d.live && Array.isArray(d.onair) && d.onair[0];
+    if (!d || (!d.live && !other)) { if (bar) bar.remove(); return; }
     if (!bar) { bar = document.createElement('a'); bar.id = 'livebar'; bar.className = 'livebar'; document.body.prepend(bar); }
+    if (other) { const x = s => String(s || '').replace(/[<>&]/g, ''); bar.href = 'live.html#schedule'; bar.innerHTML = '<span class="livedot"></span><b>LIVE NOW</b><span>' + x(other.name) + (other.promoter ? ' with ' + x(other.promoter) : '') + '</span><em>Tune in →</em>'; return; }
     bar.href = 'live.html';
     bar.innerHTML = '<span class="livedot"></span><b>LIVE NOW</b><span>' + show.replace(/[<>&]/g, '') + ' with ' + ((C.liveShow && C.liveShow.host) || 'Cybertronix').replace(/[<>&]/g, '') + '</span><em>Watch &amp; chat →</em>';
   }

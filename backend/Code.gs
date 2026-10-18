@@ -79,6 +79,7 @@ const SETTINGS = {
 const TABS = {
   Spam:         ['received','form','email','reason','fields'],
   Contact:      ['received','name','email','member_id','topic','message','status'],
+  Shows:        ['show_id','created','status','show_name','promoter','contact_name','email','member_id','repeat','day','date','start','length_min','timezone','stream_url','website','genres','description','clash','notes'],
   Giveaway:     ['received','giveaway','name','email','username','platform','newsletter','status'],
   RefundRequests: ['received','request_id','name','email','member_id','payment_for','payment_date','amount','paypal_txn','reason','description','status'],
   Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release'],
@@ -157,6 +158,7 @@ function doPost(e) {
     if (kind === 'contact') return handleContact_(p);
     if (kind === 'refund-request') return handleRefundRequest_(p);
     if (kind === 'giveaway') return handleGiveaway_(p);
+    if (kind === 'show-request') return handleShowRequest_(p);
     if (kind === 'card-claim') return handleCardClaim_(p);
     if (kind === 'notif-seen') return markSeen_(p);
     if (kind === 'payout-approve') return payoutApprove_(p);
@@ -203,6 +205,7 @@ function doGet(e) {
   if (q.isfounder) { const fm = findRow_('Members', 'email', String(q.isfounder).trim()); return json_({ ok: true, founder: !!(fm && fm.founder === 'yes'), freeRelease: !!(fm && Number(fm.free_release) > 0) }); }
   if (q.providers) return json_(providersPublic_());
   if (q.provreview) return providerReviewConfirm_(q.provreview);
+  if (q.shows) return json_(showsPublic_());
   if (q.notices) return json_({ ok: true, notices: noticesPublic_() });
   if (q.hall) return json_(hallOfFame_());
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
@@ -921,7 +924,7 @@ function text_(s) { return ContentService.createTextOutput(s); }
 // ---------- Bot protection ----------
 // Public forms carry a hidden "rrr_trap" box (people never see it; bots fill it) and "_t",
 // the seconds since the page opened. Junk like "KtshHFuUuUYEAEct" in two or more fields is also refused.
-const SPAM_FORMS_ = /^(giveaway|contact|refund-request|signup|newsletter|press|feedback|provider-apply|provider-review|claim|rrr-release|card-claim|bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing|submit-.*)$/;
+const SPAM_FORMS_ = /^(giveaway|show-request|contact|refund-request|signup|newsletter|press|feedback|provider-apply|provider-review|claim|rrr-release|card-claim|bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing|submit-.*)$/;
 function gibberish_(v) {
   v = String(v || '').trim(); if (v.length < 6 || /\s/.test(v) || /^https?:/i.test(v)) return false;
   const inner = (v.slice(1).match(/[A-Z]/g) || []).length, lower = (v.match(/[a-z]/g) || []).length;
@@ -1064,6 +1067,8 @@ function announceListings_() {
   const done = new Set(rows_('Notices').filter(n => /^(provider|promoter)$/.test(n.type)).map(n => String(n.member_id)));
   rows_('Providers').filter(r => /^approved/i.test(String(r.status)) && r.provider_id && !done.has('prov:' + r.provider_id)).forEach(r =>
     notice_('provider', 'prov:' + r.provider_id, String(r.name || 'A new provider').slice(0, 80) + ' joined the RRR Services directory 🛠' + (r.services ? ' (' + String(r.services).slice(0, 60) + ')' : ''), 'See their services', 'services.html'));
+  rows_('Shows').filter(r => /^approved/i.test(String(r.status)) && r.show_id && !done.has('show:' + r.show_id)).forEach(r =>
+    notice_('promoter', 'show:' + r.show_id, '📻 New on RRR Live: ' + String(r.show_name || 'a new show').slice(0, 70) + (r.promoter ? ' by ' + String(r.promoter).slice(0, 50) : '') + ', ' + showWhenText_(r), 'See the schedule', 'live.html#schedule'));
   if (!ss_().getSheetByName('Curators')) return;
   rows_('Curators').filter(r => r.status === 'active' && r.curator_id && r.curator_id !== 'CUR-001' && !done.has('cur:' + r.curator_id)).forEach(r =>
     notice_('promoter', 'cur:' + r.curator_id, String(r.name || 'A new promoter').slice(0, 80) + ' is now an RRR Submit promoter 📻' + (r.type ? ' (' + String(r.type).slice(0, 40) + ')' : ''), 'Send them a track', 'submit.html'));
@@ -2118,7 +2123,8 @@ function liveState_() {
   // A manual "I'm live" lasts at most 4 hours if you forget to end it
   if (st.live && st.manual && Date.now() - new Date(st.since).getTime() > 4 * 3600000) st = { live: false };
   return { ok: true, live: !!st.live, videoId: st.videoId || '', title: st.title || SETTINGS.liveShow.name, since: st.since || '',
-    youtube: st.videoId ? 'https://www.youtube.com/watch?v=' + st.videoId : SETTINGS.liveShow.youtubeLivePage, mixcloud: SETTINGS.liveShow.mixcloud };
+    youtube: st.videoId ? 'https://www.youtube.com/watch?v=' + st.videoId : SETTINGS.liveShow.youtubeLivePage, mixcloud: SETTINGS.liveShow.mixcloud,
+    onair: showsOnAir_() };
 }
 function saveLive_(st) { PropertiesService.getScriptProperties().setProperty('LIVE_STATE', JSON.stringify(st)); }
 function checkLive() {
@@ -2456,4 +2462,108 @@ function providersPublic_() {
       reviews: rv.slice(-20).reverse().map(x => ({ name: x.reviewer_name, stars: Number(x.stars), comment: x.comment, date: x.created })) };
   });
   return { ok: true, services: PROVIDER_SERVICES, providers: list };
+}
+
+
+// ============================================================
+// RRR LIVE: promoters' shows on the platform (owner request 18 Oct 2026)
+// Promoters request a slot on live.html#request. Cole approves in the Shows tab (status "approved").
+// Clashes are flagged to Cole by email; he decides what plays. The Bandcamp Hour (2 hours) is always on the schedule.
+// ============================================================
+const TBH_SHOW_ = { show_id: 'TBH', status: 'approved', show_name: 'The Bandcamp Hour', promoter: 'Retro Reverb Records', repeat: 'weekly', day: 'Sun',
+  start: '16:00', length_min: 120, timezone: 'Europe/Rome', stream_url: 'https://retroreverbrecords.com/live.html', website: 'https://retroreverbrecords.com/live.html', genres: 'Synthwave, electronic' };
+const DAYS_ = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function hm_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, ss_().getSpreadsheetTimeZone(), 'HH:mm');
+  const m = String(v || '').match(/(\d{1,2})[:.](\d{2})/); return m ? ('0' + m[1]).slice(-2) + ':' + m[2] : '';
+}
+function ymd_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, ss_().getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+  const m = String(v || '').match(/(\d{4})-(\d{2})-(\d{2})/); return m ? m[0] : '';
+}
+function validTz_(tz) {
+  if (!/^[A-Za-z_]+(\/[A-Za-z0-9_+\-]+)+$|^UTC$/.test(String(tz || ''))) return false;
+  try { Utilities.formatDate(new Date(), String(tz), 'HH'); return true; } catch (e) { return false; }
+}
+// The moment a wall-clock time happens in a time zone (handles summer time)
+function wallToUtc_(ymd, hhmm, tz) {
+  const a = ymd.split('-').map(Number), b = hhmm.split(':').map(Number);
+  const want = Date.UTC(a[0], a[1] - 1, a[2], b[0], b[1]);
+  let t = want;
+  for (let i = 0; i < 3; i++) {
+    const seen = Utilities.formatDate(new Date(t), tz, 'yyyy-MM-dd HH:mm').split(/[- :]/).map(Number);
+    const diff = want - Date.UTC(seen[0], seen[1] - 1, seen[2], seen[3], seen[4]);
+    if (!diff) break; t += diff;
+  }
+  return new Date(t);
+}
+// Every time a show is on between two moments: [{start, end}]
+function occurrences_(r, from, to) {
+  const tz = validTz_(r.timezone) ? String(r.timezone) : 'Europe/Rome', start = hm_(r.start), len = Math.max(15, Math.min(720, Number(r.length_min) || 60)) * 60000;
+  if (!start) return [];
+  const out = [], add = ymd => { const s = wallToUtc_(ymd, start, tz); if (s.getTime() + len > from.getTime() && s < to) out.push({ start: s, end: new Date(s.getTime() + len) }); };
+  if (/one/i.test(String(r.repeat))) { const d = ymd_(r.date); if (d) add(d); return out; }
+  const day = String(r.day || '').slice(0, 3), seen = {};
+  for (let t = from.getTime() - 86400000; t <= to.getTime() + 86400000; t += 6 * 3600000) {
+    const d = new Date(t), ymd = Utilities.formatDate(d, tz, 'yyyy-MM-dd');
+    if (seen[ymd]) continue; seen[ymd] = 1;
+    if (Utilities.formatDate(d, tz, 'EEE') === day) add(ymd);
+  }
+  return out;
+}
+function showWhenText_(r) {
+  const it = occurrences_(r, new Date(), new Date(Date.now() + 60 * 86400000))[0];
+  if (!it) return '';
+  const f = x => Utilities.formatDate(x, 'Europe/Rome', 'HH:mm');
+  return (/one/i.test(String(r.repeat)) ? Utilities.formatDate(it.start, 'Europe/Rome', 'EEE d MMM') : Utilities.formatDate(it.start, 'Europe/Rome', 'EEEE') + 's') + ' ' + f(it.start) + ' to ' + f(it.end) + ' Italy time';
+}
+function approvedShows_() { return [TBH_SHOW_].concat(rows_('Shows').filter(r => /^approved/i.test(String(r.status)))); }
+function showPublic_(r, o) {
+  return { id: r.show_id, name: r.show_name, promoter: r.promoter, genres: r.genres, description: r.description, stream: r.stream_url, website: r.website,
+    repeat: /one/i.test(String(r.repeat)) ? 'one-off' : 'weekly', start: o.start.toISOString(), end: o.end.toISOString(), rrr: r.show_id === 'TBH' };
+}
+function showsOnAir_() {
+  try {
+    const now = new Date(), soon = new Date(now.getTime() + 60000);
+    return approvedShows_().filter(r => r.show_id !== 'TBH').map(r => { const o = occurrences_(r, now, soon).find(x => x.start <= now); return o ? showPublic_(r, o) : null; }).filter(Boolean);
+  } catch (e) { log_('shows on air failed', String(e)); return []; }
+}
+function showsPublic_() {
+  const now = new Date(), to = new Date(now.getTime() + 8 * 86400000), list = [];
+  approvedShows_().forEach(r => occurrences_(r, now, to).forEach(o => list.push(showPublic_(r, o))));
+  list.sort((a, b) => a.start < b.start ? -1 : 1);
+  return { ok: true, shows: list.slice(0, 40) };
+}
+// Shows (approved or waiting) that overlap a show in the next 8 weeks
+function showClashes_(r, ignoreId) {
+  const from = new Date(), to = new Date(from.getTime() + 56 * 86400000), mine = occurrences_(r, from, to), out = [];
+  [TBH_SHOW_].concat(rows_('Shows').filter(x => /^(approved|pending)/i.test(String(x.status)))).forEach(x => {
+    if (x.show_id === ignoreId) return;
+    const hit = occurrences_(x, from, to).find(o => mine.some(m => m.start < o.end && o.start < m.end));
+    if (hit) out.push(x.show_name + ' (' + (x.status || 'approved') + ', ' + x.show_id + ') on ' + Utilities.formatDate(hit.start, 'Europe/Rome', 'EEE d MMM HH:mm') + ' Italy time');
+  });
+  return out;
+}
+function handleShowRequest_(p) {
+  const email = clean_(p.email, 120).toLowerCase(), name = clean_(p.show_name, 80);
+  const repeat = p.repeat === 'one-off' ? 'one-off' : 'weekly', day = DAYS_.indexOf(String(p.day)) >= 0 ? String(p.day) : '';
+  const tz = validTz_(p.timezone) ? String(p.timezone) : '', start = hm_(p.start), len = Math.round(Number(p.length_min));
+  const stream = /^https:\/\/\S+$/i.test(String(p.stream_url || '').trim()) ? String(p.stream_url).trim().slice(0, 300) : '';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !name || !tz || !start || !stream || !(len >= 15 && len <= 720) || (repeat === 'weekly' ? !day : !ymd_(p.date))) return text_('error');
+  const id = 'SHOW-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  const row = { show_id: id, created: new Date(), status: 'pending', show_name: name, promoter: clean_(p.promoter, 80), contact_name: clean_(p.contact_name, 80), email: email,
+    member_id: clean_(p.member_id, 20).toUpperCase(), repeat: repeat, day: repeat === 'weekly' ? day : '', date: repeat === 'one-off' ? "'" + ymd_(p.date) : '', start: "'" + start,
+    length_min: len, timezone: tz, stream_url: stream, website: clean_(p.website, 200), genres: clean_(p.genres, 160), description: clean_(p.description, 600) };
+  const check = Object.assign({}, row, { date: ymd_(p.date), start: start });
+  const clashes = showClashes_(check, id);
+  row.clash = clashes.length ? clashes.join(' | ').slice(0, 500) : 'none';
+  append_('Shows', row);
+  try { notify_((clashes.length ? '⚠️ CLASH · ' : '') + 'RRR Live slot request: ' + name,
+    name + (row.promoter ? ' by ' + row.promoter : '') + '\nWhen: ' + showWhenText_(check) + ' (' + repeat + '; they gave ' + (repeat === 'weekly' ? day : ymd_(p.date)) + ' ' + start + ' ' + tz + ', ' + len + ' min)' +
+    '\nStream: ' + stream + '\nWebsite: ' + (row.website || '-') + '\nGenres: ' + (row.genres || '-') + '\nAbout: ' + (row.description || '-') + '\nContact: ' + (row.contact_name || '-') + ' <' + email + '>' +
+    (clashes.length ? '\n\n⚠️ CLASHES WITH:\n- ' + clashes.join('\n- ') + '\nYou decide what plays: approve one, decline or move the other.' : '\n\nNo clashes.') +
+    '\n\nTo put it on the site: Shows tab, set status to "approved" for ' + id + ' (or "declined").\n' + sheetUrl_()); } catch (e) { log_('show request notify failed', String(e)); }
+  try { MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: 'Your RRR Live slot request: ' + name,
+    body: 'Hi ' + (row.contact_name || row.promoter || '') + ',\n\nThanks for asking to put ' + name + ' on RRR Live. We check every request by hand and will reply soon. Once it\'s approved, your show appears on ' + SETTINGS.siteUrl + 'live.html#schedule and a LIVE NOW bar points people to it while you\'re on air.\n\nRetro Reverb Records' }); } catch (e) {}
+  return text_('ok');
 }

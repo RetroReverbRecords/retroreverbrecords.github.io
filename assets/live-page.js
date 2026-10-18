@@ -49,3 +49,63 @@
   if (window.rrrLive) render(window.rrrLive);
   document.addEventListener('rrr-live', e => render(e.detail));
 })();
+
+/* RRR LIVE: schedule of approved shows (RRR + promoters) in the visitor's time, and the "Request a slot" form */
+(function(){
+  const C = window.RRR_CONFIG || {}, url = C.automationUrl || '';
+  const $ = s => document.querySelector(s);
+  const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const safe = u => /^https:\/\//i.test(String(u || '')) ? u : '';
+  const ytId = u => { const m = String(u || '').match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/live\/)([\w-]{11})/); return m ? m[1] : ''; };
+  const day = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const tm = d => d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const list = $('#sh-list'), now = $('#sh-now');
+  function paint(shows) {
+    const t = Date.now();
+    const on = shows.filter(s => new Date(s.start) <= t && new Date(s.end) > t && !s.rrr);
+    now.innerHTML = on.map(s => {
+      const id = ytId(s.stream), link = safe(s.stream);
+      return '<div class="panel box onair"><p class="label"><span class="livedot"></span> On air now</p><h3>' + e(s.name) + '</h3>' +
+        '<p>' + (s.promoter ? 'with ' + e(s.promoter) + ' · ' : '') + 'until ' + tm(new Date(s.end)) + ' your time' + (s.genres ? ' · ' + e(s.genres) : '') + '</p>' +
+        (id ? '<div class="liveplayer"><iframe src="https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0" title="' + e(s.name) + ' live" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>' : '') +
+        (link ? '<p class="actions"><a class="btn primary" href="' + e(link) + '" target="_blank" rel="noopener">Watch or listen live ↗</a></p>' : '') + '</div>';
+    }).join('');
+    list.innerHTML = shows.length ? shows.map(s => {
+      const st = new Date(s.start), en = new Date(s.end), live = st <= t && en > t;
+      const go = s.rrr ? 'live.html' : safe(s.stream) || safe(s.website);
+      return '<li' + (live ? ' class="is-live"' : '') + '><span class="sch-when"><b>' + day(st) + '</b> ' + tm(st) + ' to ' + tm(en) + '</span>' +
+        '<span class="sch-what">' + (live ? '<span class="livedot"></span> ' : '') + '<b>' + e(s.name) + '</b>' + (s.promoter && !s.rrr ? ' · ' + e(s.promoter) : '') + (s.genres ? ' <span class="small">' + e(s.genres) + '</span>' : '') + '</span>' +
+        (go ? '<a href="' + e(go) + '"' + (s.rrr ? '' : ' target="_blank" rel="noopener"') + '>' + (live ? 'Tune in' : s.rrr ? 'This page' : 'Show link') + ' ↗</a>' : '') + '</li>';
+    }).join('') : '<li class="small">No shows booked this week yet.</li>';
+  }
+  if (list) {
+    if (!url) paint([]);
+    else fetch(url + (url.includes('?') ? '&' : '?') + 'shows=1').then(r => r.json()).then(d => paint((d && d.shows) || [])).catch(() => { list.innerHTML = '<li class="small">The schedule could not load. Try again in a minute.</li>'; });
+  }
+
+  // Request form
+  const form = $('#sh-form'); if (!form) return;
+  const st = $('#sh-status'), say = (ok, html) => { st.classList.toggle('open', ok); st.innerHTML = '<span class="dot"></span><span>' + html + '</span>'; };
+  const tzSel = $('#sh-tz');
+  let mine = 'Europe/Rome'; try { mine = Intl.DateTimeFormat().resolvedOptions().timeZone || mine; } catch (x) {}
+  let zones = ['Europe/London', 'Europe/Rome', 'Europe/Berlin', 'Europe/Madrid', 'Europe/Paris', 'Europe/Amsterdam', 'Europe/Stockholm', 'Europe/Helsinki', 'Europe/Athens', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Toronto', 'America/Mexico_City', 'America/Sao_Paulo', 'America/Argentina/Buenos_Aires', 'Asia/Tokyo', 'Asia/Seoul', 'Asia/Singapore', 'Australia/Sydney', 'Australia/Perth', 'Pacific/Auckland', 'UTC'];
+  try { if (Intl.supportedValuesOf) zones = Intl.supportedValuesOf('timeZone'); } catch (x) {}
+  if (zones.indexOf(mine) < 0) zones.unshift(mine);
+  tzSel.innerHTML = zones.map(z => '<option' + (z === mine ? ' selected' : '') + '>' + e(z) + '</option>').join('');
+  const rep = $('#sh-repeat');
+  const sync = () => { const one = rep.value === 'one-off'; $('#sh-day-wrap').hidden = one; $('#sh-date-wrap').hidden = !one; $('#sh-day').required = !one; $('#sh-date').required = one; };
+  rep.addEventListener('change', sync); sync();
+  form.addEventListener('submit', async ev => {
+    ev.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    const data = new URLSearchParams(); new FormData(form).forEach((v, k) => data.append(k, v));
+    data.append('form', 'show-request'); data.append('page', location.pathname);
+    try { const id = localStorage.getItem('rrr-member-id'); if (id) data.append('member_id', id); } catch (x) {}
+    if (!url) { say(false, 'Requests open soon. Please try again later.'); return; }
+    try {
+      await window.rrrSend(url, data);
+      say(true, '<strong>Request sent ✓</strong> Thanks! We\'ll check ' + e(data.get('show_name')) + ' and reply to ' + e(data.get('email')) + ' (check spam).');
+      form.querySelector('fieldset').disabled = true;
+    } catch (err) { say(false, "<strong>That didn't send.</strong> Please try again in a minute."); }
+  });
+})();

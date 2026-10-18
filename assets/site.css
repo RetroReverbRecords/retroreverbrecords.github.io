@@ -931,3 +931,13 @@ label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
 #calls .grid2{align-items:start}#calls .shorts{grid-template-columns:minmax(200px,280px)}
 .tz-list{list-style:none;padding:0;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:6px 18px;color:#c9c4e0;font-size:.92rem}
 .tz-list b{color:#fff;font-weight:600}
+.sched{list-style:none;padding:0;margin:0}
+.sched li{display:grid;grid-template-columns:minmax(150px,auto) 1fr auto;gap:6px 16px;align-items:baseline;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.sched li:last-child{border-bottom:0}
+.sched li.is-live{color:#fff}
+.sched .sch-when{color:#c9c4e0;white-space:nowrap}
+.sched a{white-space:nowrap}
+@media (max-width:600px){.sched li{grid-template-columns:1fr}.sched .sch-when{white-space:normal}}
+.onair{margin-bottom:20px;border-color:#ff2fa8}
+.onair .liveplayer{margin:12px 0}
+.sched .livedot,.onair .livedot{display:inline-block;vertical-align:middle;width:9px;height:9px}

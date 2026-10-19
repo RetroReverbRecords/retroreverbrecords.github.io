@@ -157,7 +157,7 @@ window.RRR_CONFIG = {
 
   email: "retroreverbrecords@gmail.com",
   // Contact page extras. Leave "" to hide. WhatsApp in international format, e.g. "+39 379 ...".
-  whatsapp: "",
+  whatsapp: "+39 379 151 7235",
   // Discord DM: your Discord user ID (Discord: Settings > Advanced > Developer Mode, then right-click your name > Copy User ID).
   discordUserId: ""
 };

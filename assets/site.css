@@ -946,3 +946,9 @@ label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
 .artist-main{display:grid;gap:16px}
 .artist-card{width:100%;height:auto;border-radius:14px;box-shadow:0 0 24px rgba(255,47,168,.25)}
 @media (max-width:760px){.artist-wrap{grid-template-columns:1fr}.artist-side{max-width:320px}}
+.guide-body{max-width:760px}
+.guide-body h2{margin:34px 0 10px;font-size:1.35rem}
+.guide-body p,.guide-body li{color:#d9d4ee;line-height:1.7}
+.guide-body ul,.guide-body ol{margin:0 0 14px;padding-left:22px}
+.guide-body li{margin:6px 0}
+.guide-cta{margin-top:36px}

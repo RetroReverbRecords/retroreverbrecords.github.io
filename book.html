@@ -96,7 +96,8 @@
             <form class="panel booking-form" data-kind="bandcamp-release" novalidate>
               <h2>Bandcamp release</h2>
               <p class="intro">Released through the RRR Bandcamp catalogue, shown on your page and the RRR page. You keep 100% of royalties.</p>
-              <div class="feerow"><span>Single<b data-price="single">€2.00</b></span><span>EP (2–5 tracks)<b data-price="ep">€2.50</b></span><span>Album<b data-price="album">€3.00</b></span></div>
+              <div class="feerow"><span>Members<b>1 a month included</b></span><span>Extra that month<b data-price="single">€2.00</b></span><span>Pay as you go<b data-price="paygSingle">€4.50</b></span></div>
+              <p class="small payg-line">Prices shown for singles. EP / album: extra member Bandcamp release <b data-price="ep">€2.50</b> / <b data-price="album">€3.00</b>; pay as you go <b data-price="paygEp">€5.50</b> / <b data-price="paygAlbum">€6.50</b>. Member releases need your membership active on the release day. <a href="release.html#payg">What's included</a></p>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
@@ -104,7 +105,7 @@
                   <label for="bc-email">Email<input id="bc-email" name="email" type="email" required></label>
                   <label for="bc-title">Release title<input id="bc-title" name="title" type="text" required></label>
                   <label for="bc-genre">Genre<select id="bc-genre" name="genre" required data-genres></select></label>
-                  <label for="bc-format">Format<select id="bc-format" name="format" required><option value="single" data-price-label="single">Single – €2.00</option><option value="ep" data-price-label="ep">EP, 2–5 tracks – €2.50</option><option value="album" data-price-label="album">Album – €3.00</option></select></label>
+                  <label for="bc-format">Format<select id="bc-format" name="format" required><option value="single">Single</option><option value="ep">EP, 2–5 tracks</option><option value="album">Album, 6+ tracks</option></select></label>
                   <label for="bc-date">Release date<input id="bc-date" name="release_date" type="date" required></label>
                   <label for="bc-page">Your Bandcamp page<input id="bc-page" name="bandcamp" type="url" placeholder="https://yourname.bandcamp.com"></label>
                   <label for="bc-notes" class="wide">Notes<textarea id="bc-notes" name="notes" placeholder="Genre, pre-order plans, anything we should know"></textarea></label>
@@ -151,6 +152,9 @@
                 <label class="agree"><input type="checkbox" id="bc-collab-ok" name="collaborators_agreed" value="yes" required> Everyone who worked on this release has agreed to it being released.</label>
                 <p class="paylink" hidden></p>
                 <label class="agree"><input type="checkbox" name="start_now" value="yes" required> <span>Please start work on this booking straight away. I understand that once RRR has uploaded it, I can no longer withdraw from this booking (<a href="refunds.html#r1" target="_blank">Refund Policy</a>).</span></label>
+                <p class="small member-free-note" hidden>✓ <b>Included in your membership.</b> No payment needed for this release.</p>
+                <p class="small payg-note" hidden>💡 <b>No RRR membership found for this email</b>, so this is a pay-as-you-go release at the price above. Already a member? Use the email you joined with. <a href="index.html#join">Join</a> to pay member prices.</p>
+                <label class="agree payg-agree" hidden><input type="checkbox" name="payg_terms" value="yes"> <span>I agree to the RRR <a href="terms.html" target="_blank">terms</a> and <a href="release-policy.html" target="_blank">release policy</a>, including the AI policy and RRR being the only streaming distributor of this recording for 18 months.</span></label>
                 <button class="btn primary" type="submit">Book Bandcamp release</button>
               </fieldset>
             </form>
@@ -161,7 +165,8 @@
             <form class="panel booking-form" data-kind="streaming-release" novalidate>
               <h2>Streaming release</h2>
               <p class="intro">Uploaded and managed through the RRR RouteNote account. You keep 100% of streaming royalties.</p>
-              <div class="feerow"><span>Single<b data-price="single">€2.00</b></span><span>EP (2–5 tracks)<b data-price="ep">€2.50</b></span><span>Album<b data-price="album">€3.00</b></span></div>
+              <div class="feerow"><span>Members<b>Included</b></span><span>Pay as you go<b data-price="paygSingle">€4.50</b></span></div>
+              <p class="small payg-line">Streaming releases are included in membership with no monthly limit, while your membership is active on the release day. Pay as you go: single <b data-price="paygSingle">€4.50</b>, EP <b data-price="paygEp">€5.50</b>, album <b data-price="paygAlbum">€6.50</b>. <a href="release.html#payg">What's included</a></p>
               <div class="status" role="status"></div>
               <fieldset>
                 <div class="fields">
@@ -169,7 +174,7 @@
                   <label for="st-email">Email<input id="st-email" name="email" type="email" required></label>
                   <label for="st-title">Release title<input id="st-title" name="title" type="text" required></label>
                   <label for="st-genre">Genre<select id="st-genre" name="genre" required data-genres></select></label>
-                  <label for="st-format">Format<select id="st-format" name="format" required><option value="single" data-price-label="single">Single – €2.00</option><option value="ep" data-price-label="ep">EP, 2–5 tracks – €2.50</option><option value="album" data-price-label="album">Album – €3.00</option></select></label>
+                  <label for="st-format">Format<select id="st-format" name="format" required><option value="single">Single</option><option value="ep">EP, 2–5 tracks</option><option value="album">Album, 6+ tracks</option></select></label>
                   <label for="st-date">Release date<input id="st-date" name="release_date" type="date" required></label>
                   <label for="st-isrc">ISRC codes (if you have them)<input id="st-isrc" name="isrc" type="text"></label>
                   <label for="st-notes" class="wide">Notes<textarea id="st-notes" name="notes"></textarea></label>
@@ -185,6 +190,9 @@
                 <label class="agree"><input type="checkbox" id="st-collab-ok" name="collaborators_agreed" value="yes" required> Everyone who worked on this release has agreed to it being released.</label>
                 <p class="paylink" hidden></p>
                 <label class="agree"><input type="checkbox" name="start_now" value="yes" required> <span>Please start work on this booking straight away. I understand that once RRR has uploaded it, I can no longer withdraw from this booking (<a href="refunds.html#r1" target="_blank">Refund Policy</a>).</span></label>
+                <p class="small member-free-note" hidden>✓ <b>Included in your membership.</b> No payment needed for this release.</p>
+                <p class="small payg-note" hidden>💡 <b>No RRR membership found for this email</b>, so this is a pay-as-you-go release at the price above. Already a member? Use the email you joined with. <a href="index.html#join">Join</a> to pay member prices.</p>
+                <label class="agree payg-agree" hidden><input type="checkbox" name="payg_terms" value="yes"> <span>I agree to the RRR <a href="terms.html" target="_blank">terms</a> and <a href="release-policy.html" target="_blank">release policy</a>, including the AI policy and RRR being the only streaming distributor of this recording for 18 months.</span></label>
                 <button class="btn primary" type="submit">Book streaming release</button>
               </fieldset>
             </form>
@@ -331,10 +339,10 @@
           <div class="panel facts">
             <h3>Before you book</h3>
             <ul>
-              <li>You need an active Artist Membership. Supporter Status pauses booking.</li>
+              <li>Members book at member prices. Not a member? You can book a single release <a href="release.html#payg">pay as you go</a>. Supporter Status pauses member booking.</li>
               <li>Streaming assets: at least 3 weeks before release.</li>
               <li>Bandcamp assets: at least 2 weeks before release.</li>
-              <li>Editorial pitching is done by you: Bandcamp 8–9 weeks ahead, Spotify at least 7 days ahead. See the <a href="editorial.html">editorial guides</a>.</li>
+              <li>Editorial pitching: Bandcamp is done by you, about 9 weeks ahead. Spotify at least 7 days ahead, by you, or by RRR if you add us as a team member in Spotify for Artists. See the <a href="editorial.html">editorial guides</a>.</li>
               <li>Assets go in your designated Google Drive folder.</li>
             </ul>
           </div>
@@ -378,9 +386,9 @@
     <span class="flinks"><a href="artists.html">Artists</a> · <a href="history.html">History</a> · <a href="press.html">Press</a> · <a href="how-it-works.html">How it works</a> · <a href="release-policy.html">Release policy</a> · <a href="editorial.html">Editorial guides</a> · <a href="live.html">The Bandcamp Hour</a> · <a href="submit.html">Submit music</a> · <a href="release.html">Release your synthwave music</a> · <a href="promote.html">Promote your music</a> · <a href="community.html">Synthwave community</a> · <a href="services.html">Services directory</a> · <a href="https://discord.gg/P2sjDBEtN" data-discord target="_blank" rel="noopener">Discord</a> · <a href="code-of-conduct.html">Code of conduct</a> · <a href="contact.html">Contact us</a> · <a href="feedback.html">Feedback</a> · <a href="agreement.html">Member Agreement</a> · <a href="terms.html">Terms</a> · <a href="refunds.html">Refunds</a> · <a href="contact.html#refund">Request a refund</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#unsubscribe">Unsubscribe</a> · <a href="withdraw.html">Withdraw from contract here</a></span>
   </div>
 </footer>
-<script src="assets/config.js?v=20261017b"></script>
+<script src="assets/config.js?v=20261019a"></script>
 <script src="assets/releases.js?v=20261008a"></script>
 <script src="assets/levels.js?v=20261012a"></script>
-<script src="assets/site.js?v=20261018b"></script>
+<script src="assets/site.js?v=20261019b"></script>
 </body>
 </html>

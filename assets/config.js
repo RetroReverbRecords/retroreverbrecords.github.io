@@ -50,7 +50,12 @@ window.RRR_CONFIG = {
     album: 3.00,             // Upload fee: album, 6+ tracks. Same price for Bandcamp, streaming or both
     youtube: 1.00,           // YouTube upload, per video
     statsPro: 1.00,          // Stats Pro add-on for artists, per month (on top of Artist membership)
-    merch: 2.00              // Merch listing, per item (one-off). Sales are paid to the artist directly
+    merch: 2.00,             // Merch listing, per item (one-off). Sales are paid to the artist directly
+    // PAY AS YOU GO (owner decision 19 Oct 2026): label release with no membership.
+    // Includes RRR label release, Spotify pitch (team access), 1 label social post, Notice Board + Discord announcement.
+    paygSingle: 4.50,
+    paygEp: 5.50,
+    paygAlbum: 6.50
   },
   // Yearly artist membership (same price as 12 months, one payment = far lower PayPal fees for RRR)
   yearly: { artist: 24.00 },

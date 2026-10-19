@@ -125,7 +125,7 @@ window.rrrSend = function(url, data, onProblem){
   $$('[data-price]').forEach(el => { const v = PR[el.dataset.price]; if (v != null) el.textContent = euro(v); });
   // Compare-the-value calculator: membership for a year + 4 singles
   const cy = $('#calc-year'), cm = $('#calc-month');
-  if (cy && PR.artist != null && PR.single != null) { const y = PR.artist * 12 + PR.single * 4; cy.textContent = euro(y); if (cm) cm.textContent = euro(y / 12); }
+  if (cy && PR.artist != null) { const y = PR.artist * 12; cy.textContent = euro(y); if (cm) cm.textContent = euro(y / 12); }
   // Genre dropdowns from config.genres
   $$('select[data-genres]').forEach(sel => { if (sel.options.length) return; sel.innerHTML = '<option value="">Choose a genre…</option>' + (C.genres || []).map(g => `<option>${esc(g)}</option>`).join(''); });
   $$('option[data-price-label]').forEach(o => { const v = PR[o.dataset.priceLabel]; if (v != null) o.textContent = o.textContent.replace(/€[\d.,]+/, euro(v)); });
@@ -477,13 +477,18 @@ window.rrrSend = function(url, data, onProblem){
         dateIn.addEventListener('change', () => { if (dateIn.value) { const d = new Date(dateIn.value + 'T12:00:00'); month = new Date(d.getFullYear(), d.getMonth(), 1); } draw(); });
       }
       // Founding artists pay founder upload prices: we look up the member ID they type
-      let isFounder = false, freeRelease = false; const ff = ((C.founder || {}).fees) || {};
+      let isFounder = false, freeRelease = false, isMember = null, memberFree = false, lastChecked = ''; const ff = ((C.founder || {}).fees) || {};
+      const PRc = C.prices || {}, payg = { single: PRc.paygSingle, ep: PRc.paygEp, album: PRc.paygAlbum };
       const emIn = f.querySelector('[name=email]');
-      const checkFounder = () => { const v = (emIn && emIn.value || '').trim(); if (!endpoint || !/@/.test(v)) { isFounder = false; return; }
-        fetch(endpoint + '?isfounder=' + encodeURIComponent(v)).then(r => r.json()).then(j => { isFounder = !!(j && j.founder); freeRelease = !!(j && j.freeRelease) && /release/.test(f.dataset.kind); const n = f.querySelector('.founder-note'); if (n) n.hidden = !isFounder;
+      const paygNote = () => { const n = f.querySelector('.payg-note'); if (!n) return; n.hidden = !(isMember === false && /release/.test(f.dataset.kind)); const ag = f.querySelector('.payg-agree'); if (ag) { ag.hidden = n.hidden; const cb = ag.querySelector('input'); if (cb) cb.required = !n.hidden; } };
+      const checkFounder = () => { const v = (emIn && emIn.value || '').trim().toLowerCase(); if (!endpoint || !/@/.test(v)) { isFounder = false; isMember = null; paygNote(); return Promise.resolve(); }
+        lastChecked = v;
+        const rd = ((f.querySelector('input[name=release_date]') || {}).value || '');
+        return fetch(endpoint + '?isfounder=' + encodeURIComponent(v) + '&kind=' + encodeURIComponent(f.dataset.kind) + '&d=' + encodeURIComponent(rd)).then(r => r.json()).then(j => { isMember = !!(j && j.member); memberFree = !!(j && j.memberFree) && /release/.test(f.dataset.kind); const mn = f.querySelector('.member-free-note'); if (mn) mn.hidden = !memberFree; paygNote(); isFounder = !!(j && j.founder); freeRelease = !!(j && j.freeRelease) && /release/.test(f.dataset.kind); const n = f.querySelector('.founder-note'); if (n) n.hidden = !isFounder;
           let fr = f.querySelector('.free-note'); if (!fr && emIn) { fr = document.createElement('p'); fr.className = 'small free-note'; fr.innerHTML = '🥋 <b>Black Belt reward:</b> this release upload is free.'; (emIn.closest('label') || emIn).insertAdjacentElement('afterend', fr); } if (fr) fr.hidden = !freeRelease; }).catch(() => {}); };
       if (emIn) emIn.addEventListener('change', checkFounder);
-      const amount = () => { const key = (pl && pl.dataset.amount) ? pl.dataset.amount : (sel ? sel.value : null); if (key == null) return null; if (freeRelease && /^(single|ep|album)$/.test(key)) return 0; return isFounder && ff[key] != null ? ff[key] : fees0[key]; };
+      const rdIn = f.querySelector('input[name=release_date]'); if (rdIn) rdIn.addEventListener('change', () => { if (emIn && /@/.test(emIn.value)) checkFounder(); });
+      const amount = () => { const key = (pl && pl.dataset.amount) ? pl.dataset.amount : (sel ? sel.value : null); if (key == null) return null; if (memberFree && /^(single|ep|album)$/.test(key)) return 0; if (freeRelease && /^(single|ep|album)$/.test(key)) return 0; if (isMember === false && /release/.test(f.dataset.kind) && payg[key] != null) return payg[key]; return isFounder && ff[key] != null ? ff[key] : fees0[key]; };
       f.addEventListener('submit', async e => {
         e.preventDefault();
         if (!open) return;
@@ -492,9 +497,10 @@ window.rrrSend = function(url, data, onProblem){
         const title = val('title'), email = val('email');
         const date = val('release_date') || val('premiere_date') || val('preferred_date') || val('date');
         const selfUpload = !!f.querySelector('input[name=upload_by][value=artist]:checked');
+        if (/release/.test(f.dataset.kind)) { try { await checkFounder(); } catch (x) {} if (isMember === false && !f.checkValidity()) { f.reportValidity(); return; } }
         const amt = amount();
         const bookingId = 'BK-' + Array.from(crypto.getRandomValues(new Uint8Array(6)), x => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[x % 31]).join('');
-        const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : freeRelease ? { free_release: 'yes' } : {});
+        const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : memberFree ? { member_free: 'yes' } : freeRelease ? { free_release: 'yes' } : {});
         if (!ok) return;
         track('Schedule', { content_name: f.dataset.kind });
         const demo = isDemoEmail(email), kindName = (($('[role=tab][aria-selected=true]') || {}).textContent || f.dataset.kind.replace('-', ' ')).trim();

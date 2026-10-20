@@ -20,7 +20,7 @@ DESC = {
  'refunds': 'Retro Reverb Records refund policy: membership, bookings and RRR Submit, including your 14-day right to withdraw.',
  'release-policy': 'The RRR release policy: deadlines, assets, Bandcamp and streaming rules, exclusivity and AI-generated music.',
  'series': 'RRR Series: hand-picked synthwave, darksynth and retrowave releases selected by Retro Reverb Records. Submit yours.',
- 'services': 'Find mixing, mastering, production, artwork and video pros for your synthwave release, with reviews from real customers. Free listings for providers.',
+ 'services': 'Find mixing, mastering, production, artwork, video and marketing pros for your synthwave release, with reviews from real customers. Free listings for providers.',
  'submit': 'RRR Submit: send your synthwave track to radio shows, playlists and blogs. €1.50 per curator, a real listen and written feedback within 14 days.',
  'terms': 'Retro Reverb Records membership terms: prices, what is included, your rights, and how to cancel.',
  'together': 'Stronger Together: how Retro Reverb Records artists and fans support each other on Bandcamp, YouTube, Discord and live shows.',

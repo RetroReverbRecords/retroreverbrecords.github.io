@@ -3,12 +3,12 @@
     <div class="wrap">
       <p class="label">Services directory</p>
       <h1>Find a <em>pro</em> for your release</h1>
-      <p class="lede">Mixing, mastering, production, artwork and video from people who know synthwave, darksynth and retrowave. Browse, read reviews from real customers, and contact them directly.</p>
+      <p class="lede">Mixing, mastering, production, artwork, video, marketing and promotion from people who know synthwave, darksynth and retrowave. Browse, read reviews from real customers, and contact them directly.</p>
     </div>
   </div>
   <section class="side">
     <div class="wrap">
-      <p class="note sv-note"><b>A directory only.</b> RRR doesn't check, guarantee or take part in any service listed here, and isn't responsible for the work, prices or payments. Agree everything directly with the provider before you pay.</p>
+      <p class="note sv-note"><b>A directory only.</b> Providers listed here are independent businesses, not part of RRR. RRR doesn't endorse, guarantee or take part in any service listed here, and <b>no provider can guarantee results</b> such as streams, sales, followers or playlist places. Choosing a provider is your own decision: check their work and reviews, and agree the price and what you get directly with them before you pay. RRR accepts no liability for any provider's work, results, prices or payments (<a href="terms.html#t10">terms</a>).</p>
       <div class="sv-filter" role="group" aria-label="Filter by service">
         <button type="button" class="chip" data-f="" aria-pressed="true">All</button>
         <button type="button" class="chip" data-f="Mixing" aria-pressed="false">Mixing</button>
@@ -16,6 +16,7 @@
         <button type="button" class="chip" data-f="Production" aria-pressed="false">Production</button>
         <button type="button" class="chip" data-f="Artwork" aria-pressed="false">Artwork</button>
         <button type="button" class="chip" data-f="Video &amp; visuals" aria-pressed="false">Video &amp; visuals</button>
+        <button type="button" class="chip" data-f="Marketing &amp; promotion" aria-pressed="false">Marketing &amp; promotion</button>
       </div>
       <div id="sv-list" class="sv-list" aria-live="polite"><div class="empty panel"><b>Loading the directory…</b></div></div>
     </div>
@@ -49,7 +50,7 @@
   <section class="side" id="list-yours">
     <div class="wrap">
       <h2>List your service, free</h2>
-      <p class="small">For mixing and mastering engineers, producers, artwork designers and video makers. <b>Promoters, radio shows and playlists:</b> join <a href="submit.html#curators-join">RRR Submit</a> instead, where you're paid to review tracks.</p>
+      <p class="small">For mixing and mastering engineers, producers, artwork designers, video makers and music marketing services. <b>Promoters, radio shows and playlists:</b> join <a href="submit.html#curators-join">RRR Submit</a> instead, where you're paid to review tracks.</p>
       <p class="small">Listed providers are welcome in the RRR Discord with a <b>Service Provider</b> badge. Points, belts and member rewards come with <a href="index.html#membership">RRR membership</a>, if you'd like to join too.</p>
       <form class="panel booking-form" id="sp-form" novalidate>
         <div class="status" role="status" id="sp-status"></div>
@@ -61,6 +62,7 @@
             <label><input type="checkbox" name="svc" value="Production"> Production</label>
             <label><input type="checkbox" name="svc" value="Artwork"> Artwork</label>
             <label><input type="checkbox" name="svc" value="Video &amp; visuals"> Video &amp; visuals</label>
+            <label><input type="checkbox" name="svc" value="Marketing &amp; promotion"> Marketing &amp; promotion</label>
           </div>
           <div class="fields">
             <label for="sp-name">Business or artist name (shown)<input id="sp-name" name="name" type="text" maxlength="80" required></label>

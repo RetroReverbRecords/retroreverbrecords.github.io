@@ -47,6 +47,7 @@ const SETTINGS = {
   releaseDecisionEmails: true, // email artists when a Selected Release is approved or not selected
   socialLeadDays: 3,
   bulletinDay: 4,              // weekly Bandcamp bulletin email to you: 0 = Sunday … 4 = Thursday          // social posts: book at least this many days ahead
+  memberFreeBandcampPerMonth: 1, // members: Bandcamp releases included per calendar month (owner, 19 Oct 2026). Streaming releases are included without a monthly cap.
   maxReleasesPerWeek: 0,       // release slots per week (Mon–Sun). 0 = no limit. Over the limit, bookings are flagged 'date full' for you
   // Slots per day. A date is only taken once the booking is PAID (first to pay gets it).
   // How many bookings each day can take. Change the numbers any time.
@@ -202,7 +203,7 @@ function doGet(e) {
   if (q.review) return reviewPost_(q.review, q.d, q.t);
   if (q.payout) return payoutPage_(q.payout, q.t);
   if (q.payoutconfirm) return payoutEmailConfirm_(q.payoutconfirm);
-  if (q.isfounder) { const fm = findRow_('Members', 'email', String(q.isfounder).trim()); return json_({ ok: true, founder: !!(fm && fm.founder === 'yes'), freeRelease: !!(fm && Number(fm.free_release) > 0) }); }
+  if (q.isfounder) { const fm = findRow_('Members', 'email', String(q.isfounder).trim()); return json_({ ok: true, memberFree: !!(fm && q.kind && memberReleaseFree_(fm, String(q.kind), String(q.d || ''))), member: !!(fm && /^active/i.test(String(fm.status)) && standing_(fm) !== 'removed'), founder: !!(fm && fm.founder === 'yes'), freeRelease: !!(fm && Number(fm.free_release) > 0) }); }
   if (q.providers) return json_(providersPublic_());
   if (q.provreview) return providerReviewConfirm_(q.provreview);
   if (q.shows) return json_(showsPublic_());
@@ -377,14 +378,17 @@ function handleBooking_(kind, p) {
     if (isDemo_(p.email)) confirmBooking_(String(p.booking_id).toUpperCase(), 'demo', 'DEMO');
     return text_('ok');
   }
-  const freeRel = !!(member && /release/.test(kind) && !p.booking_id && String(p.free_release) === 'yes' && Number(member.free_release) > 0);
+  // Member releases are included in membership (owner, 19 Oct 2026): streaming always, Bandcamp up to SETTINGS.memberFreeBandcampPerMonth a month
+  const memberFree = !!(member && /release/.test(kind) && !p.booking_id && String(p.member_free) === 'yes');
+  if (memberFree && !memberReleaseFree_(member, kind, date)) return text_('refused: this release isn\'t included in your membership (you have used your free Bandcamp release for that month). Book it again and pay the member upload fee');
+  const freeRel = !memberFree && !!(member && /release/.test(kind) && !p.booking_id && String(p.free_release) === 'yes' && Number(member.free_release) > 0);
   const dayFull = !!(date && SETTINGS.slotsPerDay[kind] && !slotFree_(kind, isoDate_(date)));
   if (dayFull) { append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email, title: title, date: date, details: JSON.stringify(p).slice(0, 1500), status: 'date full – suggest another date' });
     notify_('Booking date full: ' + kind + ' – ' + (p.artist || ''), date + ' was already full. Reply with the next free day: ' + nextFreeDate_(kind, isoDate_(date)) + '\n' + sheetUrl_()); return text_('ok'); }
   if (date && !full) eventId = addToCalendar_(kind, p, date);
   if (freeRel && !full) updateRow_('Members', 'member_id', memberId, { free_release: Number(member.free_release) - 1 });
   append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
-    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : kind === 'social-post' ? 'awaiting review' : freeRel && !full ? 'confirmed (free release – Black Belt)' : 'requested', calendar_event_id: eventId,
+    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : kind === 'social-post' ? 'awaiting review' : memberFree && !full ? 'confirmed (member release)' : freeRel && !full ? 'confirmed (free release – Black Belt)' : 'requested', calendar_event_id: eventId,
     booking_id: kind === 'social-post' ? socialId : '', review_token: kind === 'social-post' ? Utilities.getUuid().replace(/-/g, '') : '' });
   if (kind === 'social-post' && p.email) try {
     MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Social post booked: we\'re checking it (' + socialId + ')',
@@ -683,6 +687,7 @@ function updateSongstats() {
 // DAILY JOBS
 // ============================================================
 function daily() {
+  try { checkMemberReleases_(); } catch (e) { log_('member release check failed', String(e)); }
   // Loyalty achievements
   const now = new Date();
   rows_('Members').filter(m => /active/.test(m.status) && m.created).forEach(m => {
@@ -1686,6 +1691,14 @@ function confirmBooking_(bookingId, amount, txnId) {
       }
       if (kind === 'youtube-upload' && !demo) notice_('premiere', memberId, v[i][c('artist')] + ' premieres "' + title + '" on the RRR YouTube channel on ' + date + ' 🎬', 'Subscribe so you don\'t miss it', 'https://www.youtube.com/@RetroReverbRecords?sub_confirmation=1');
     }
+    // Pay as you go (no membership, owner decision 19 Oct 2026): check the price and list what RRR owes them
+    const fmtKey = String(v[i][c('format')] || p.format || '').toLowerCase();
+    if (!memberId && /release/.test(kind) && !demo) {
+      const want = PAYG_FEES_[fmtKey];
+      if (want && Number(amount) + 0.001 < want) notify_('⚠️ Underpaid pay-as-you-go release: ' + bookingId, 'Paid ' + amount + ', price is ' + want + ' (' + fmtKey + '). Ask them for the difference before uploading.\n' + sheetUrl_());
+      notice_('release', '', String(v[i][c('artist')] || 'A new artist').slice(0, 60) + ' releases "' + String(title).slice(0, 80) + '" on Retro Reverb Records' + (date ? ' on ' + date : '') + ' 🎶', 'See what\'s on', 'news.html');
+      notify_('💳 Pay-as-you-go release: ' + v[i][c('artist')] + ' – ' + title, 'Not a member. Included, for you to do:\n1. Release it under the RRR label (and list it on the RRR Bandcamp page)\n2. Spotify pitch, once they add RRR as a team member in Spotify for Artists\n3. One label social post for the release\n4. Announce it in Discord (the Notice Board post was added automatically)\n5. Consider it for The Bandcamp Hour\n\nBooking ' + bookingId + ' · ' + kind + ' · ' + (date || 'no date') + '\n' + sheetUrl_());
+    }
     const email = v[i][c('email')];
     if (email) try {
       MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', subject: (demo ? '[DEMO] ' : '') + 'Booking confirmed: "' + title + '" on ' + date + ' (' + bookingId + ')',
@@ -2401,12 +2414,12 @@ function isFounderEmail_(email) {
 
 
 // ============================================================
-// SERVICES DIRECTORY (mixing, mastering, production, artwork)
+// SERVICES DIRECTORY (mixing, mastering, production, artwork, video & visuals)
 // Free listing. Providers apply → Providers tab (status "pending") → owner sets status to "approved" to publish.
 // Reviews: one per email per provider, confirmed by an emailed link, 1–5 stars + short comment.
 // RRR doesn't check or guarantee any provider: the page says so.
 // ============================================================
-const PROVIDER_SERVICES = ['Mixing', 'Mastering', 'Production', 'Artwork'];
+const PROVIDER_SERVICES = ['Mixing', 'Mastering', 'Production', 'Artwork', 'Video & visuals'];
 function clean_(v, n) { return String(v || '').replace(/[<>]/g, '').trim().slice(0, n || 200); }
 function handleProviderApply_(p) {
   const email = clean_(p.email, 120).toLowerCase();
@@ -2472,6 +2485,7 @@ function providersPublic_() {
 // ============================================================
 const TBH_SHOW_ = { show_id: 'TBH', status: 'approved', show_name: 'The Bandcamp Hour', promoter: 'Retro Reverb Records', repeat: 'weekly', day: 'Sun',
   start: '16:00', length_min: 120, timezone: 'Europe/Rome', stream_url: 'https://retroreverbrecords.com/live.html', website: 'https://retroreverbrecords.com/live.html', genres: 'Synthwave, electronic' };
+const PAYG_FEES_ = { single: 4.5, ep: 5.5, album: 6.5 }; // keep in step with assets/config.js prices.payg*
 const DAYS_ = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function hm_(v) {
   if (v instanceof Date) return Utilities.formatDate(v, ss_().getSpreadsheetTimeZone(), 'HH:mm');
@@ -2566,4 +2580,36 @@ function handleShowRequest_(p) {
   try { MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: 'Your RRR Live slot request: ' + name,
     body: 'Hi ' + (row.contact_name || row.promoter || '') + ',\n\nThanks for asking to put ' + name + ' on RRR Live. We check every request by hand and will reply soon. Once it\'s approved, your show appears on ' + SETTINGS.siteUrl + 'live.html#schedule and a LIVE NOW bar points people to it while you\'re on air.\n\nRetro Reverb Records' }); } catch (e) {}
   return text_('ok');
+}
+
+
+// ============================================================
+// MEMBER RELEASES INCLUDED (owner decision 19 Oct 2026)
+// Streaming: included for active members. Bandcamp: SETTINGS.memberFreeBandcampPerMonth per calendar month (the label calendar takes one Bandcamp release a day).
+// The membership must still be active on the release day; if it has ended, the artist is asked to rejoin or pay the pay-as-you-go price.
+// ============================================================
+function memberReleaseFree_(m, kind, date) {
+  if (!m || !/^active/i.test(String(m.status)) || !inGoodStanding_(m)) return false;
+  if (kind === 'streaming-release') return true;
+  if (kind !== 'bandcamp-release') return false;
+  const month = isoDate_(date || new Date()).slice(0, 7);
+  const used = rows_('Bookings').filter(r => r.member_id === m.member_id && r.kind === 'bandcamp-release' && !/cancel|full|declined|refused/i.test(String(r.status)) &&
+    /member release/i.test(String(r.status)) && isoDate_(r.date).slice(0, 7) === month).length;
+  return used < (SETTINGS.memberFreeBandcampPerMonth || 0);
+}
+function checkMemberReleases_() {
+  const sh = sheet_('Bookings'), v = sh.getDataRange().getValues(), h = v[0], c = k => h.indexOf(k);
+  const soon = new Date(Date.now() + 3 * 86400000), today = new Date(); today.setHours(0, 0, 0, 0);
+  for (let i = 1; i < v.length; i++) {
+    if (!/^confirmed \(member release\)/i.test(String(v[i][c('status')]))) continue;
+    const d = v[i][c('date')] ? new Date(isoDate_(v[i][c('date')]) + 'T12:00:00') : null;
+    if (!d || d < today || d > soon) continue;
+    const m = findRow_('Members', 'member_id', v[i][c('member_id')]);
+    if (m && /^active/i.test(String(m.status))) continue;
+    sh.getRange(i + 1, c('status') + 1).setValue('membership ended – needs payment');
+    const title = v[i][c('title')], email = v[i][c('email')], fmt = String(v[i][c('format')] || '').toLowerCase(), price = PAYG_FEES_[fmt];
+    try { if (email) MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: 'Your release "' + title + '": membership needed',
+      body: 'Hi ' + (v[i][c('artist')] || '') + ',\n\nYour release "' + title + '" is due on ' + isoDate_(v[i][c('date')]) + '. Releases are included in RRR membership while it is active on the release day, and your membership has ended.\n\nTo keep the date, either rejoin here: ' + SETTINGS.siteUrl + 'index.html#join\nor reply to this email and we\'ll send a pay-as-you-go payment link' + (price ? ' (€' + price + ')' : '') + '.\n\nIf we don\'t hear from you, the release is cancelled.\n\nRetro Reverb Records' }); } catch (e) {}
+    notify_('⚠️ Member release, membership ended: ' + v[i][c('artist')] + ' – ' + title, 'Release day ' + isoDate_(v[i][c('date')]) + '. The artist was emailed to rejoin or pay pay-as-you-go' + (price ? ' (€' + price + ')' : '') + '. Hold the upload until one happens.\n' + sheetUrl_());
+  }
 }

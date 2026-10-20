@@ -3,7 +3,7 @@
     <div class="wrap">
       <p class="label">Services directory</p>
       <h1>Find a <em>pro</em> for your release</h1>
-      <p class="lede">Mixing, mastering, production and artwork from people who know synthwave, darksynth and retrowave. Browse, read reviews from real customers, and contact them directly.</p>
+      <p class="lede">Mixing, mastering, production, artwork and video from people who know synthwave, darksynth and retrowave. Browse, read reviews from real customers, and contact them directly.</p>
     </div>
   </div>
   <section class="side">
@@ -15,6 +15,7 @@
         <button type="button" class="chip" data-f="Mastering" aria-pressed="false">Mastering</button>
         <button type="button" class="chip" data-f="Production" aria-pressed="false">Production</button>
         <button type="button" class="chip" data-f="Artwork" aria-pressed="false">Artwork</button>
+        <button type="button" class="chip" data-f="Video &amp; visuals" aria-pressed="false">Video &amp; visuals</button>
       </div>
       <div id="sv-list" class="sv-list" aria-live="polite"><div class="empty panel"><b>Loading the directory…</b></div></div>
     </div>
@@ -48,7 +49,7 @@
   <section class="side" id="list-yours">
     <div class="wrap">
       <h2>List your service, free</h2>
-      <p class="small">For mixing and mastering engineers, producers and artwork designers. <b>Promoters, radio shows and playlists:</b> join <a href="submit.html#curators-join">RRR Submit</a> instead, where you're paid to review tracks.</p>
+      <p class="small">For mixing and mastering engineers, producers, artwork designers and video makers. <b>Promoters, radio shows and playlists:</b> join <a href="submit.html#curators-join">RRR Submit</a> instead, where you're paid to review tracks.</p>
       <p class="small">Listed providers are welcome in the RRR Discord with a <b>Service Provider</b> badge. Points, belts and member rewards come with <a href="index.html#membership">RRR membership</a>, if you'd like to join too.</p>
       <form class="panel booking-form" id="sp-form" novalidate>
         <div class="status" role="status" id="sp-status"></div>
@@ -59,6 +60,7 @@
             <label><input type="checkbox" name="svc" value="Mastering"> Mastering</label>
             <label><input type="checkbox" name="svc" value="Production"> Production</label>
             <label><input type="checkbox" name="svc" value="Artwork"> Artwork</label>
+            <label><input type="checkbox" name="svc" value="Video &amp; visuals"> Video &amp; visuals</label>
           </div>
           <div class="fields">
             <label for="sp-name">Business or artist name (shown)<input id="sp-name" name="name" type="text" maxlength="80" required></label>

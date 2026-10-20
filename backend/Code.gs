@@ -112,6 +112,7 @@ const TABS = {
   Settings:     ['key','value'],
   Codes:        ['code','action','label','points','valid_from','hours','created','note'],
   Notices:      ['created','type','member_id','name','text','action_text','action_url','public'],
+  Onboarding:   ['member_id','step','sent','email'],
   NotifSeen:    ['member_id','key','seen_at'],
   Log:          ['time','what','detail']
 };
@@ -277,8 +278,7 @@ function handleSignup_(p) {
     // Points go to the inviter once this new member has paid their first month (see referralPoints_)
     updateRow_('Members', 'member_id', id, { referred_by: inviter && inviter.member_id !== id ? inviter.member_id : ref });
   }
-  notify_('New RRR sign-up: ' + (p.artist || p.name) + ' (' + (p.type || 'fan') + ')',
-    'Member ID: ' + id + '\nEmail: ' + p.email + (isDemo_(p.email) ? '\nDEMO account: payment skipped, already active.' : '\nWaiting for PayPal payment.') + '\n\nMembers sheet: ' + sheetUrl_());
+  // (The old "New RRR sign-up" owner email was removed 20 Oct 2026: the ⚠️ New RRR member alert above replaces it.)
   return text_('ok');
 }
 
@@ -716,6 +716,7 @@ function daily() {
   processLinks_();
   if (typeof submitDaily_ === 'function') submitDaily_(); // RRR Submit (Submit.gs)
   try { announceListings_(); } catch (e) { log_('listing announcements failed', String(e)); }
+  try { onboardingEmails_(); } catch (e) { log_('onboarding emails failed', String(e)); }
   morningJobs_();
   expireUnpaidBookings_();
   paymentChase_();
@@ -2612,4 +2613,73 @@ function checkMemberReleases_() {
       body: 'Hi ' + (v[i][c('artist')] || '') + ',\n\nYour release "' + title + '" is due on ' + isoDate_(v[i][c('date')]) + '. Releases are included in RRR membership while it is active on the release day, and your membership has ended.\n\nTo keep the date, either rejoin here: ' + SETTINGS.siteUrl + 'index.html#join\nor reply to this email and we\'ll send a pay-as-you-go payment link' + (price ? ' (€' + price + ')' : '') + '.\n\nIf we don\'t hear from you, the release is cancelled.\n\nRetro Reverb Records' }); } catch (e) {}
     notify_('⚠️ Member release, membership ended: ' + v[i][c('artist')] + ' – ' + title, 'Release day ' + isoDate_(v[i][c('date')]) + '. The artist was emailed to rejoin or pay pay-as-you-go' + (price ? ' (€' + price + ')' : '') + '. Hold the upload until one happens.\n' + sheetUrl_());
   }
+}
+
+
+// ============================================================
+// WELCOME SERIES (owner request 20 Oct 2026)
+// Short follow-up emails after joining, sent by daily() to paid (active) members only.
+// Artists: day 2, 5, 9. Fans: day 2, 7. Each step is sent once (logged in the Onboarding tab).
+// Only members who joined on or after ONBOARD_FROM_ get them, and a step is skipped if it is more than 3 days late.
+// ============================================================
+const ONBOARD_FROM_ = '2026-10-20';
+function onboardingSteps_(isArtist) {
+  const u = SETTINGS.siteUrl, a = (href, t) => '<a href="' + href + '" style="color:#E0068A;font-weight:700">' + t + '</a>';
+  if (isArtist) return [
+    { day: 2, key: 'artist-release', subject: 'Your first release with RRR',
+      html: (dash, m) => '<p>Your membership includes your releases: <b>unlimited streaming releases</b> (Spotify, Apple Music and the rest) and <b>1 Bandcamp label release a month</b>. Your membership needs to be active on the release day.</p>' +
+        '<p><b>Pick your date and work backwards:</b></p><ul>' +
+        '<li>Streaming: send your files at least 3 weeks before release day.</li>' +
+        '<li>Bandcamp editorial: if you want Bandcamp\'s editors to consider it, plan for about 9 weeks.</li>' +
+        '<li>Spotify editorial: add RRR as a team member in Spotify for Artists and we can pitch it for you.</li></ul>' +
+        '<p>' + a(u + 'book.html', 'Book a release') + ' · ' + a(u + 'guide-release-synthwave.html', 'Read the release guide') + ' · ' + a(dash, 'Your dashboard') + '</p>' },
+    { day: 5, key: 'artist-promo', subject: 'Get your music heard',
+      html: (dash, m) => '<p>A few ways RRR helps you get heard:</p><ul>' +
+        '<li>' + a(u + 'book.html#social', 'Book your free social posts') + ': ' + SETTINGS.freePostsPerMonth + ' a month on the RRR accounts. Book at least ' + SETTINGS.socialLeadDays + ' days ahead.</li>' +
+        '<li>' + a(u + 'live.html', 'The Bandcamp Hour') + ': our live radio show every Sunday, 16:00–18:00 Italy time (15:00–17:00 UK). Members\' music gets played.</li>' +
+        '<li>' + a(u + 'submit.html', 'RRR Submit') + ': send a track to synth radio shows, playlists and blogs, with an honest written answer from each.</li>' +
+        '<li>' + a(u + 'cards.html#claim', 'Claim your Synth Stars card') + ': free, one of a kind, designed for you.</li></ul>' +
+        '<p>' + a(u + 'guide-radio-playlists.html', 'Guide: getting on radio and playlists') + '</p>' },
+    { day: 9, key: 'artist-community', subject: 'Meet the RRR community',
+      html: (dash, m) => '<p>RRR works best when artists back each other. Here\'s how to get involved:</p><ul>' +
+        '<li>' + a(SETTINGS.discordInvite, 'Join the RRR Discord') + ' and say hi.</li>' +
+        '<li>' + a(u + 'levels.html', 'Earn points and belts') + ' by supporting other artists: buying, sharing, adding to playlists, helping out.</li>' +
+        '<li>' + a(u + 'services.html', 'Find a pro') + ' in the Services directory for mixing, mastering, artwork or video.</li>' +
+        '<li>Invite artist friends: ask them to put your artist name or member ID (' + m.member_id + ') in "Who invited you?" when they sign up. You earn points once they\'ve paid their first month.</li></ul>' +
+        '<p>' + a(dash, 'Your dashboard') + '</p>' }
+  ];
+  return [
+    { day: 2, key: 'fan-points', subject: 'Earn points and belts at RRR',
+      html: (dash, m) => '<p>As a fan member you can ' + a(u + 'levels.html', 'earn points and belts') + ' for backing the artists: buying their music, sharing, adding them to playlists.</p>' +
+        '<p>Tune in to ' + a(u + 'live.html', 'The Bandcamp Hour') + ' every Sunday, 16:00–18:00 Italy time (15:00–17:00 UK), and catch the code word on air for bonus points.</p>' +
+        '<p>' + a(dash, 'Your dashboard') + '</p>' },
+    { day: 7, key: 'fan-community', subject: 'Discover the RRR artists',
+      html: (dash, m) => '<ul><li>' + a(u + 'artists.html', 'Meet the RRR artists') + ' and find your next favourite.</li>' +
+        '<li>' + a('https://retroreverbrecords.bandcamp.com', 'Follow the label on Bandcamp') + ' so you never miss a release.</li>' +
+        '<li>' + a(SETTINGS.discordInvite, 'Join the RRR Discord') + ' and chat with the artists.</li>' +
+        '<li>Invite friends: ask them to put your member ID (' + m.member_id + ') in "Who invited you?" when they sign up. You earn points once they\'ve paid.</li></ul>' +
+        '<p>' + a(dash, 'Your dashboard') + '</p>' }
+  ];
+}
+function onboardingEmails_() {
+  const from = new Date(ONBOARD_FROM_ + 'T00:00:00').getTime(), now = Date.now(), day = 86400000;
+  const done = new Set(rows_('Onboarding').map(r => r.member_id + '|' + r.step));
+  rows_('Members').forEach(m => {
+    if (!m.member_id || !m.email || isDemo_(m.email) || !/^active/i.test(String(m.status))) return;
+    if (standing_(m) === 'removed' || /admin|moderator/i.test(String(m.role || ''))) return;
+    const created = new Date(m.created).getTime();
+    if (!created || created < from) return;
+    const age = (now - created) / day, isArtist = m.type === 'artist';
+    onboardingSteps_(isArtist).forEach(st => {
+      if (age < st.day || age > st.day + 3 || done.has(m.member_id + '|' + st.key)) return;
+      const dash = SETTINGS.siteUrl + 'member.html?id=' + m.member_id;
+      try {
+        MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: st.subject,
+          htmlBody: '<div style="font:15px/1.55 Arial,sans-serif;color:#222;max-width:560px"><p>Hi ' + (m.artist || m.name || '') + ',</p>' + st.html(dash, m) +
+            '<p>Questions? Just reply to this email.</p><p>Retro Reverb Records<br><span style="color:#888">Welcome to the family</span></p></div>' });
+        append_('Onboarding', { member_id: m.member_id, step: st.key, sent: new Date(), email: m.email });
+        done.add(m.member_id + '|' + st.key);
+      } catch (e) { log_('onboarding email failed', m.member_id + ' ' + st.key + ' ' + String(e)); }
+    });
+  });
 }

@@ -952,3 +952,6 @@ label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
 .guide-body ul,.guide-body ol{margin:0 0 14px;padding-left:22px}
 .guide-body li{margin:6px 0}
 .guide-cta{margin-top:36px}
+
+.photo-up img{width:72px;height:72px;border-radius:50%;object-fit:cover;margin-top:8px;border:2px solid var(--cyan,#3FD0FF);display:block}
+.photo-up input[type=file]{padding:8px 0}

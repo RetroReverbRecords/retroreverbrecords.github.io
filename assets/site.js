@@ -342,6 +342,21 @@ window.rrrSend = function(url, data, onProblem){
   })();
   (function(){ const cb = $('#f-statspro'), ln = $('.statslink'); if (cb && ln) cb.addEventListener('change', () => { ln.hidden = !cb.checked; }); })();
   if (signup) {
+    // Optional profile picture: shrunk in the browser to a 400px square JPEG so it fits in the sign-up message
+    const ph = $('#f-photo'), phData = $('#f-photo-data'), phPrev = $('#f-photo-prev');
+    if (ph && phData) ph.addEventListener('change', () => {
+      const f = ph.files && ph.files[0]; phData.value = ''; if (phPrev) phPrev.hidden = true;
+      if (!f || !/^image\//.test(f.type)) return;
+      const img = new Image(), url = URL.createObjectURL(f);
+      img.onload = () => {
+        const s = Math.min(img.width, img.height), c = document.createElement('canvas'); c.width = c.height = 400;
+        c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 400, 400);
+        let q = 0.85, d = c.toDataURL('image/jpeg', q);
+        while (d.length > 45000 && q > 0.4) { q -= 0.1; d = c.toDataURL('image/jpeg', q); }
+        phData.value = d; if (phPrev) { phPrev.src = d; phPrev.hidden = false; } URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    });
     const open = !!(signupOn && endpoint);
     $('#signup-fields').disabled = !open;
     setStatus($('#signup-status'), open, '<strong>Sign-up is open.</strong> Fill in the form, then set up your monthly payment.',

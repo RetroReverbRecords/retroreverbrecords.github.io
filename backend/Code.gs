@@ -83,7 +83,7 @@ const TABS = {
   Shows:        ['show_id','created','status','show_name','promoter','contact_name','email','member_id','repeat','day','date','start','length_min','timezone','stream_url','website','genres','description','clash','notes'],
   Giveaway:     ['received','giveaway','name','email','username','platform','newsletter','status'],
   RefundRequests: ['received','request_id','name','email','member_id','payment_for','payment_date','amount','paypal_txn','reason','description','status'],
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release','instagram','photo'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
@@ -236,6 +236,7 @@ function handleSignup_(p) {
     member_id: id, created: new Date(), type: p.type || 'fan', name: p.name, artist: p.artist,
     email: p.email, country: p.country, address_line1: p.address_line1, address_line2: p.address_line2,
     city: p.city, postcode: p.postcode, bandcamp: p.bandcamp, status: isDemo_(p.email) ? 'active (demo)' : 'pending payment',
+    instagram: cleanHandle_(p.instagram),
     plan: p.type === 'artist' ? (String(p.stats_pro) === 'yes' ? 'Artist + Stats Pro' : 'Artist') : 'Fan', points: 0, rank: 'White belt', public: 'yes',
     artist_type: p.type === 'artist' ? 'Member' : '', bandcamp_linked: p.type === 'artist' ? 'no' : '',
     stats_pro: p.type === 'artist' && String(p.stats_pro) === 'yes' ? 'yes' : '', stats_link: String(p.stats_link || '').slice(0, 300),
@@ -243,6 +244,8 @@ function handleSignup_(p) {
     billing: p.type === 'artist' && ['yearly', '3 months', '6 months', '9 months'].indexOf(p.billing) >= 0 ? p.billing : 'monthly',
     paypal_payout: p.type === 'artist' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(p.payout_paypal || '').trim()) ? String(p.payout_paypal).trim().toLowerCase() : ''
   });
+  let photoUrl = '';
+  try { photoUrl = saveMemberPhoto_(id, p.photo_data); if (photoUrl) updateRow_('Members', 'member_id', id, { photo: photoUrl }); } catch (e) { log_('member photo failed', String(e)); }
   if (p.type === 'artist' && p.founder === 'yes') {
     if (isFounderEmail_(p.email)) { updateRow_('Members', 'member_id', id, { stats_pro: 'yes', plan: 'Founding Artist' + (p.billing === 'yearly' ? ' (yearly)' : /months/.test(String(p.billing)) ? ' (every ' + p.billing + ')' : '') }); notify_('🌟 Founding Artist joined: ' + (p.artist || p.name), id + ' (' + (p.billing === 'yearly' ? 'yearly' : 'monthly') + ', first month free). Stats are included: find them on Songstats and put their artist ID in Members → songstats_artist_id.\n' + sheetUrl_()); }
     else notify_('Founder link used by someone not on the founder list: ' + (p.artist || p.name), (p.email || '') + ' signed up through a founder link but isn\'t in Settings → founder_emails. If they are an original RRR artist, add their email there and set Members → founder to yes; otherwise set it to no. Their first PayPal payment is free for a month either way.\n' + sheetUrl_());
@@ -255,6 +258,7 @@ function handleSignup_(p) {
       'Member ID: ' + id + '\nName: ' + (p.name || '-') + (p.artist ? '\nArtist: ' + p.artist : '') + '\nType: ' + (p.type === 'artist' ? 'Artist' : 'Fan') +
       '\nEmail: ' + (p.email || '-') + '\nCountry: ' + (p.country || '-') + (p.bandcamp ? '\nBandcamp: ' + p.bandcamp : '') +
       '\nStatus: waiting for first payment' + (p.referred_by ? '\nInvited by: ' + p.referred_by : '') +
+      '\nInstagram: ' + (cleanHandle_(p.instagram) || '-') + '\nPhoto/logo: ' + (photoUrl || 'none sent (use their name in the welcome post)') +
       '\n\nDashboard: ' + SETTINGS.siteUrl + 'member.html?id=' + id + '\n' + sheetUrl_());
   } catch (e) { log_('new member alert failed', String(e)); }
 
@@ -1067,6 +1071,7 @@ function referralPoints_(newId) {
 function notice_(type, memberId, text, actionText, actionUrl) {
   if (type === 'joined' && rows_('Notices').some(n => n.type === 'joined' && n.member_id === memberId)) return;
   append_('Notices', { created: new Date(), type: type, member_id: memberId || '', name: '', text: String(text).slice(0, 200), action_text: actionText || '', action_url: actionUrl || '', public: 'yes' });
+  try { discordNotice_(type, memberId, text, actionText, actionUrl); } catch (e) { log_('discord post failed', String(e)); }
 }
 // New promoters (RRR Submit curators) and Services providers go on the Notice Board once approved (owner request 17 Oct 2026)
 function announceListings_() {
@@ -1730,6 +1735,7 @@ function onOpen() {
     .addItem('Process AI disputes now', 'processDisputesNow')
     .addItem('Confirm Bandcamp links now', 'processLinksNow')
     .addItem('Make a member an Administrator or Ambassador', 'makeAdmin')
+    .addItem('Connect Discord (paste the webhook link)', 'setDiscordWebhook')
     .addItem('Curator payouts list (RRR Submit)', 'curatorPayouts')
     .addSeparator()
     .addItem('🔴 Bandcamp Hour: I\'m live now', 'goLiveNow')
@@ -2682,4 +2688,69 @@ function onboardingEmails_() {
       } catch (e) { log_('onboarding email failed', m.member_id + ' ' + st.key + ' ' + String(e)); }
     });
   });
+}
+
+
+// ============================================================
+// MEMBER PHOTOS + INSTAGRAM (owner request 21 Oct 2026)
+// Optional at sign-up: a profile picture or logo (resized to 400px in the browser) and an Instagram handle.
+// Used for the welcome post on our socials, the Discord welcome and the artist page.
+// Saved in the Drive folder "RRR member photos", viewable by link.
+// ============================================================
+function cleanHandle_(h) {
+  const v = String(h || '').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/[\/?#].*$/, '').replace(/^@+/, '');
+  return /^[A-Za-z0-9._]{1,30}$/.test(v) ? '@' + v : '';
+}
+function saveMemberPhoto_(id, dataUrl) {
+  const m = String(dataUrl || '').match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+\/=]+)$/);
+  if (!m) return '';
+  const bytes = Utilities.base64Decode(m[2]);
+  if (bytes.length > 400000) return '';
+  const it = DriveApp.getFoldersByName('RRR member photos');
+  const folder = it.hasNext() ? it.next() : DriveApp.createFolder('RRR member photos');
+  const old = folder.getFilesByName(id + '.' + (m[1] === 'jpeg' ? 'jpg' : m[1])); while (old.hasNext()) old.next().setTrashed(true);
+  const file = folder.createFile(Utilities.newBlob(bytes, 'image/' + m[1], id + '.' + (m[1] === 'jpeg' ? 'jpg' : m[1])));
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return 'https://drive.google.com/uc?export=view&id=' + file.getId();
+}
+
+// ============================================================
+// DISCORD: every Notice Board post (new members, releases, belts, new promoters/providers/shows)
+// is also posted to a Discord channel through a webhook (owner request 21 Oct 2026).
+// Setup: Discord channel → Edit channel → Integrations → Webhooks → New webhook → Copy URL,
+// then RRR menu → Connect Discord. The link is kept in Script Properties, never in the code.
+// ============================================================
+function setDiscordWebhook() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('Connect Discord', 'Paste the webhook link (starts with https://discord.com/api/webhooks/). Leave empty to disconnect.', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const v = String(r.getResponseText() || '').trim();
+  const props = PropertiesService.getScriptProperties();
+  if (!v) { props.deleteProperty('DISCORD_WEBHOOK'); ui.alert('Discord disconnected.'); return; }
+  if (!/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(v)) { ui.alert('That doesn\'t look like a Discord webhook link.'); return; }
+  props.setProperty('DISCORD_WEBHOOK', v);
+  const ok = discordSend_({ content: '👋 Retro Reverb Records is now connected. New members and Notice Board news will appear here.' });
+  ui.alert(ok ? 'Connected ✓ A test message was posted in Discord.' : 'Saved, but the test message failed. Check the link.');
+}
+function discordSend_(payload) {
+  const hook = PropertiesService.getScriptProperties().getProperty('DISCORD_WEBHOOK');
+  if (!hook) return false;
+  const res = UrlFetchApp.fetch(hook, { method: 'post', contentType: 'application/json', payload: JSON.stringify(Object.assign({ username: 'Retro Reverb Records', allowed_mentions: { parse: [] } }, payload)), muteHttpExceptions: true });
+  return res.getResponseCode() < 300;
+}
+function discordNotice_(type, memberId, text, actionText, actionUrl) {
+  const u = SETTINGS.siteUrl;
+  const link = actionUrl ? (/^https?:/.test(actionUrl) ? actionUrl : u + actionUrl) : '';
+  if (type === 'joined') {
+    const m = findRow_('Members', 'member_id', memberId) || {};
+    const who = m.artist || m.name || 'a new member';
+    const embed = { title: '🎉 Welcome to the family, ' + who + '!', color: 0xFF2FA8,
+      description: (m.type === 'artist' ? 'Our latest artist member' : 'Our latest fan member') + (m.country ? ' from ' + m.country : '') + '. Say hi and make them feel at home! 💜' +
+        (m.instagram ? '\nInstagram: ' + m.instagram : '') + (link ? '\n' + (actionText || 'Check them out') + ': ' + link : ''),
+      footer: { text: 'Retro Reverb Records · Welcome to the family' } };
+    if (m.photo) embed.thumbnail = { url: m.photo };
+    discordSend_({ embeds: [embed] });
+    return;
+  }
+  discordSend_({ content: String(text).slice(0, 300) + (link ? '\n' + (actionText ? actionText + ': ' : '') + link : '') });
 }

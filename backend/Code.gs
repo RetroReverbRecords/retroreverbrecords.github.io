@@ -948,7 +948,21 @@ function paymentAlert_(p, memberId) {
     '\n\nStatus: ' + (st || t) + (p.txn_id ? '\nPayPal transaction: ' + p.txn_id : '') + '\n\nPayments sheet: ' + sheetUrl_();
   notify_(subject, body);
 }
-function notify_(subject, body) { MailApp.sendEmail(SETTINGS.ownerEmail, subject, body); }
+// Emails to the owner: "👉 Action:" when something needs you, "RRR ▸" when it's just for your information.
+// They all get the Gmail label "RRR Website" (labelRrrMail_ runs every 5 minutes with checkLive).
+const ACTION_RX_ = /approve|to check|spot-check|link bandcamp now|invite to send|bulletin ready|withdrawal|dispute|ai flag|underpaid|unknown booking|payouts failed|slot request|clash|card claim|listening party|selected release submitted|refused|week full|date full|checklist|new rrr member|pay-as-you-go release|member release|payout email changed|blocked person|founder link used|services directory|new review/i;
+function notify_(subject, body) {
+  subject = String(subject || '').replace(/^\s*(👉 Action:|RRR ▸)\s*/, '');
+  const tag = ACTION_RX_.test(subject) ? '👉 Action: ' : 'RRR ▸ ';
+  MailApp.sendEmail(SETTINGS.ownerEmail, tag + subject.replace(/^RRR\s+(?!Live|Submit|Operations)/, ''), body);
+}
+function labelRrrMail_() {
+  try {
+    const label = GmailApp.getUserLabelByName('RRR Website') || GmailApp.createLabel('RRR Website');
+    GmailApp.search('newer_than:2d -label:"RRR Website" (subject:"👉 Action:" OR subject:"RRR ▸" OR subject:"Listen & answer" OR subject:"New track to review" OR subject:"RRR daily digest")', 0, 50)
+      .forEach(th => th.addLabel(label));
+  } catch (e) { /* needs Gmail permission: run setup once and click Allow */ }
+}
 function log_(what, detail) { try { sheet_('Log').appendRow([new Date(), what, detail]); } catch (e) {} }
 function text_(s) { return ContentService.createTextOutput(s); }
 
@@ -1469,7 +1483,7 @@ function handleContact_(p) {
   append_('Contact', { received: now, name: String(p.name || '').slice(0, 100), email: email, member_id: String(p.member_id || '').toUpperCase().slice(0, 20),
     topic: String(p.topic || '').slice(0, 60), message: msg, status: 'new' });
   try { MailApp.sendEmail({ to: SETTINGS.ownerEmail, replyTo: email || SETTINGS.ownerEmail,
-    subject: 'RRR contact: ' + (p.topic || 'message') + ' – ' + (p.name || email),
+    subject: '👉 Action: Contact form – ' + (p.topic || 'message') + ' – ' + (p.name || email),
     body: msg + '\n\nFrom: ' + (p.name || '-') + ' <' + email + '>\nMember ID: ' + (p.member_id || '-') + '\n\nJust press Reply to answer them.\n' + sheetUrl_() }); } catch (e) { log_('contact notify failed', String(e)); }
   if (email) try { MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: 'We got your message',
     body: 'Hi ' + (p.name || '') + ',\n\nThanks for getting in touch. We reply within 7 days, usually much sooner.\n\nYour message:\n' + msg + '\n\nRetro Reverb Records' }); } catch (e) { log_('contact ack failed', String(e)); }
@@ -1482,7 +1496,7 @@ function handleRefundRequest_(p) {
     payment_for: String(p.payment_for || '').slice(0, 60), payment_date: String(p.payment_date || '').slice(0, 20), amount: String(p.amount || '').slice(0, 12),
     paypal_txn: String(p.paypal_txn || '').slice(0, 40), reason: String(p.reason || '').slice(0, 80), description: String(p.description || '').slice(0, 3000), status: 'new' };
   append_('RefundRequests', row);
-  try { MailApp.sendEmail({ to: SETTINGS.ownerEmail, replyTo: email || SETTINGS.ownerEmail, subject: 'REFUND REQUEST ' + id + ': €' + row.amount + ' – ' + row.payment_for,
+  try { MailApp.sendEmail({ to: SETTINGS.ownerEmail, replyTo: email || SETTINGS.ownerEmail, subject: '👉 Action: Refund request ' + id + ': €' + row.amount + ' – ' + row.payment_for,
     body: 'Reason: ' + row.reason + '\nPayment: ' + row.payment_for + ', €' + row.amount + ' on ' + row.payment_date + (row.paypal_txn ? ' (PayPal ' + row.paypal_txn + ')' : '') +
       '\nFrom: ' + row.name + ' <' + email + '>, member ' + (row.member_id || '-') + '\n\n' + row.description +
       '\n\nReply within 7 days. If agreed, refund in PayPal within 14 days and set status in the RefundRequests tab.\n' + sheetUrl_() }); } catch (e) { log_('refund notify failed', String(e)); }
@@ -2169,6 +2183,7 @@ function liveState_() {
 }
 function saveLive_(st) { PropertiesService.getScriptProperties().setProperty('LIVE_STATE', JSON.stringify(st)); }
 function checkLive() {
+  labelRrrMail_();
   let old = {}; try { old = JSON.parse(PropertiesService.getScriptProperties().getProperty('LIVE_STATE') || '{}'); } catch (e) {}
   if (old.manual && old.live && Date.now() - new Date(old.since).getTime() < 4 * 3600000) return; // you said you're live: trust that
   let live = false, videoId = '', title = '';
@@ -2320,7 +2335,7 @@ function payoutReportEmail_(period, rows, token, rates, unmatched) {
     (est ? ' <b>(est.)</b> = no PayPal fee data from Bandcamp sales yet, so the fee is an estimate (SETTINGS.payouts.paypalFeeEstimate) – check one Bandcamp PayPal receipt.' : '') +
     (unmatched ? '<br>' + unmatched + ' sale(s) weren\'t matched to a member and are not paid out (label releases, old-deal artists or unknown names – see the Sales tab).' : '') +
     '<br>Details: ' + sheetUrl_() + ' (Payouts tab)</p></div>';
-  MailApp.sendEmail({ to: SETTINGS.ownerEmail, subject: '💸 RRR payouts ready to approve – ' + periodName_(period) + (ready.length ? ' (' + ready.length + (ready.length === 1 ? ' artist)' : ' artists)') : ''), htmlBody: html,
+  MailApp.sendEmail({ to: SETTINGS.ownerEmail, subject: '👉 Action: 💸 Payouts ready to approve – ' + periodName_(period) + (ready.length ? ' (' + ready.length + (ready.length === 1 ? ' artist)' : ' artists)') : ''), htmlBody: html,
     body: 'Bandcamp payouts for ' + periodName_(period) + '. Open in HTML to see the table, or the Payouts tab: ' + sheetUrl_() + (ready.length ? '\nApprove: ' + url : '') });
 }
 

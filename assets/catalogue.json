@@ -1,7 +1,13 @@
 {
- "updated": "2026-10-01",
+ "updated": "2026-10-21",
  "source": "https://retroreverbrecords.bandcamp.com",
  "releases": [
+  {
+   "title": "Hyper Terrestrial",
+   "artist": "𝙀𝙙𝙚𝙣 𝙁𝙪𝙩𝙪𝙧𝙚",
+   "url": "https://edenfuture.bandcamp.com/album/hyper-terrestrial",
+   "image": "https://f4.bcbits.com/img/a3965837366_16.jpg"
+  },
   {
    "title": "LLUVA (Álbum)",
    "artist": "LLUVA",
@@ -9,10 +15,10 @@
    "image": "https://f4.bcbits.com/img/a0031697369_16.jpg"
   },
   {
-   "title": "Tears",
+   "title": "Two Roads, One Fire ( Feat Elena Canti)",
    "artist": "Ettore Bandel",
-   "url": "https://ettorebandel.bandcamp.com/album/tears",
-   "image": "https://f4.bcbits.com/img/a3407361273_16.jpg"
+   "url": "https://ettorebandel.bandcamp.com/album/two-roads-one-fire-feat-elena-canti",
+   "image": "https://f4.bcbits.com/img/a1564428725_16.jpg"
   },
   {
    "title": "Maldigo tu nombre",
@@ -139,12 +145,6 @@
    "artist": "Vihana",
    "url": "https://vihanamakesmusic.bandcamp.com/track/fool",
    "image": "https://f4.bcbits.com/img/a3908140519_16.jpg"
-  },
-  {
-   "title": "Wave Shred",
-   "artist": "𝙀𝙙𝙚𝙣 𝙁𝙪𝙩𝙪𝙧𝙚",
-   "url": "https://edenfuture.bandcamp.com/track/wave-shred",
-   "image": "https://f4.bcbits.com/img/a1180281350_16.jpg"
   }
  ],
  "merch": [

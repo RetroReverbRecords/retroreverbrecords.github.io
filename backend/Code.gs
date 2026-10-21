@@ -275,12 +275,14 @@ function handleSignup_(p) {
   if (isDemo_(p.email)) award_(id, 'joined'); // real members get their joining points when the first payment arrives
   // Owner alert for every new sign-up (owner request 17 Oct 2026). Payment alerts still come separately.
   else try {
-    notify_('⚠️ New RRR member: ' + (p.artist || p.name || '(no name)') + ' (' + (p.type === 'artist' ? 'artist' : 'fan') + ')',
-      'Member ID: ' + id + '\nName: ' + (p.name || '-') + (p.artist ? '\nArtist: ' + p.artist : '') + '\nType: ' + (p.type === 'artist' ? 'Artist' : 'Fan') +
-      '\nEmail: ' + (p.email || '-') + '\nCountry: ' + (p.country || '-') + (p.bandcamp ? '\nBandcamp: ' + p.bandcamp : '') +
-      '\nStatus: waiting for first payment' + (p.referred_by ? '\nInvited by: ' + p.referred_by : '') +
-      '\nInstagram: ' + (cleanHandle_(p.instagram) || '-') + '\nPhoto/logo: ' + (photoUrl || 'none sent (use their name in the welcome post)') +
-      '\n\nDashboard: ' + SETTINGS.siteUrl + 'member.html?id=' + id + '\n' + sheetUrl_());
+    const who = p.artist || p.name || '(no name)', isA = p.type === 'artist';
+    notify_('👉 Action: New ' + (isA ? 'artist' : 'fan') + ' – ' + who + (p.country ? ' (' + p.country + ')' : '') + ' joined',
+      'WHAT TO DO: nothing yet. When they pay, you get a payment email and Claude makes their welcome video.\n\n' +
+      'Who: ' + who + (p.artist && p.name ? ' (' + p.name + ')' : '') + '\nEmail: ' + (p.email || '-') +
+      '\nInstagram: ' + (cleanHandle_(p.instagram) ? '@' + cleanHandle_(p.instagram) : 'not given') +
+      '\nPhoto/logo: ' + (photoUrl ? 'yes – ' + photoUrl : 'not sent (the welcome video uses their name)') +
+      (p.bandcamp ? '\nBandcamp: ' + p.bandcamp : '') + (p.referred_by ? '\nInvited by: ' + p.referred_by : '') +
+      '\n\nOpen the sheet: ' + sheetUrl_());
   } catch (e) { log_('new member alert failed', String(e)); }
 
   // Signed agreement: stored, and a copy emailed to the member
@@ -341,7 +343,7 @@ function welcomeEmail_(p, id, version, isArtist) {
   steps.push('<b><a href="' + dash + '" style="color:#E0068A">Open your member dashboard</a></b>: your belt, points and releases. Save it to your phone\'s home screen.');
   if (isArtist) {
     steps.push('<b><a href="' + u + 'series.html#linking" style="color:#E0068A">Link your Bandcamp to RRR</a></b>: needed for Bandcamp releases, and it gets you free Bandcamp VIP.');
-    steps.push('<b><a href="' + u + 'book.html" style="color:#E0068A">Book your first release</a></b>: pick a free date, from €2 a single.');
+    steps.push('<b><a href="' + u + 'book.html" style="color:#E0068A">Book your first release</a></b>: 1 Bandcamp release a month is included in your membership. Pick a free date.');
   } else {
     steps.push('<b><a href="' + u + 'cards.html" style="color:#E0068A">Start collecting Synth Stars cards</a></b> and support the artists you love.');
   }
@@ -412,9 +414,10 @@ function handleBooking_(kind, p) {
     notify_('Booking date full: ' + kind + ' – ' + (p.artist || ''), date + ' was already full. Reply with the next free day: ' + nextFreeDate_(kind, isoDate_(date)) + '\n' + sheetUrl_()); return text_('ok'); }
   if (date && !full) eventId = addToCalendar_(kind, p, date);
   if (freeRel && !full) updateRow_('Members', 'member_id', memberId, { free_release: Number(member.free_release) - 1 });
+  const reviewToken = kind === 'social-post' ? Utilities.getUuid().replace(/-/g, '') : '';
   append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
     title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : kind === 'social-post' ? 'awaiting review' : memberFree && !full ? 'confirmed (member release)' : freeRel && !full ? 'confirmed (free release – Black Belt)' : 'requested', calendar_event_id: eventId,
-    booking_id: kind === 'social-post' ? socialId : '', review_token: kind === 'social-post' ? Utilities.getUuid().replace(/-/g, '') : '' });
+    booking_id: kind === 'social-post' ? socialId : '', review_token: reviewToken });
   if (kind === 'social-post' && p.email) try {
     MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Social post booked: we\'re checking it (' + socialId + ')',
       body: 'Thanks! Your social post for ' + isoDate_(date) + ' is booked.\n\nWhat happens next:\n1. We check your link and artwork against the RRR Code of Conduct.\n2. You get an email when it\'s approved, with the time it goes live.\n3. It posts automatically on the day.\n\nYou can follow it on your dashboard: ' + SETTINGS.siteUrl + 'member.html\n\nBooking ' + socialId + '\n\nRetro Reverb Records' });
@@ -427,8 +430,18 @@ function handleBooking_(kind, p) {
     if (kind === 'social-post') { award_(memberId, 'firstPost'); addPoints_(memberId, POINTS.postBooked, 'Social post booked', 'postBooked'); append_('Posts', { member_id: memberId, platform: [].concat(p.platform || []).join(', '), date: date, link: p.link, status: 'awaiting review', caption: String(p.caption || '').slice(0, 2000), booking_id: socialId, assets: p.assets || '' }); }
     if (kind === 'youtube-upload') award_(memberId, 'firstVideo');
   }
-  notify_('New RRR booking: ' + kind + ' – ' + (p.artist || '') + ' – ' + title,
-    'Date: ' + date + '\nMember: ' + (memberId || 'not matched to a member – check email') + '\n\nBookings sheet: ' + sheetUrl_());
+  const day = date ? Utilities.formatDate(new Date(isoDate_(date) + 'T12:00:00'), Session.getScriptTimeZone(), 'EEE d MMM') : '(no date)';
+  if (kind === 'social-post') {
+    const rv = ScriptApp.getService().getUrl() + '?review=' + socialId + '&t=' + reviewToken + '&d=';
+    notify_('👉 Action: Check ' + (p.artist || 'a member') + '\'s post for ' + day,
+      'WHAT TO DO: look at the picture/video and the caption, then tap Approve or Refuse.\n\nPicture/video: ' + (p.assets || '-') + '\nLink to promote: ' + (p.link || '-') +
+      '\nWhere: ' + [].concat(p.platform || []).join(', ') + '\nCaption idea: ' + (p.caption || '-') +
+      '\n\n✅ APPROVE: ' + rv + 'yes\n❌ REFUSE: ' + rv + 'no\n\nSheet: ' + sheetUrl_());
+  } else {
+    const label = { 'bandcamp-release': '💿 Bandcamp release', 'streaming-release': '🎧 streaming release', 'youtube-upload': '📺 YouTube premiere', 'merch-listing': '👕 merch listing' }[kind] || kind;
+    notify_('RRR ▸ ' + (p.artist || 'Someone') + ' booked a ' + label + ' – "' + title + '", ' + day,
+      'Nothing to do now. If files are late, the reminders tell you.' + (memberId ? '' : '\n\n⚠️ This email address isn\'t a member – check who it is.') + '\n\nSheet: ' + sheetUrl_());
+  }
   return text_('ok');
 }
 
@@ -825,7 +838,10 @@ function digest_() {
   const deadlines = getCalendar_().getEvents(new Date(), soon).filter(ev => /^DEADLINE/.test(ev.getTitle())).map(ev => '• ' + ev.getAllDayStartDate().toDateString() + ' – ' + ev.getTitle());
   const active = rows_('Members').filter(r => /active/.test(r.status) && !/demo/.test(r.status)).length;
   if (!newM.length && !pays.length && !books.length && !deadlines.length) return;
+  const todo = rows_('Bookings').filter(r => /awaiting review/i.test(String(r.status))).map(r => '• Check ' + r.artist + '\'s social post (' + isoDate_(r.date) + ')');
+  try { if (typeof rows_ === 'function') rows_('Reviews').filter(r => r.status === 'open' && r.curator_id === 'CUR-001').forEach(r => todo.push('• Listen & answer: ' + r.artist + ' – ' + r.title + ' (by ' + isoDate_(r.due) + ')')); } catch (e) {}
   notify_('RRR daily digest – ' + newM.length + ' new members, ' + pays.length + ' payments, ' + books.length + ' bookings',
+    '👉 TO DO TODAY:\n' + (todo.join('\n') || 'Nothing waiting for you 🎉') + '\n\n' +
     'Active members: ' + active +
     '\n\nNew members:\n' + (newM.map(r => '• ' + (r.artist || r.name) + ' (' + r.type + ', ' + r.status + ')').join('\n') || '–') +
     '\n\nMoney in: €' + total.toFixed(2) + '\n' + (pays.map(r => '• €' + Number(r.amount).toFixed(2) + ' – ' + (r.item_name || r.txn_type) + ' – ' + (r.member_id || r.payer_email)).join('\n') || '–') +
@@ -940,9 +956,10 @@ function paymentAlert_(p, memberId) {
   let kind = { subscr_signup: 'New membership', subscr_payment: 'Membership payment', subscr_cancel: 'Membership cancelled', subscr_eot: 'Membership ended', subscr_failed: 'Membership payment FAILED' }[t];
   if (!kind) kind = bandcamp ? 'Bandcamp sale (your share)' : (t === 'cart' ? 'Shop order' : t === 'web_accept' ? 'Website payment' : t === 'send_money' ? 'Money received' : 'PayPal ' + t);
   const bad = /refunded|reversed|denied|failed/i.test(st) || /failed|cancel|eot/.test(t);
-  const subject = (bad ? '⚠️ ' : '💰 ') + 'RRR ' + kind + ': ' + (amt ? money + ' – ' : '') + (items[0] || who) + (bad && st ? ' (' + st + ')' : '');
+  const what = String(items[0] || kind).replace(/^RRR\s+/, '').replace(/ Membership/, ' membership');
+  const subject = bad ? '👉 Action: ⚠️ ' + kind + ' – ' + who + (st ? ' (' + st + ')' : '') : 'RRR ▸ 💰 ' + (amt ? money + ' from ' : '') + who + ' – ' + what;
   const addr = [p.address_name, p.address_street, p.address_city, p.address_zip, p.address_country].filter(Boolean).join(', ');
-  const body = kind + (amt ? '\nAmount: ' + money + (p.mc_fee ? ' (PayPal fee ' + p.mc_fee + ')' : '') : '') + (p.mc_shipping && Number(p.mc_shipping) ? '\nShipping paid: ' + p.mc_shipping + ' ' + cur : '') +
+  const body = (bad ? 'WHAT TO DO: check it in PayPal. The member\'s account may lock if it isn\'t sorted.\n\n' : 'Nothing to do.' + (/stats pro/i.test(items.join(' ')) ? ' (Stats Pro: Claude adds their Songstats ID in the 8am brief.)' : '') + '\n\n') + kind + (amt ? '\nAmount: ' + money + (p.mc_fee ? ' (PayPal fee ' + p.mc_fee + ')' : '') : '') + (p.mc_shipping && Number(p.mc_shipping) ? '\nShipping paid: ' + p.mc_shipping + ' ' + cur : '') +
     '\nFrom: ' + who + (p.payer_email ? ' <' + p.payer_email + '>' : '') + (memberId ? '\nMember ID: ' + memberId : '') +
     (items.length ? '\n\nItems:\n- ' + items.join('\n- ') : '') + (addr ? '\n\nShip to: ' + addr : '') + (p.memo ? '\n\nNote from buyer: ' + p.memo : '') +
     '\n\nStatus: ' + (st || t) + (p.txn_id ? '\nPayPal transaction: ' + p.txn_id : '') + '\n\nPayments sheet: ' + sheetUrl_();
@@ -952,8 +969,10 @@ function paymentAlert_(p, memberId) {
 // They all get the Gmail label "RRR Website" (labelRrrMail_ runs every 5 minutes with checkLive).
 const ACTION_RX_ = /approve|to check|spot-check|link bandcamp now|invite to send|bulletin ready|withdrawal|dispute|ai flag|underpaid|unknown booking|payouts failed|slot request|clash|card claim|listening party|selected release submitted|refused|week full|date full|checklist|new rrr member|pay-as-you-go release|member release|payout email changed|blocked person|founder link used|services directory|new review/i;
 function notify_(subject, body) {
-  subject = String(subject || '').replace(/^\s*(👉 Action:|RRR ▸)\s*/, '');
-  const tag = ACTION_RX_.test(subject) ? '👉 Action: ' : 'RRR ▸ ';
+  subject = String(subject || '');
+  const m = subject.match(/^\s*(👉 Action:|RRR ▸)\s*/);
+  const tag = m ? m[1] + ' ' : ACTION_RX_.test(subject) ? '👉 Action: ' : 'RRR ▸ ';
+  subject = subject.replace(/^\s*(👉 Action:|RRR ▸)\s*/, '');
   MailApp.sendEmail(SETTINGS.ownerEmail, tag + subject.replace(/^RRR\s+(?!Live|Submit|Operations)/, ''), body);
 }
 function labelRrrMail_() {

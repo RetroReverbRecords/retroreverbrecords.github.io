@@ -169,7 +169,10 @@ function confirmSubmissionPayment_(subId, amount, txnId) {
   });
   try { MailApp.sendEmail({ to: s.email, name: 'Retro Reverb Records', subject: (demo ? '[DEMO] ' : '') + 'Your track is with the curators: ' + s.title + ' (' + subId + ')',
     body: (demo ? 'DEMO: no payment taken.\n\n' : 'Payment received, thank you.\n\n') + '"' + s.title + '" is now with ' + String(s.curator_ids).split(',').length + ' curator(s). Each one listens and sends you honest feedback within ' + SUBMIT.answerDays + ' days. If a curator doesn\'t answer in time, you get that part of your payment back.\n\nYou pay for a listen and feedback, never for placement.\n\nRetro Reverb Records' }); } catch (e) { log_('submit artist email failed', String(e)); }
-  notify_((demo ? '[DEMO] ' : '') + 'RRR Submit: ' + s.artist + ' – ' + s.title + ' (€' + s.amount + ')', 'Curators: ' + s.curator_ids + '\n' + sheetUrl_());
+  const names = String(s.curator_ids).split(',').map(x => (curators.find(c => c.curator_id === x.trim()) || {}).name || x.trim());
+  const mine = String(s.curator_ids).split(',').some(x => x.trim() === 'CUR-001');
+  notify_((demo ? '[DEMO] ' : '') + 'RRR ▸ 💶 €' + s.amount + ' – ' + s.artist + ' sent "' + s.title + '" to ' + names.join(' + '),
+    (mine ? 'WHAT TO DO: you\'re one of the curators. Answer by ' + Utilities.formatDate(due, Session.getScriptTimeZone(), 'EEE d MMM') + ' – the "Listen & answer" email has your button.' : 'Nothing to do: the curators have been emailed.') + '\n\nSheet: ' + sheetUrl_());
 }
 function handleSubmitFeedback_(p) {
   const c = curatorByKey_(p.key); if (!c) return text_('ok');
@@ -187,11 +190,11 @@ function handleSubmitFeedback_(p) {
   const pay = String(c.share) === '0' ? 0 : (c.share === '' || c.share === undefined ? SUBMIT.curatorPay : Number(c.share));
   updateRow_('Reviews', 'review_id', r.review_id, { status: 'answered', listened: 'yes', decision: dec, where: cut('where', 200), feedback: fb, why: acc ? fb : '',
     play_time: acc ? cut('play_time', 80) : '', links: cut('links', 600), answered_at: new Date(), earned: money_(pay) || ' ' });
-  try { MailApp.sendEmail({ to: r.email, name: 'Retro Reverb Records', subject: (acc ? '🎉 ' : '') + c.name + ' listened to "' + r.title + '"',
-    body: c.name + ' (' + c.type + ') listened to your track.\n\n' + (acc
-      ? 'ACCEPTED!\n\nWhen: ' + cut('play_time', 80) + '\nWhere: ' + cut('where', 200) + '\n\nWhy:\n' + fb + (cut('links', 600) ? '\n\nLinks: ' + cut('links', 600) : '\n\nThey\'ll send the link once it\'s played.')
-      : 'Not this time. Their feedback:\n\n' + fb) +
-      '\n\nThank you for sending your music.\nRetro Reverb Records · RRR Submit\n' + SETTINGS.siteUrl + 'submit.html' }); } catch (e) { log_('feedback email failed', String(e)); }
+  try { MailApp.sendEmail({ to: r.email, name: 'Retro Reverb Records', subject: acc ? '🎉 ' + c.name + ' will play "' + r.title + '"' : 'Feedback on "' + r.title + '" from ' + c.name,
+    body: (acc
+      ? 'Great news: ' + c.name + ' (' + c.type + ') listened to "' + r.title + '" and will play it.\n\nWhen: ' + cut('play_time', 80) + '\nWhere: ' + cut('where', 200) + '\n\nWhat they said:\n' + fb + (cut('links', 600) ? '\n\nLink: ' + cut('links', 600) : '\n\nThey\'ll send you the link once it has played.')
+      : c.name + ' (' + c.type + ') listened to "' + r.title + '". It\'s not for them this time, but here is their honest feedback:\n\n' + fb + '\n\nWant another opinion? Send it to a different curator: ' + SETTINGS.siteUrl + 'submit.html') +
+      '\n\nThanks for sending your music 💜\nRetro Reverb Records' }); } catch (e) { log_('feedback email failed', String(e)); }
   return text_('ok');
 }
 function handleCuratorApply_(p) {

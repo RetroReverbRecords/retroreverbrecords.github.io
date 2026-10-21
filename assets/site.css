@@ -970,4 +970,9 @@ label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
 .qs b{font-size:17px}.qs small{opacity:.75;font-size:14px}.qs-ico{font-size:24px}
 @media (max-width:760px){.qs-grid{grid-template-columns:1fr 1fr}}
 @media (max-width:420px){.qs{padding:12px}.qs b{font-size:15px}.qs small{font-size:12px}}
-.is-member .qs-join,.is-member .qs-login{display:none}
+.auth{display:inline-flex;gap:6px;align-items:center}
+.auth .btn.ghost.small-btn{background:transparent;border:1px solid var(--line);color:var(--text);cursor:pointer}
+.qs-grid{grid-template-columns:repeat(5,1fr)}
+.qs-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.is-member .qs-account{display:none}
+@media (max-width:900px){.qs-grid{grid-template-columns:1fr 1fr}.qs-account{grid-column:1/-1}}

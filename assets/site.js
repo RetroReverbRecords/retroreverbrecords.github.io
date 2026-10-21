@@ -821,15 +821,19 @@ document.querySelectorAll('[data-discord]').forEach(a => { const c = window.RRR_
   let me = null; try { me = JSON.parse(get('rrr-me') || 'null'); } catch (e) {}
   if (me && (!me.id || me.id !== (get('rrr-member-id') || '').toUpperCase())) me = null;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  // The separate 'My dashboard' nav link is folded into the account buttons
+  const dashLinks = () => document.querySelectorAll('nav a[href="member.html"]:not(.small-btn)').forEach(a => a.remove());
   const run = () => {
     const navBtns = Array.prototype.slice.call(document.querySelectorAll('nav a.small-btn[href$="#join"]'));
     if (!me) {
-      navBtns.forEach(b => { if (b.previousElementSibling && b.previousElementSibling.dataset && b.previousElementSibling.dataset.login) return; const a = document.createElement('a'); a.href = 'member.html#login'; a.textContent = 'Log in'; a.dataset.login = '1'; b.insertAdjacentElement('beforebegin', a); });
+      navBtns.forEach(b => { if (b.parentNode.classList.contains('auth')) return; const g = document.createElement('span'); g.className = 'auth'; b.insertAdjacentElement('beforebegin', g); const a = document.createElement('a'); a.href = 'member.html#login'; a.className = 'btn ghost small-btn'; a.textContent = 'Log in'; g.appendChild(a); g.appendChild(b); });
+      dashLinks();
       return;
     }
     document.body.classList.add('is-member');
     const nm = String(me.name || '').trim(), first = (nm.length <= 14 ? nm : nm.split(/\s+/)[0]) || 'member';
-    navBtns.forEach(b => { b.href = 'member.html'; b.innerHTML = '👋 ' + esc(first); b.title = 'Logged in as ' + (me.name || me.id); });
+    navBtns.forEach(b => { if (b.parentNode.classList.contains('auth')) return; const g = document.createElement('span'); g.className = 'auth'; b.insertAdjacentElement('beforebegin', g); b.href = 'member.html'; b.innerHTML = '👋 ' + esc(first); b.title = 'My dashboard · logged in as ' + (me.name || me.id); const o = document.createElement('button'); o.type = 'button'; o.className = 'btn ghost small-btn'; o.dataset.logout = '1'; o.textContent = 'Log out'; g.appendChild(b); g.appendChild(o); });
+    dashLinks();
     // Join buttons elsewhere become "Book now" for members
     document.querySelectorAll('a[href$="#join"]:not(.small-btn)').forEach(a => { if (/join|sign up|create account|become/i.test(a.textContent)) { a.href = 'book.html'; a.textContent = 'Book now'; } });
     // Home page sign-up: show a welcome-back panel instead of the form

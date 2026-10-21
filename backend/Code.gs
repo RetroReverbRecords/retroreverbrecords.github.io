@@ -2787,6 +2787,11 @@ function setDiscordWebhook() {
   const ok = discordSend_({ content: '👋 Retro Reverb Records is now connected. New members and Notice Board news will appear here.' });
   ui.alert(ok ? 'Connected ✓ A test message was posted in Discord.' : 'Saved, but the test message failed. Check the link.');
 }
+// Run this from the Apps Script editor (Run list → testDiscord) to post a test message in Discord.
+function testDiscord() {
+  const ok = discordSend_({ content: '👋 Retro Reverb Records is connected. New members and Notice Board news will appear here.' });
+  Logger.log(ok ? 'Posted ✓ – check Discord' : 'Not posted – check the DISCORD_WEBHOOK script property');
+}
 function discordSend_(payload) {
   const hook = PropertiesService.getScriptProperties().getProperty('DISCORD_WEBHOOK');
   if (!hook) return false;

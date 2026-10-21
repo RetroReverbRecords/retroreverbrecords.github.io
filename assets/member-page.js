@@ -82,12 +82,34 @@
   if (id && id !== 'DEMO' && url) {
     fetch(url + (url.includes('?') ? '&' : '?') + 'member=' + encodeURIComponent(id))
       .then(r => r.json())
-      .then(d => d.ok ? render(d.member, false) : notFound())
+      .then(d => { if (d.ok) { remember(d.member); render(d.member, false); } else notFound(); })
       .catch(() => problem());
   } else {
     render(DEMO, true, id && id !== 'DEMO' && !url);
   }
 
+  // Remember the logged-in member on this device, so the whole site knows them (see site.js)
+  function remember(m){
+    try { localStorage.setItem('rrr-member-id', m.id); localStorage.setItem('rrr-me', JSON.stringify({ id: m.id, name: m.name, type: m.type, status: m.status })); } catch (e) {}
+    const bar = $('#me-bar'); if (bar) { bar.hidden = false; bar.innerHTML = `Logged in as <b>${esc(m.name || m.id)}</b> on this device. <button type="button" class="linkbtn" id="logout">Log out</button>`;
+      $('#logout').addEventListener('click', () => { try { ['rrr-me', 'rrr-member-id', 'rrr-me-email'].forEach(k => localStorage.removeItem(k)); } catch (e) {} location.href = 'member.html'; }); }
+    const lg = $('#login'); if (lg) lg.hidden = true;
+  }
+  const lg = $('#login');
+  if (lg) {
+    if (location.hash === '#login') setTimeout(() => { lg.scrollIntoView({ block: 'center' }); $('#lg-email').focus(); }, 300);
+    lg.addEventListener('submit', e => {
+      e.preventDefault();
+      const em = $('#lg-email').value.trim(), st = $('#lg-status');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { st.textContent = 'Type the email you joined with.'; return; }
+      try { localStorage.setItem('rrr-me-email', em); } catch (x) {}
+      if (!url) { st.textContent = 'Log-in is not switched on yet.'; return; }
+      st.textContent = 'Sending…';
+      fetch(url + (url.includes('?') ? '&' : '?') + 'login=' + encodeURIComponent(em)).then(r => r.json())
+        .then(() => { st.innerHTML = '<b>Check your inbox.</b> If that email belongs to a member, your log-in link is on its way (check spam too). Open it on this device.'; })
+        .catch(() => { st.textContent = 'Couldn\'t send right now. Try again, or email ' + (C.email || 'us') + '.'; });
+    });
+  }
   function notFound(){ $('#dash').innerHTML = `<div class="panel empty"><b>We can't find that member ID.</b><span>Check it matches the ID you got when you signed up, e.g. RRR-7KX2P. Still stuck? Email ${esc(C.email)}.</span></div>`; }
   function problem(){ $('#dash').innerHTML = `<div class="panel empty"><b>The dashboard couldn't load.</b><span>Check your connection and refresh. If it keeps happening, email ${esc(C.email)}.</span></div>`; }
 

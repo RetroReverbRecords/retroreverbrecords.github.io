@@ -955,3 +955,10 @@ label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
 
 .photo-up img{width:72px;height:72px;border-radius:50%;object-fit:cover;margin-top:8px;border:2px solid var(--cyan,#3FD0FF);display:block}
 .photo-up input[type=file]{padding:8px 0}
+.member-back{margin-bottom:18px;padding:22px;border-color:var(--cyan,#2de2e6)}
+.member-back h3{margin:0 0 6px}
+.linkbtn{background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
+.login-box{margin-top:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.login-box input{font:15px var(--sans,inherit);color:var(--text);background:var(--void);border:1px solid var(--line);border-radius:4px;padding:10px 12px;min-width:240px}
+.login-box .btn{border:0;cursor:pointer;padding:11px 18px}
+.me-bar{margin-top:14px}

@@ -812,3 +812,44 @@ document.querySelectorAll('[data-discord]').forEach(a => { const c = window.RRR_
   const fill = () => { const el = document.getElementById('f-ref'); if (el && !el.value) el.value = ref; };
   fill(); document.addEventListener('DOMContentLoaded', fill); setTimeout(fill, 1500);
 })();
+
+/* Logged-in members: the site remembers who you are (set by the dashboard after it loads your ID).
+   Members see "Hi, name" instead of "Create account", join buttons become booking buttons,
+   and booking forms fill in your name and email. Everyone else gets a "Log in" link. */
+(function(){
+  const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  let me = null; try { me = JSON.parse(get('rrr-me') || 'null'); } catch (e) {}
+  if (me && (!me.id || me.id !== (get('rrr-member-id') || '').toUpperCase())) me = null;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const run = () => {
+    const navBtns = Array.prototype.slice.call(document.querySelectorAll('nav a.small-btn[href$="#join"]'));
+    if (!me) {
+      navBtns.forEach(b => { if (b.previousElementSibling && b.previousElementSibling.dataset && b.previousElementSibling.dataset.login) return; const a = document.createElement('a'); a.href = 'member.html#login'; a.textContent = 'Log in'; a.dataset.login = '1'; b.insertAdjacentElement('beforebegin', a); });
+      return;
+    }
+    document.body.classList.add('is-member');
+    const nm = String(me.name || '').trim(), first = (nm.length <= 14 ? nm : nm.split(/\s+/)[0]) || 'member';
+    navBtns.forEach(b => { b.href = 'member.html'; b.innerHTML = '👋 ' + esc(first); b.title = 'Logged in as ' + (me.name || me.id); });
+    // Join buttons elsewhere become "Book now" for members
+    document.querySelectorAll('a[href$="#join"]:not(.small-btn)').forEach(a => { if (/join|sign up|create account|become/i.test(a.textContent)) { a.href = 'book.html'; a.textContent = 'Book now'; } });
+    // Home page sign-up: show a welcome-back panel instead of the form
+    const join = document.getElementById('join'), form = document.getElementById('signup');
+    if (join && form && !document.getElementById('member-back')) {
+      const box = document.createElement('div'); box.id = 'member-back'; box.className = 'panel member-back';
+      box.innerHTML = `<h3>You're already a member, ${esc(first)} 🎉</h3><p>No need to sign up again. Book your next release or social post, or check your progress.</p>
+        <p class="ctas-left"><a class="btn primary" href="book.html">Book a release or post</a> <a class="btn ghost" href="member.html">My dashboard</a></p>
+        <p class="small">Not ${esc(me.name || me.id)}? <button type="button" class="linkbtn" data-logout>Log out</button> · <button type="button" class="linkbtn" data-other>Sign up someone else</button></p>`;
+      form.insertAdjacentElement('beforebegin', box); form.hidden = true;
+      box.querySelector('[data-other]').addEventListener('click', () => { form.hidden = false; box.remove(); });
+    }
+    // Booking forms: fill in name and email
+    const email = get('rrr-me-email') || '';
+    document.querySelectorAll('form.booking-form').forEach(f => {
+      const a = f.querySelector('input[name=artist]'), e = f.querySelector('input[name=email]');
+      if (a && !a.value && me.type !== 'fan') a.value = me.name || '';
+      if (e && !e.value && email) { e.value = email; e.dispatchEvent(new Event('change', { bubbles: true })); e.dispatchEvent(new Event('blur', { bubbles: true })); }
+    });
+    document.querySelectorAll('[data-logout]').forEach(b => b.addEventListener('click', () => { try { ['rrr-me', 'rrr-member-id', 'rrr-me-email'].forEach(k => localStorage.removeItem(k)); } catch (x) {} location.reload(); }));
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+})();

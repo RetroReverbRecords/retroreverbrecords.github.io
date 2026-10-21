@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261021a">
+<link rel="stylesheet" href="assets/site.css?v=20261021b">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -79,6 +79,13 @@
         <input id="lk-id" type="text" placeholder="RRR-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
         <button class="btn primary" type="submit">Open</button>
       </form>
+      <form class="login-box" id="login" novalidate>
+        <label for="lg-email" class="small">Lost your ID? Log in with your email</label>
+        <input id="lg-email" type="email" placeholder="the email you joined with" autocomplete="email" required>
+        <button class="btn ghost" type="submit">Email me a log-in link</button>
+        <p class="small" id="lg-status" role="status"></p>
+      </form>
+      <p class="small me-bar" id="me-bar" hidden></p>
       <div class="install" id="install" hidden>
         <p><strong>Get the RRR app.</strong> Add it to your home screen: it opens straight to your dashboard.</p>
         <button class="btn ghost" type="button" id="install-btn" hidden>Install app</button>
@@ -130,8 +137,8 @@
 <script src="assets/config.js?v=20261019a"></script>
 <script src="assets/releases.js?v=20261020a"></script>
 <script src="assets/levels.js?v=20261012a"></script>
-<script src="assets/site.js?v=20261021a"></script>
+<script src="assets/site.js?v=20261021b"></script>
 <script src="assets/cards.js?v=20261013b"></script>
-<script src="assets/member-page.js?v=20261014b"></script>
+<script src="assets/member-page.js?v=20261021b"></script>
 </body>
 </html>

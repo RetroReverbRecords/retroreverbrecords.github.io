@@ -158,8 +158,14 @@ function confirmSubmissionPayment_(subId, amount, txnId) {
     const c = curators.find(x => x.curator_id === cid); if (!c) return;
     append_('Reviews', { review_id: subId_('REV-', 'Reviews', 'review_id'), sub_id: subId, curator_id: cid, curator_name: c.name, artist: s.artist, email: s.email,
       title: s.title, track_url: s.track_url, genre: s.genre, message: s.message, created: new Date(), due: due, status: 'open', payout: String(c.share) === '0' ? 'n/a' : '', artist_links: s.artist_links || '', embed: s.embed || '' });
-    if (c.email) try { MailApp.sendEmail({ to: c.email, name: 'RRR Submit', subject: (demo ? '[DEMO] ' : '') + 'New track to review: ' + s.artist + ' – ' + s.title,
-      body: 'A new track is waiting for you.\n\n' + s.artist + ' – ' + s.title + ' (' + (s.genre || 'no genre') + ')\n\nPlease listen and answer by ' + due.toDateString() + '.\nYour queue: ' + SETTINGS.siteUrl + 'curator.html?k=' + c.key + '\n\nRRR Submit' }); } catch (e) { log_('curator email failed', String(e)); }
+    if (c.email) try {
+      const q = SETTINGS.siteUrl + 'curator.html?k=' + c.key, who = s.artist + ' – ' + s.title, dd = Utilities.formatDate(due, Session.getScriptTimeZone(), 'EEE d MMM');
+      MailApp.sendEmail({ to: c.email, name: 'RRR Submit', subject: (demo ? '[DEMO] ' : '') + '🎧 Listen & answer by ' + dd + ': ' + who,
+        body: 'New track for you to review: ' + who + ' (' + (s.genre || 'no genre') + ')\n\nWHAT TO DO\n1. Open your queue: ' + q + '\n2. Play the track for at least ' + SUBMIT.listenSeconds + ' seconds (on a phone: tap "Open it in Spotify/YouTube", listen, then come back).\n3. Tap Accept or Decline and write at least ' + SUBMIT.minWords + ' words of feedback.\n4. Tap Send answer.\n\nAnswer by ' + dd + '.\n\nRRR Submit',
+        htmlBody: '<div style="font:17px/1.5 Arial,sans-serif;color:#222;max-width:520px"><p style="margin:0 0 6px;color:#888;font-size:14px">RRR Submit · new track</p><h2 style="margin:0 0 4px;font-size:22px">' + String(who).replace(/[<>&]/g, '') + '</h2><p style="margin:0 0 16px;color:#555">' + String(s.genre || '').replace(/[<>&]/g, '') + ' · answer by <b>' + dd + '</b></p>' +
+          '<a href="' + q + '" style="display:inline-block;background:#ff2bd6;color:#fff;text-decoration:none;font-weight:bold;padding:14px 22px;border-radius:8px;font-size:18px">🎧 Listen &amp; answer</a>' +
+          '<ol style="padding-left:20px;margin:18px 0"><li>Play it for <b>' + SUBMIT.listenSeconds + ' seconds</b>.<br><span style="color:#777;font-size:14px">On a phone: tap <i>Open it in Spotify</i>, listen, then come back to the page.</span></li><li>Tap <b>Accept</b> or <b>Decline</b>.</li><li>Write at least <b>' + SUBMIT.minWords + ' words</b> of feedback.</li><li>Tap <b>Send answer</b>. The artist gets it by email.</li></ol>' +
+          '<p style="color:#888;font-size:13px">If you don\'t answer in time, the artist gets that part of their money back.</p></div>' }); } catch (e) { log_('curator email failed', String(e)); }
   });
   try { MailApp.sendEmail({ to: s.email, name: 'Retro Reverb Records', subject: (demo ? '[DEMO] ' : '') + 'Your track is with the curators: ' + s.title + ' (' + subId + ')',
     body: (demo ? 'DEMO: no payment taken.\n\n' : 'Payment received, thank you.\n\n') + '"' + s.title + '" is now with ' + String(s.curator_ids).split(',').length + ' curator(s). Each one listens and sends you honest feedback within ' + SUBMIT.answerDays + ' days. If a curator doesn\'t answer in time, you get that part of your payment back.\n\nYou pay for a listen and feedback, never for placement.\n\nRetro Reverb Records' }); } catch (e) { log_('submit artist email failed', String(e)); }
@@ -169,7 +175,10 @@ function handleSubmitFeedback_(p) {
   const c = curatorByKey_(p.key); if (!c) return text_('ok');
   const r = findRow_('Reviews', 'review_id', String(p.review_id || ''));
   if (!r || r.curator_id !== c.curator_id || r.status !== 'open') return text_('ok');
-  if (Number(r.listen_secs || 0) < SUBMIT.listenSeconds) return text_('ok'); // no answer without a real listen
+  // No answer without a listen. The page reports the seconds with the answer too (phones, slow connections).
+  const heard = Math.max(Number(r.listen_secs || 0), Math.min(Number(p.secs) || 0, 3600));
+  if (heard < SUBMIT.listenSeconds) { log_('submit answer refused: not listened', r.review_id + ' ' + heard + 's'); return text_('ok'); }
+  if (heard > Number(r.listen_secs || 0)) updateRow_('Reviews', 'review_id', r.review_id, { listen_secs: heard });
   const dec = String(p.decision), acc = dec === 'accepted';
   const fb = String(p.feedback || '').trim().slice(0, 4000);
   const cut = (k, n) => String(p[k] || '').trim().slice(0, n);

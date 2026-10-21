@@ -79,8 +79,23 @@
       box.innerHTML = `<audio controls preload="none" src="${esc(src)}"></audio>`;
       const a = box.querySelector('audio'); a.addEventListener('timeupdate', () => { if (!a.paused) tick(a.currentTime); }); a.addEventListener('pause', () => { last = null; report(true); }); a.addEventListener('seeking', () => { last = null; });
     } else {
-      box.innerHTML = `<p class="small">This link can't be played here, so the answer can't unlock. <a href="${esc(/^https:\/\//.test(r.url) ? r.url : '#')}" target="_blank" rel="noopener">Open it</a> and email RRR so we can ask the artist for a playable link.</p>`;
+      box.innerHTML = '';
     }
+    // Phones often open Spotify/YouTube/Bandcamp in their own app, so the player here can't count.
+    // Fallback: open the track in its app; when you come back after the listening time, the answer unlocks.
+    const app = k === 'sp' ? 'Spotify' : k === 'yt' ? 'YouTube' : k === 'bc' ? 'Bandcamp' : k === 'sc' ? 'SoundCloud' : 'a new tab';
+    if (/^https:\/\//.test(r.url || '')) {
+      const alt = document.createElement('p'); alt.className = 'small cq-alt';
+      alt.innerHTML = `📱 Won't play here? <a href="${esc(r.url)}" target="_blank" rel="noopener" data-open>Open it in ${app} ↗</a>, listen, then come back to this page. Your answer unlocks after ${need} seconds.`;
+      box.insertAdjacentElement('afterend', alt);
+      let t0 = 0;
+      const back = () => { if (t0 && Date.now() - t0 >= need * 1000 && secs < need) { secs = need; show(); report(true); } };
+      alt.querySelector('[data-open]').addEventListener('click', () => { t0 = Date.now(); lsn.textContent = `Listening in ${app}… come back here after ${need} seconds.`; });
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') back(); });
+      window.addEventListener('focus', back); setInterval(back, 2000);
+    }
+    // RRR's own curator account (the owner) doesn't need the listening check
+    if (data && data.curator && data.curator.id === 'CUR-001' && secs < need) { secs = need; show(); report(true); }
     window.addEventListener('pagehide', () => report(true));
   }
   const CHIPS = {
@@ -136,7 +151,7 @@
         const dec = fm.querySelector('input[name=decision]:checked').value;
         const extra = dec === 'accepted' ? { play_time: fm.play_time.value.trim(), where: fm.where.value.trim(), links: fm.links.value.trim() } : {};
         try {
-          await post(new URLSearchParams(Object.assign({ form: 'submit-feedback', key, review_id: id, feedback: ta.value.trim(), decision: dec }, extra)));
+          await post(new URLSearchParams(Object.assign({ form: 'submit-feedback', key, review_id: id, feedback: ta.value.trim(), decision: dec, secs: Math.floor(r.secs || need) }, extra)));
           data.todo = data.todo.filter(x => x.id !== id); data.done.unshift(Object.assign({}, r, { status: 'answered', decision: dec, feedback: ta.value.trim(), answered: new Date(), playTime: extra.play_time, where: extra.where, links: extra.links }));
           data.stats.answers++; data.stats.thisMonth++;
           stats(); rows(); say(true, `<strong>Sent ✓</strong> ${esc(r.artist)} gets your answer by email.`); if (window.rrrChime) window.rrrChime();

@@ -211,11 +211,32 @@ function doGet(e) {
   if (q.notices) return json_({ ok: true, notices: noticesPublic_() });
   if (q.hall) return json_(hallOfFame_());
   if ((q.curators || q.queue) && typeof submitGet_ === 'function') return submitGet_(q); // RRR Submit (Submit.gs)
+  if (q.login) return loginLink_(q.login);
   const id = (e && e.parameter && e.parameter.member || '').trim().toUpperCase();
   if (!id) return json_({ ok: false, error: 'missing member id' });
   const m = findRow_('Members', 'member_id', id);
   if (!m || String(m.public).toLowerCase() === 'no' || standing_(m) === 'removed') return json_({ ok: false, error: 'not found' });
   return json_({ ok: true, member: publicProfile_(m) });
+}
+
+// Log in: member.html asks for an email; if it belongs to a member we email their personal sign-in link.
+// Always answers ok, so nobody can use it to check who is a member. One email per address every 10 minutes.
+function loginLink_(email) {
+  const em = String(email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return json_({ ok: false, error: 'email' });
+  const cache = CacheService.getScriptCache(), key = 'login:' + em;
+  if (cache.get(key)) return json_({ ok: true });
+  cache.put(key, '1', 600);
+  const m = findRow_('Members', 'email', em);
+  if (!m || standing_(m) === 'removed') { log_('login: no member', em); return json_({ ok: true }); }
+  const link = SETTINGS.siteUrl + 'member.html?id=' + encodeURIComponent(m.member_id);
+  try {
+    MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: 'Your RRR sign-in link',
+      body: 'Hi ' + (m.artist || m.name || '') + ',\n\nTap this link to log in to Retro Reverb Records on this device:\n' + link + '\n\nYour member ID is ' + m.member_id + '. Keep it safe: it opens your dashboard.\n\nOnce you\'re logged in, the site remembers you: you can book releases and social posts without signing up again.\n\nDidn\'t ask for this? Just ignore this email.\n\nRetro Reverb Records',
+      htmlBody: '<div style="font:16px/1.5 Arial,sans-serif;color:#222;max-width:520px">Hi ' + String(m.artist || m.name || '').replace(/[<>&"]/g, '') + ',<br><br>Tap the button to log in to Retro Reverb Records on this device:<br><br><a href="' + link + '" style="display:inline-block;background:#ff2bd6;color:#fff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:6px">Log in to RRR</a><br><br>Your member ID is <b>' + m.member_id + '</b>. Keep it safe: it opens your dashboard.<br><br>Once you\'re logged in, the site remembers you: you can book releases and social posts without signing up again.<br><br><span style="color:#888;font-size:13px">Didn\'t ask for this? Just ignore this email.</span><br><br>Retro Reverb Records</div>' });
+    log_('login link sent', m.member_id);
+  } catch (err) { log_('login link failed', String(err)); }
+  return json_({ ok: true });
 }
 
 // ============================================================
@@ -349,7 +370,7 @@ function welcomeEmail_(p, id, version, isArtist) {
 
 function handleBooking_(kind, p) {
   const date = p.release_date || p.preferred_date || p.premiere_date || '';
-  const member = p.email ? findRow_('Members', 'email', p.email) : null;
+  const member = p.email ? findRow_('Members', 'email', String(p.email).trim()) : null;
   const memberId = member ? member.member_id : '';
   if (member && !inGoodStanding_(member)) { log_('booking refused: ' + standing_(member), memberId + ' ' + kind); notify_('Booking refused (member ' + standing_(member) + '): ' + memberId, JSON.stringify(p).slice(0, 800)); return text_('refused: bookings are paused while your membership is ' + (/locked|archived/i.test(String(member.status)) ? 'unpaid' : standing_(member))); }
   // Booking is for active members only: unpaid sign-ups can't book yet

@@ -158,7 +158,7 @@ function confirmSubmissionPayment_(subId, amount, txnId) {
     const c = curators.find(x => x.curator_id === cid); if (!c) return;
     append_('Reviews', { review_id: subId_('REV-', 'Reviews', 'review_id'), sub_id: subId, curator_id: cid, curator_name: c.name, artist: s.artist, email: s.email,
       title: s.title, track_url: s.track_url, genre: s.genre, message: s.message, created: new Date(), due: due, status: 'open', payout: String(c.share) === '0' ? 'n/a' : '', artist_links: s.artist_links || '', embed: s.embed || '' });
-    if (c.email) try {
+    if (c.email && c.email !== SETTINGS.ownerEmail) try {
       const q = SETTINGS.siteUrl + 'curator.html?k=' + c.key, who = s.artist + ' – ' + s.title, dd = Utilities.formatDate(due, Session.getScriptTimeZone(), 'EEE d MMM');
       MailApp.sendEmail({ to: c.email, name: 'RRR Submit', subject: (demo ? '[DEMO] ' : '') + (c.email === SETTINGS.ownerEmail ? '👉 Action: ' : '') + '🎧 Listen & answer by ' + dd + ': ' + who,
         body: 'New track for you to review: ' + who + ' (' + (s.genre || 'no genre') + ')\n\nWHAT TO DO\n1. Open your queue: ' + q + '\n2. Play the track for at least ' + SUBMIT.listenSeconds + ' seconds (on a phone: tap "Open it in Spotify/YouTube", listen, then come back).\n3. Tap Accept or Decline and write at least ' + SUBMIT.minWords + ' words of feedback.\n4. Tap Send answer.\n\nAnswer by ' + dd + '.\n\nRRR Submit',
@@ -170,9 +170,27 @@ function confirmSubmissionPayment_(subId, amount, txnId) {
   try { MailApp.sendEmail({ to: s.email, name: 'Retro Reverb Records', subject: (demo ? '[DEMO] ' : '') + 'Your track is with the curators: ' + s.title + ' (' + subId + ')',
     body: (demo ? 'DEMO: no payment taken.\n\n' : 'Payment received, thank you.\n\n') + '"' + s.title + '" is now with ' + String(s.curator_ids).split(',').length + ' curator(s). Each one listens and sends you honest feedback within ' + SUBMIT.answerDays + ' days. If a curator doesn\'t answer in time, you get that part of your payment back.\n\nYou pay for a listen and feedback, never for placement.\n\nRetro Reverb Records' }); } catch (e) { log_('submit artist email failed', String(e)); }
   const names = String(s.curator_ids).split(',').map(x => (curators.find(c => c.curator_id === x.trim()) || {}).name || x.trim());
-  const mine = String(s.curator_ids).split(',').some(x => x.trim() === 'CUR-001');
-  notify_((demo ? '[DEMO] ' : '') + 'RRR ▸ 💶 €' + s.amount + ' – ' + s.artist + ' sent "' + s.title + '" to ' + names.join(' + '),
-    (mine ? 'WHAT TO DO: you\'re one of the curators. Answer by ' + Utilities.formatDate(due, Session.getScriptTimeZone(), 'EEE d MMM') + ' – the "Listen & answer" email has your button.' : 'Nothing to do: the curators have been emailed.') + '\n\nSheet: ' + sheetUrl_());
+  const own = curators.find(c => c.curator_id === 'CUR-001' && String(s.curator_ids).split(',').map(x => x.trim()).indexOf('CUR-001') >= 0);
+  const dd = Utilities.formatDate(due, Session.getScriptTimeZone(), 'EEEE d MMMM');
+  const q = own ? SETTINGS.siteUrl + 'curator.html?k=' + own.key : '';
+  const clean = v => String(v || '').replace(/[<>&]/g, '');
+  const subj = (demo ? '[DEMO] ' : '') + (own ? '👉 Action: ' : 'RRR ▸ ') + '🎵 ' + s.artist + ' sent you "' + s.title + '" (paid €' + s.amount + ')';
+  const text = s.artist + ' paid €' + s.amount + ' to send a track for review.\n\n' +
+    'TRACK: ' + s.artist + ' – ' + s.title + (s.genre ? ' (' + s.genre + ')' : '') + '\nLISTEN: ' + s.track_url +
+    '\nSENT TO: ' + names.join(' and ') + (s.message ? '\n\nTHEIR MESSAGE:\n' + s.message : '') + (s.artist_links ? '\n\nTHEIR LINKS:\n' + s.artist_links : '') +
+    (own ? '\n\nWHAT YOU NEED TO DO\nListen and say yes or no by ' + dd + ':\n' + q + '\n\nIf you say yes, they hear it\'s going on The Bandcamp Hour / the playlist. If you say no, they get your feedback. Either way, write at least 20 words.' : '\n\nNothing for you to do: the curators have been emailed.');
+  const html = '<div style="font:17px/1.5 Arial,sans-serif;color:#222;max-width:540px">' +
+    '<p style="margin:0 0 4px;color:#888;font-size:14px">RRR Submit · paid €' + s.amount + '</p>' +
+    '<h2 style="margin:0 0 6px;font-size:22px">' + clean(s.artist) + ' sent you a track</h2>' +
+    '<p style="margin:0 0 14px"><b>' + clean(s.title) + '</b>' + (s.genre ? ' · ' + clean(s.genre) : '') + '<br><a href="' + clean(s.track_url) + '">▶ Listen to it</a></p>' +
+    '<p style="margin:0 0 14px;color:#555">Sent to: ' + clean(names.join(' and ')) + '</p>' +
+    (s.message ? '<p style="margin:0 0 4px;color:#888;font-size:14px">Their message</p><p style="margin:0 0 14px;padding:10px 14px;background:#f4f4f6;border-radius:8px">' + clean(s.message).replace(/\n/g, '<br>') + '</p>' : '') +
+    (own ? '<p style="margin:18px 0 8px"><b>What you need to do:</b> listen, then say <b>yes</b> or <b>no</b> by <b>' + dd + '</b>.</p>' +
+      '<a href="' + q + '" style="display:inline-block;background:#ff2bd6;color:#fff;text-decoration:none;font-weight:bold;padding:14px 22px;border-radius:8px;font-size:18px">🎧 Listen &amp; answer</a>' +
+      '<p style="color:#777;font-size:14px;margin-top:12px">Yes = it goes on The Bandcamp Hour / playlist and they get your note. No = they get your feedback. Write at least 20 words either way.</p>'
+      : '<p>Nothing for you to do: the curators have been emailed.</p>') +
+    (s.artist_links ? '<p style="color:#888;font-size:13px;margin-top:16px">Their links: ' + clean(s.artist_links) + '</p>' : '') + '</div>';
+  try { MailApp.sendEmail({ to: SETTINGS.ownerEmail, subject: subj, body: text, htmlBody: html }); } catch (e) { log_('submit owner email failed', String(e)); }
 }
 function handleSubmitFeedback_(p) {
   const c = curatorByKey_(p.key); if (!c) return text_('ok');

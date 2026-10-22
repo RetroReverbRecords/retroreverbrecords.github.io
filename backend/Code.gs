@@ -1966,11 +1966,28 @@ function handleLinkRequest_(p) {
   if (!m || m.type !== 'artist' || !inGoodStanding_(m)) { log_('link request refused', id); return text_(!m ? 'refused: we can\'t find that member ID' : m.type !== 'artist' ? 'refused: linking is for artist members' : 'refused: linking is paused while your membership is not in good standing'); }
   if (/^y/i.test(String(m.bandcamp_linked))) return text_('ok');
   const method = p.method === 'invite' ? 'invite' : 'password';
+  // Owner rule (22 Oct 2026): Bandcamp accounts are linked only once the artist has a confirmed RRR Bandcamp release.
+  if (!hasConfirmedBandcampRelease_(id)) {
+    const sh0 = sheet_('Links'), v0 = sh0.getDataRange().getValues(), h0 = v0[0];
+    for (let i = 1; i < v0.length; i++) if (String(v0[i][h0.indexOf('member_id')]).toUpperCase() === id && /requested|ready|waiting/.test(v0[i][h0.indexOf('status')])) sh0.getRange(i + 1, h0.indexOf('status') + 1).setValue('cancelled');
+    append_('Links', { created: new Date(), member_id: id, artist: m.artist || m.name, email: m.email, bandcamp_url: String(p.bandcamp_url || m.bandcamp || '').trim(), method: method, status: 'waiting for release' });
+    try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: 'Linking your Bandcamp to RRR: we\'ll do it with your first release',
+      body: 'Hi ' + (m.name || '') + ',\n\nThanks! We link your Bandcamp to the RRR label when your first RRR Bandcamp release is confirmed, so there\'s nothing to do right now.\n\nBook your release here: ' + SETTINGS.siteUrl + 'book.html\nAs soon as it\'s confirmed, we\'ll send you the next step (' + (method === 'invite' ? 'a Bandcamp invite to accept' : 'a placeholder password') + ').\n\nRetro Reverb Records' }); } catch (e) {}
+    return text_('ok');
+  }
+  return startLink_(m, method, p.bandcamp_url);
+}
+function hasConfirmedBandcampRelease_(id) {
+  return rows_('Bookings').some(b => String(b.member_id).toUpperCase() === String(id).toUpperCase() && b.kind === 'bandcamp-release' && /confirmed/i.test(String(b.status)));
+}
+// Sends the actual linking step (placeholder password email, or tells the owner to send a Bandcamp invite)
+function startLink_(m, method, bandcampUrl) {
+  const id = String(m.member_id).toUpperCase(), p = { bandcamp_url: bandcampUrl || m.bandcamp || '' };
   const token = Utilities.getUuid().replace(/-/g, '');
   const pw = method === 'password' ? placeholderPassword_() : '';
   // one open request per member
   const sh = sheet_('Links'), v = sh.getDataRange().getValues(), h = v[0];
-  for (let i = 1; i < v.length; i++) if (String(v[i][h.indexOf('member_id')]).toUpperCase() === id && /requested|ready/.test(v[i][h.indexOf('status')])) {
+  for (let i = 1; i < v.length; i++) if (String(v[i][h.indexOf('member_id')]).toUpperCase() === id && /requested|ready|waiting/.test(v[i][h.indexOf('status')])) {
     sh.getRange(i + 1, h.indexOf('status') + 1).setValue('cancelled'); sh.getRange(i + 1, h.indexOf('temp_password') + 1).setValue('');
   }
   append_('Links', { created: new Date(), member_id: id, artist: m.artist || m.name, email: m.email, bandcamp_url: String(p.bandcamp_url || m.bandcamp || '').trim(),
@@ -1988,7 +2005,9 @@ function handleLinkRequest_(p) {
     : wrap('<p>Hi ' + (m.name || '') + ',</p><p>Thanks! We\'ll send you a <b>Bandcamp invite</b> from the Retro Reverb Records label within a day. Look for an email from Bandcamp and press <b>accept</b>. That\'s it.</p>' +
       '<p style="background:#f7f7f9;padding:10px 12px;border-radius:8px;font-size:13px;color:#555">With an invite RRR can only add releases to your page. If you\'d like full promotion support and stats later, you can switch to password linking from your dashboard.</p>');
   try { MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', subject: method === 'password' ? 'Your placeholder password for linking Bandcamp to RRR' : 'Linking your Bandcamp to RRR: watch for our invite', htmlBody: html }); } catch (e) { log_('link email failed', String(e)); }
-  if (method === 'invite') notify_('Bandcamp INVITE to send: ' + (m.artist || m.name) + ' (' + id + ')', 'Bandcamp → Add → Existing Artist → request access.\nTheir page: ' + (p.bandcamp_url || m.bandcamp || '?') + '\nWhen they accept, set status "linked" in the Links tab.\n' + sheetUrl_());
+  if (method === 'invite') notify_('👉 Action: Send ' + (m.artist || m.name) + ' a Bandcamp invite (their release is confirmed)',
+    'WHAT TO DO: on Bandcamp, go to your label → Add artist → Existing artist → Request access, and enter their page:\n' + (p.bandcamp_url || m.bandcamp || '?') +
+    '\n\nWhen they accept, open the Links tab and set their status to "linked". That\'s all.\n' + sheetUrl_());
   return text_('ok');
 }
 function linkReady_(token, asJson) {
@@ -2016,6 +2035,10 @@ function processLinks_() {
     const row = i + 1, st = v[i][c('status')];
     // placeholders never sit around: expire unused requests after 7 days
     if (/requested|ready/.test(st) && Date.now() - new Date(v[i][c('created')]).getTime() > 7 * 86400000) { sh.getRange(row, c('status') + 1).setValue('cancelled'); sh.getRange(row, c('temp_password') + 1).setValue(''); continue; }
+    if (st === 'waiting for release') {
+      if (hasConfirmedBandcampRelease_(v[i][c('member_id')])) { const mm = findRow_('Members', 'member_id', String(v[i][c('member_id')])); if (mm) { sh.getRange(row, c('status') + 1).setValue('cancelled'); startLink_(mm, v[i][c('method')] || 'invite', v[i][c('bandcamp_url')]); } }
+      continue;
+    }
     if (st !== 'linked' || v[i][c('notified')]) continue;
     const id = v[i][c('member_id')], method = v[i][c('method')];
     updateRow_('Members', 'member_id', id, { bandcamp_linked: 'yes', link_method: method });

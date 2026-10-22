@@ -22,6 +22,8 @@ window.RRR_CONFIG = {
 
   // AUTOMATION: paste the Google Apps Script web app URL here (see backend/SETUP.md).
   // Sign-ups, bookings and PayPal notifications all go to it.
+  // PayPal payment messages go through the Cloudflare relay (answers PayPal "OK", then passes them on)
+  ipnUrl: "https://rrr-paypal.retroreverbrecords.workers.dev",
   automationUrl: "https://script.google.com/macros/s/AKfycbxuMic9BC8cBEvKvUcND7f5n364jceS0Ev2WUmDBmsshuorqFIcYokUsigfns0S2WHP/exec",
 
   // Public address of this site (used for PayPal "return to site" links).

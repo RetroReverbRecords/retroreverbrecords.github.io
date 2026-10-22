@@ -153,7 +153,7 @@ window.rrrSend = function(url, data, onProblem){
   // PayPal Payments Standard links: work with just the PayPal email address.
   function paypalUrl(o){
     const q = new URLSearchParams(Object.assign({ business: P.paypalEmail, currency_code: 'EUR', no_shipping: '1', charset: 'utf-8' }, o));
-    if (endpoint) q.set('notify_url', endpoint);
+    if (endpoint) q.set('notify_url', C.ipnUrl || endpoint);
     return 'https://www.paypal.com/cgi-bin/webscr?' + q.toString();
   }
   // PayPal checkout with extra ways to pay when a client ID is set, simple link otherwise.

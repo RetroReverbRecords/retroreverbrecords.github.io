@@ -163,7 +163,7 @@
     const q = new URLSearchParams({ business: P.paypalEmail, currency_code: 'EUR', no_shipping: '1', charset: 'utf-8', cmd: '_xclick-subscriptions',
       item_name: 'RRR ' + (m.type === 'fan' ? 'Fan' : 'Artist') + ' Membership', a3: Number(amt).toFixed(2), p3: '1', t3: 'M', src: '1', custom: m.id,
       return: (C.siteUrl || '') + 'member.html?id=' + encodeURIComponent(m.id) });
-    if (C.automationUrl) q.set('notify_url', C.automationUrl);
+    if (C.automationUrl) q.set('notify_url', C.ipnUrl || C.automationUrl);
     return `<div class="panel nextstep paynow"><span class="label">One step left</span><p><b>Finish setting up your monthly payment</b> (€${Number(amt).toFixed(2)}/month). Your account goes live as soon as it arrives.</p>
       <p><a class="btn primary" href="https://www.paypal.com/cgi-bin/webscr?${q.toString()}" target="_blank" rel="noopener">Pay with PayPal or card</a></p>
       <p class="small">On a phone, open this page in Safari or Chrome (not inside WhatsApp or Instagram) so PayPal loads properly.</p></div>`;
@@ -208,7 +208,7 @@
     let pay = '';
     if (!demo && P.paypalEmail && m.membershipActive) {
       const q = new URLSearchParams({ business: P.paypalEmail, currency_code: 'EUR', no_shipping: '1', charset: 'utf-8', cmd: '_xclick-subscriptions', item_name: 'RRR Stats Pro add-on', a3: Number(add).toFixed(2), p3: '1', t3: 'M', src: '1', custom: m.id, return: (C.siteUrl || '') + 'member.html?id=' + encodeURIComponent(m.id) });
-      if (C.automationUrl) q.set('notify_url', C.automationUrl);
+      if (C.automationUrl) q.set('notify_url', C.ipnUrl || C.automationUrl);
       pay = `<p><a class="btn primary" href="https://www.paypal.com/cgi-bin/webscr?${q.toString()}" target="_blank" rel="noopener">Add Stats Pro · €${Number(add).toFixed(2)}/month</a></p><p class="small">Then email us your Spotify artist link so we can connect you.</p>`;
     }
     return `<div class="panel nextstep statspro-up"><span class="label">Stats Pro</span><p><b>See your numbers grow, every day.</b> Spotify listeners and streams, YouTube and TikTok views, radio plays and playlists, growth over 7 and 28 days, playlist alerts and a weekly report. Powered by Songstats. Stats run while your membership is active.</p>${pay}</div>`;

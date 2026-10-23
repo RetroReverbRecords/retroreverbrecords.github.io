@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-22",
+ "updated": "2026-10-23",
  "source": "https://retroreverbrecords.bandcamp.com",
  "releases": [
   {
@@ -7,6 +7,12 @@
    "artist": "𝙀𝙙𝙚𝙣 𝙁𝙪𝙩𝙪𝙧𝙚",
    "url": "https://edenfuture.bandcamp.com/album/hyper-terrestrial",
    "image": "https://f4.bcbits.com/img/a3965837366_16.jpg"
+  },
+  {
+   "title": "La Leil- The Machine Remembers",
+   "artist": "Cybertronix",
+   "url": "https://cybertronix.bandcamp.com/album/la-leil-the-machine-remembers",
+   "image": "https://f4.bcbits.com/img/a1268795810_16.jpg"
   },
   {
    "title": "LLUVA (Álbum)",
@@ -139,12 +145,6 @@
    "artist": "ABOBO",
    "url": "https://abobomusic.bandcamp.com/album/sax-appeal-5",
    "image": "https://f4.bcbits.com/img/a3446649715_16.jpg"
-  },
-  {
-   "title": "Fool",
-   "artist": "Vihana",
-   "url": "https://vihanamakesmusic.bandcamp.com/track/fool",
-   "image": "https://f4.bcbits.com/img/a3908140519_16.jpg"
   }
  ],
  "merch": [

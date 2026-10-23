@@ -77,7 +77,7 @@ window.rrrSend = function(url, data, onProblem){
     const up = $('#upcoming-list');
     if (up) {
       const today = new Date().toISOString().slice(0,10);
-      const list = (R.upcoming || []).filter(r => r.date >= today).sort((a,b) => a.date.localeCompare(b.date));
+      const list = (R.upcoming || []).filter(r => r.date > today).sort((a,b) => a.date.localeCompare(b.date));
       up.innerHTML = list.length ? list.map(r => `
         <a class="rcard" ${r.url ? `href="${esc(r.url)}" target="_blank" rel="noopener"` : ''}>
           ${sleeve(r.title, r.image)}
@@ -90,6 +90,11 @@ window.rrrSend = function(url, data, onProblem){
       <a class="mcard panel" href="${esc(b.url)}" target="_blank" rel="noopener">
         <span class="mtype">Bandcamp</span><b>${esc(b.name)}</b><span class="small">${esc(b.genre || '')}</span>
       </a>`).join('') + `<div class="mcard panel ghost-card"><span class="mtype">Coming soon</span><b>Genre pages</b><span class="small">Dedicated Bandcamp pages for specific styles and release types.</span></div>`;
+    // Booked releases move from "Coming up" to the latest list on release day and stay at the front for 30 days.
+    const todayIso = new Date().toISOString().slice(0,10), monthAgo = new Date(Date.now() - 30*86400000).toISOString().slice(0,10);
+    const fresh = (R.upcoming || []).filter(r => r.url && r.date <= todayIso && r.date >= monthAgo).sort((a,b) => b.date.localeCompare(a.date));
+    const seen = new Set(fresh.map(r => String(r.title).toLowerCase()));
+    latest = fresh.concat(latest.filter(r => !seen.has(String(r.title).toLowerCase())));
     const lat = $('#latest-list');
     if (lat) lat.innerHTML = latest.slice(0, 8).map(r => `
       <a class="rcard" href="${esc(viaLabel(r.url))}" target="_blank" rel="noopener" title="Open ${esc(r.title)} on Bandcamp">

@@ -332,6 +332,9 @@ window.rrrSend = function(url, data, onProblem){
   const isFan = () => !!($('#type-fan') && $('#type-fan').checked);
   const statsPro = () => !isFan() && !!($('#f-statspro') && $('#f-statspro').checked);
   // Founding artists arrive from their invite email with ?founder=1 (remembered for this visit)
+  // Free-trial links (?trial=CODE, codes listed in config.trialCodes): first month(s) free, no obligation
+  const trialCode = (() => { const T = C.trialCodes || {}; let c = (location.search.match(/[?&]trial=([A-Za-z0-9_-]+)/) || [])[1]; c = c ? c.toUpperCase() : ''; try { if (c && T[c]) sessionStorage.setItem('rrr-trial', c); else c = sessionStorage.getItem('rrr-trial') || ''; } catch (e) {} return T[c] ? c : ''; })();
+  const trialMonthsFor = () => trialCode ? Number((C.trialCodes || {})[trialCode]) || 1 : 0;
   const founderMode = (() => { let f = /[?&]founder=1\b/.test(location.search); try { if (f) sessionStorage.setItem('rrr-founder', '1'); else f = sessionStorage.getItem('rrr-founder') === '1'; } catch (e) {} return f; })();
   const billMonths = () => { if (isFan()) return 1; const r = $('input[name=billing]:checked'); return r ? (Number(r.dataset.months) || 1) : 1; };
   const yearly = () => billMonths() === 12;
@@ -343,7 +346,7 @@ window.rrrSend = function(url, data, onProblem){
     if (founderMode) { const sp = $('#f-statspro'); if (sp) { const l = sp.closest('label'); if (l) l.hidden = true; } }
     const a = Number((C.membershipPrices || {}).artist || 2), yr = Number((C.yearly || {}).artist || a * 12);
     $$('[data-billing]').forEach(el => { const m = Number(el.dataset.billing) || 1; const v = m === 12 ? yr : a * m;
-      el.textContent = (m === 1 ? '€' + v.toFixed(2) + ' a month' : m === 12 ? '€' + v.toFixed(0) + ' a year' : '€' + v.toFixed(0) + ' every ' + m + ' months') + (founderMode ? ', first month free' : ''); });
+      el.textContent = (m === 1 ? '€' + v.toFixed(2) + ' a month' : m === 12 ? '€' + v.toFixed(0) + ' a year' : '€' + v.toFixed(0) + ' every ' + m + ' months') + (founderMode || trialCode ? ', first month free' : ''); });
   })();
   (function(){ const cb = $('#f-statspro'), ln = $('.statslink'); if (cb && ln) cb.addEventListener('change', () => { ln.hidden = !cb.checked; }); })();
   if (signup) {
@@ -378,7 +381,7 @@ window.rrrSend = function(url, data, onProblem){
       const id = newMemberId(), fan = isFan(), amt = price(), sp = statsPro() || (founderMode && !fan), bm = fan ? 1 : billMonths();
       const em = ((signup.querySelector('[name=email]') || {}).value || '').trim();
       const who = ((signup.querySelector('[name=artist]') || {}).value || (signup.querySelector('[name=name]') || {}).value || '').trim();
-      const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist', founder: founderMode && !fan ? 'yes' : '', billing: ({1: 'monthly', 3: '3 months', 6: '6 months', 9: '9 months', 12: 'yearly'})[bm] || 'monthly',
+      const ok = await send(signup, $('#signup-status'), 'signup', { member_id: id, type: fan ? 'fan' : 'artist', founder: founderMode && !fan ? 'yes' : '', ...(trialCode && !((signup.querySelector('[name=referred_by]') || {}).value || '').trim() ? { referred_by: 'trial:' + trialCode } : {}), billing: ({1: 'monthly', 3: '3 months', 6: '6 months', 9: '9 months', 12: 'yearly'})[bm] || 'monthly',
         terms_version: C.termsVersion || '', signed_at: new Date().toISOString(), user_agent: navigator.userAgent.slice(0, 250), signed_on_page: location.href.split('?')[0] });
       if (!ok) return;
       try { localStorage.setItem('rrr-member-id', id); } catch (e) {}
@@ -408,7 +411,7 @@ window.rrrSend = function(url, data, onProblem){
   }
   function renderPay(memberId, fan, amt, sp, opt){
     opt = opt || {};
-    const months = opt.months || (opt.yearly ? 12 : 1), per = months === 12 ? 'year' : months > 1 ? months + ' months' : 'month', trial = opt.founder ? (((C.founder || {}).trialMonths) || 1) : 0;
+    const months = opt.months || (opt.yearly ? 12 : 1), per = months === 12 ? 'year' : months > 1 ? months + ' months' : 'month', trial = opt.founder ? (((C.founder || {}).trialMonths) || 1) : trialMonthsFor();
     const box = $('#paypal-buttons'); if (!box) return;
     $('#pay-note').hidden = !!memberId;
     if (!memberId) { box.innerHTML = ''; return; }

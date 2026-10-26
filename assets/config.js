@@ -63,6 +63,8 @@ window.RRR_CONFIG = {
   yearly: { artist: 24.00 },
   // FOUNDING ARTISTS (original RRR artists invited by email with a link ending ?founder=1):
   // €2/month or €24/year for life with stats included, first month free, and these upload prices for life.
+  // FREE TRIAL LINKS: retroreverbrecords.com/?trial=CODE#join gives the first month(s) free (PayPal trial, cancel any time, pay nothing).
+  trialCodes: { SYNTHTALK: 1 },
   founder: { trialMonths: 1, fees: { single: 1.50, ep: 2.00, album: 2.50 } },
 
   // SELL YOUR MERCH WITH US

@@ -1,6 +1,7 @@
 # Per-page SEO: description + canonical + Open Graph/Twitter. Used by build.py and for index.html.
 BASE = 'https://retroreverbrecords.com/'
 DESC = {
+ 'story': 'Why Retro Reverb Records gave up its label cut after eight years in synthwave: founder Cole Bouchard (Cybertronix) on fair label models, burnout and staying true to our values.',
  'index': 'Retro Reverb Records: synthwave, darksynth and retrowave label and artist community since 2018. Release on Bandcamp and streaming, keep 100% of your royalties.',
  'agreement': 'The RRR Member Agreement: what Retro Reverb Records members agree to, in one place, with links to the full terms and policies.',
  'book': 'Book a Bandcamp or streaming release, social media post, YouTube premiere, merch listing or radio slot with Retro Reverb Records.',

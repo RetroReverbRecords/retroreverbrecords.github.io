@@ -1484,7 +1484,7 @@ function processStandingNow() {
 
 // GIVEAWAY: launch show 25 Oct 2026, 1 winner, 6 months free membership. Entries close 25 Oct 17:45 Italy time (owner, 18 Oct 2026).
 // Owner pastes the names from the Giveaway tab into wheelofnames.com on air, then emails the winner after the show.
-const GIVEAWAY_ = { id: 'Launch 25 Oct 2026', closes: new Date('2026-10-25T17:45:00+01:00') };
+const GIVEAWAY_ = { id: 'Launch 25 Oct 2026', closes: new Date('2026-11-01T17:45:00+01:00') }; // extended to 1 Nov (owner, 26 Oct 2026)
 function handleGiveaway_(p) {
   const email = String(p.email || '').trim().toLowerCase().slice(0, 120);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || p.agree !== 'yes') return text_('ok');
@@ -1494,7 +1494,7 @@ function handleGiveaway_(p) {
     username: String(p.username || '').slice(0, 60), platform: String(p.platform || '').slice(0, 30), newsletter: p.newsletter === 'yes' ? 'yes' : 'no', status: 'entered' });
   if (p.newsletter === 'yes') try { handleSubscribe_({ email: email, consent: 'yes', source: 'giveaway' }); } catch (e) {}
   if (!dup) try { MailApp.sendEmail({ to: email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: "You're in the RRR giveaway 🎉",
-    body: 'Hi ' + (p.name || '') + ',\n\nYou\'re entered to win 6 months of free Retro Reverb Records membership.\n\nThe winner is spun live on The Bandcamp Hour on Sunday 25 October (show 16:00 to 18:00 Italy time, 15:00 to 17:00 UK). Entries close at 17:45 Italy time (16:45 UK).\nWatch live: ' + SETTINGS.siteUrl + 'live.html\n\nWe email the winner after the show. Good luck!\n\nRetro Reverb Records' }); } catch (e) { log_('giveaway ack failed', String(e)); }
+    body: 'Hi ' + (p.name || '') + ',\n\nYou\'re entered to win 6 months of free Retro Reverb Records membership.\n\nThe winner is spun live on The Bandcamp Hour on Sunday 1 November (show 16:00 to 18:00 Italy time, 15:00 to 17:00 UK). Entries close at 17:45 Italy time (16:45 UK).\nWatch live: ' + SETTINGS.siteUrl + 'live.html\n\nWe email the winner after the show. Good luck!\n\nRetro Reverb Records' }); } catch (e) { log_('giveaway ack failed', String(e)); }
   return text_('ok');
 }
 function handleContact_(p) {

@@ -821,6 +821,8 @@ function weeklyBulletin_() {
 }
 
 function digest_() {
+  // Turned off 31 Oct 2026 (Cole: one daily email only). The 8am Claude "RRR label brief" now covers members, money, bookings, to-dos and deadlines.
+  if (!SETTINGS.sendDailyDigest) return;
   const since = new Date(Date.now() - 24 * 3600 * 1000);
   const newM = rows_('Members').filter(r => new Date(r.created) >= since);
   const allPays = rows_('Payments').filter(r => new Date(r.received) >= since);

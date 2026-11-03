@@ -2226,7 +2226,53 @@ function liveState_() {
     onair: showsOnAir_() };
 }
 function saveLive_(st) { PropertiesService.getScriptProperties().setProperty('LIVE_STATE', JSON.stringify(st)); }
+// ---------- TEAM WELCOME ALERTS (Cole, 3 Nov 2026) ----------
+// Every time a new member is active (paid) or a new promoter is approved, the welcome team
+// (Settings tab key "welcome_team_emails", comma separated; default Eden) gets a short email
+// so they can say hello. Only public info is sent: no email addresses or postal addresses.
+// Runs every 5 minutes from checkLive. The first run only remembers who is already there.
+function teamJoinAlerts_() {
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty('TEAM_ALERTED');
+  const seen = raw ? JSON.parse(raw) : null;
+  const known = {}; (seen || []).forEach(k => known[k] = 1);
+  const fresh = [];
+  rows_('Members').forEach(m => {
+    const st = String(m.status || '');
+    if (!/^active/i.test(st) || /owner|honorary|demo/i.test(st) || !m.member_id) return;
+    const k = 'M:' + m.member_id; if (!known[k]) fresh.push({ k: k, kind: 'member', r: m });
+  });
+  try { rows_('Curators').forEach(c => {
+    if (String(c.status) !== 'active' || !c.curator_id || c.curator_id === 'CUR-001') return;
+    const k = 'C:' + c.curator_id; if (!known[k]) fresh.push({ k: k, kind: 'promoter', r: c });
+  }); } catch (e) {}
+  if (!seen) { props.setProperty('TEAM_ALERTED', JSON.stringify(fresh.map(f => f.k))); return; } // first run: no emails
+  if (!fresh.length) return;
+  const to = String(setting_('welcome_team_emails', 'edenfuture@outlook.com')).split(/[,;\s]+/).filter(x => /@/.test(x));
+  fresh.forEach(f => {
+    const r = f.r; let subject, body;
+    if (f.kind === 'member') {
+      const isA = String(r.type) === 'artist', who = r.artist || r.name || 'A new member';
+      const ig = cleanHandle_(r.instagram);
+      subject = '👋 New RRR ' + (isA ? 'artist' : 'fan') + ': ' + who;
+      body = 'Hi,\n\n' + who + ' just joined Retro Reverb Records as ' + (isA ? 'an artist' : 'a fan') + '. Please give them a warm welcome!\n\n' +
+        'Name: ' + who + (r.country ? '\nCountry: ' + r.country : '') + '\nInstagram: ' + (ig ? '@' + ig + ' (https://instagram.com/' + ig + ')' : 'not given') +
+        (r.bandcamp ? '\nBandcamp: ' + r.bandcamp : '') + '\n\nThanks,\nRetro Reverb Records\n\n(You get this every time someone joins. Cole set this up.)';
+    } else {
+      subject = '👋 New RRR promoter: ' + (r.name || 'new promoter');
+      body = 'Hi,\n\n' + (r.name || 'A new promoter') + ' just joined RRR Submit as a promoter (' + (r.type || '') + '). Please give them a warm welcome!\n\n' +
+        'Name: ' + (r.name || '') + (r.genres ? '\nGenres: ' + r.genres : '') + (r.link ? '\nLink: ' + r.link : '') +
+        '\n\nThanks,\nRetro Reverb Records\n\n(You get this every time a promoter joins. Cole set this up.)';
+    }
+    let ok = true;
+    to.forEach(addr => { try { MailApp.sendEmail({ to: addr, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail, subject: subject, body: body }); } catch (e) { ok = false; log_('team join alert email failed', addr + ' ' + String(e)); } });
+    if (ok) known[f.k] = 1;
+  });
+  props.setProperty('TEAM_ALERTED', JSON.stringify(Object.keys(known)));
+}
+
 function checkLive() {
+  try { teamJoinAlerts_(); } catch (e) { log_('team join alert failed', String(e)); }
   labelRrrMail_();
   let old = {}; try { old = JSON.parse(PropertiesService.getScriptProperties().getProperty('LIVE_STATE') || '{}'); } catch (e) {}
   if (old.manual && old.live && Date.now() - new Date(old.since).getTime() < 4 * 3600000) return; // you said you're live: trust that

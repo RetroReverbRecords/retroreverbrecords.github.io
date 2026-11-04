@@ -21,6 +21,10 @@
 // ---------- SETTINGS (edit these) ----------
 const SETTINGS = {
   ownerEmail: 'retroreverbrecords@gmail.com',       // where alerts go
+  // Owner, 4 Nov 2026: no email for every routine payment / booking. They're still saved in the sheet and
+  // summed up in the 8am Claude brief. Problems (refunds, failed or cancelled payments, underpaid, unknown
+  // booking) and shop orders that need posting still email straight away. Set true to get them all again.
+  instantInfoEmails: false,
   // Your upload deadlines (alerts to you): RouteNote this many days before release; Bandcamp on release day.
   streamingUploadDays: 14,
   // Optional phone alerts: install the free ntfy app, subscribe to a secret topic name, put it here (e.g. 'rrr-jobs-x7k2p9').
@@ -271,7 +275,7 @@ function handleSignup_(p) {
     if (isFounderEmail_(p.email)) { updateRow_('Members', 'member_id', id, { stats_pro: 'yes', plan: 'Founding Artist' + (p.billing === 'yearly' ? ' (yearly)' : /months/.test(String(p.billing)) ? ' (every ' + p.billing + ')' : '') }); notify_('🌟 Founding Artist joined: ' + (p.artist || p.name), id + ' (' + (p.billing === 'yearly' ? 'yearly' : 'monthly') + ', first month free). Stats are included: find them on Songstats and put their artist ID in Members → songstats_artist_id.\n' + sheetUrl_()); }
     else notify_('Founder link used by someone not on the founder list: ' + (p.artist || p.name), (p.email || '') + ' signed up through a founder link but isn\'t in Settings → founder_emails. If they are an original RRR artist, add their email there and set Members → founder to yes; otherwise set it to no. Their first PayPal payment is free for a month either way.\n' + sheetUrl_());
   }
-  if (p.type === 'artist' && String(p.stats_pro) === 'yes') notify_('📈 Stats Pro sign-up: ' + (p.artist || p.name), 'Nothing to do: Claude handles this.\n\nMember ' + id + ' chose Stats Pro (Spotify link: ' + (p.stats_link || 'none given') + '). Once they have paid, Claude finds them on Songstats and switches their stats on.');
+  if (p.type === 'artist' && String(p.stats_pro) === 'yes' && SETTINGS.instantInfoEmails) notify_('📈 Stats Pro sign-up: ' + (p.artist || p.name), 'Nothing to do: Claude handles this.\n\nMember ' + id + ' chose Stats Pro (Spotify link: ' + (p.stats_link || 'none given') + '). Once they have paid, Claude finds them on Songstats and switches their stats on.');
   if (isDemo_(p.email)) award_(id, 'joined'); // real members get their joining points when the first payment arrives
   // Owner alert for every new sign-up (owner request 17 Oct 2026). Payment alerts still come separately.
   else try {
@@ -439,7 +443,7 @@ function handleBooking_(kind, p) {
       '\n\n✅ APPROVE: ' + rv + 'yes\n❌ REFUSE: ' + rv + 'no\n\nSheet: ' + sheetUrl_());
   } else {
     const label = { 'bandcamp-release': '💿 Bandcamp release', 'streaming-release': '🎧 streaming release', 'youtube-upload': '📺 YouTube premiere', 'merch-listing': '👕 merch listing' }[kind] || kind;
-    notify_('RRR ▸ ' + (p.artist || 'Someone') + ' booked a ' + label + ' – "' + title + '", ' + day,
+    if (SETTINGS.instantInfoEmails || !memberId) notify_('RRR ▸ ' + (p.artist || 'Someone') + ' booked a ' + label + ' – "' + title + '", ' + day,
       'Nothing to do now. If files are late, the reminders tell you.' + (memberId ? '' : '\n\n⚠️ This email address isn\'t a member – check who it is.') + '\n\nSheet: ' + sheetUrl_());
   }
   return text_('ok');
@@ -961,6 +965,8 @@ function paymentAlert_(p, memberId) {
   const what = String(items[0] || kind).replace(/^RRR\s+/, '').replace(/ Membership/, ' membership');
   const subject = bad ? '👉 Action: ⚠️ ' + kind + ' – ' + who + (st ? ' (' + st + ')' : '') : 'RRR ▸ 💰 ' + (amt ? money + ' from ' : '') + who + ' – ' + what;
   const addr = [p.address_name, p.address_street, p.address_city, p.address_zip, p.address_country].filter(Boolean).join(', ');
+  const needsPosting = !/^subscr_/.test(t) && !bandcamp && (t === 'cart' || (addr && Number(p.mc_shipping || 0) > 0));
+  if (!bad && !needsPosting && !SETTINGS.instantInfoEmails) { log_('payment (in 8am brief, no email)', kind + ' ' + money + ' ' + who); return; }
   const body = (bad ? 'WHAT TO DO: check it in PayPal. The member\'s account may lock if it isn\'t sorted.\n\n' : 'Nothing to do.' + (/stats pro/i.test(items.join(' ')) ? ' (Stats Pro: Claude adds their Songstats ID in the 8am brief.)' : '') + '\n\n') + kind + (amt ? '\nAmount: ' + money + (p.mc_fee ? ' (PayPal fee ' + p.mc_fee + ')' : '') : '') + (p.mc_shipping && Number(p.mc_shipping) ? '\nShipping paid: ' + p.mc_shipping + ' ' + cur : '') +
     '\nFrom: ' + who + (p.payer_email ? ' <' + p.payer_email + '>' : '') + (memberId ? '\nMember ID: ' + memberId : '') +
     (items.length ? '\n\nItems:\n- ' + items.join('\n- ') : '') + (addr ? '\n\nShip to: ' + addr : '') + (p.memo ? '\n\nNote from buyer: ' + p.memo : '') +
@@ -1768,7 +1774,7 @@ function confirmBooking_(bookingId, amount, txnId) {
           (moved ? '\n\nSomeone paid for ' + moved + ' just before you, so your booking moved to the next free day, ' + date + '. If that doesn\'t work for you, reply to this email and we\'ll move it or refund you.' : '') +
           '\n\nYour checklist and deadlines: ' + SETTINGS.siteUrl + 'release-policy.html\nBandcamp assets: at least ' + SETTINGS.bandcampAssetsDays + ' days before. Streaming assets: at least ' + SETTINGS.streamingAssetsDays + ' days before.\n\nRetro Reverb Records' });
     } catch (e) { log_('booking confirm email failed', String(e)); }
-    notify_('Booking PAID + confirmed: ' + kind + ' – ' + v[i][c('artist')] + ' – ' + title + ' – ' + date + (moved ? ' (moved from ' + moved + ')' : ''), 'Booking ' + bookingId + '\n' + sheetUrl_());
+    if (SETTINGS.instantInfoEmails) notify_('Booking PAID + confirmed: ' + kind + ' – ' + v[i][c('artist')] + ' – ' + title + ' – ' + date + (moved ? ' (moved from ' + moved + ')' : ''), 'Booking ' + bookingId + '\n' + sheetUrl_());
     return;
   }
   log_('payment for unknown booking', bookingId);
@@ -1811,7 +1817,7 @@ function approveClaimsNow() {
 function handleCardPayment_(p) {
   append_('Payments', { received: new Date(), txn_type: 'checkout', payment_status: p.status || 'COMPLETED', amount: p.amount, currency: 'EUR',
     item_name: p.item, payer_email: p.payer_email || '', member_id: p.custom || '', txn_id: p.order_id || '', subscr_id: '', raw: 'from website – check in PayPal' });
-  notify_('RRR one-off payment – ' + (p.amount || '') + ' EUR – ' + (p.item || ''), 'Order ' + (p.order_id || '') + '\nCheck it in PayPal.\n\n' + sheetUrl_());
+  if (SETTINGS.instantInfoEmails) notify_('RRR one-off payment – ' + (p.amount || '') + ' EUR – ' + (p.item || ''), 'Order ' + (p.order_id || '') + '\nCheck it in PayPal.\n\n' + sheetUrl_());
   return text_('ok');
 }
 

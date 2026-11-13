@@ -1,7 +1,13 @@
 {
- "updated": "2026-11-12",
+ "updated": "2026-11-13",
  "source": "https://retroreverbrecords.bandcamp.com",
  "releases": [
+  {
+   "title": "Cosmic Dread",
+   "artist": "Prince Alucard",
+   "url": "https://princealucard.bandcamp.com/album/cosmic-dread",
+   "image": "https://f4.bcbits.com/img/a0248530001_16.jpg"
+  },
   {
    "title": "RetroReverbRetribution Vol 3",
    "artist": "retroreverbrecords",
@@ -139,12 +145,6 @@
    "artist": "LLUVA",
    "url": "https://lluva.bandcamp.com/album/a-os-noventa",
    "image": "https://f4.bcbits.com/img/a2639486279_16.jpg"
-  },
-  {
-   "title": "Malphas",
-   "artist": "Prince Alucard",
-   "url": "https://princealucard.bandcamp.com/album/malphas",
-   "image": "https://f4.bcbits.com/img/a0605380170_16.jpg"
   }
  ],
  "merch": [

@@ -661,7 +661,7 @@ window.rrrSend = function(url, data, onProblem){
     box.querySelector('button').addEventListener('click', () => { box.innerHTML = iframeHtml + (openUrl ? `<a class="sp-open" href="${esc(openUrl)}" target="_blank" rel="noopener">Not playing? Open it in a new tab ↗</a>` : ''); });
   }
   const sp = $('#spotify-embed');
-  if (sp && C.spotifyPlaylistId) clickToLoad(sp, '▶ Play the RRR playlist here',
+  if (sp && C.spotifyPlaylistId) clickToLoad(sp, '▶ Play #Synthfam here',
     `<iframe title="RRR playlist on Spotify" src="https://open.spotify.com/embed/playlist/${esc(C.spotifyPlaylistId)}?utm_source=generator&theme=0" width="100%" height="380" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`,
     'https://open.spotify.com/playlist/' + C.spotifyPlaylistId);
   const gw = $('#groover-embed');

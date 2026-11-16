@@ -64,7 +64,13 @@ window.RRR_CONFIG = {
   // FOUNDING ARTISTS (original RRR artists invited by email with a link ending ?founder=1):
   // €2/month or €24/year for life with stats included, first month free, and these upload prices for life.
   // FREE TRIAL LINKS: retroreverbrecords.com/?trial=CODE#join gives the first month(s) free (PayPal trial, cancel any time, pay nothing).
-  trialCodes: { SYNTHTALK: 1 },
+  // EDEN-xxxxx: 30 codes handed out by Eden to artists, 3 months free, membership only (16 Nov 2026).
+  trialCodes: { SYNTHTALK: 1,
+    "EDEN-2BGH6": 3, "EDEN-3GNGV": 3, "EDEN-5P73J": 3, "EDEN-62VJG": 3, "EDEN-6A3KE": 3, "EDEN-762ZF": 3,
+    "EDEN-7ZV5R": 3, "EDEN-82F97": 3, "EDEN-89P5N": 3, "EDEN-8BQAZ": 3, "EDEN-9MZ67": 3, "EDEN-AE8AF": 3,
+    "EDEN-BA2VY": 3, "EDEN-CEW45": 3, "EDEN-EQ4NQ": 3, "EDEN-EQSDM": 3, "EDEN-JTDAF": 3, "EDEN-KKZMP": 3,
+    "EDEN-NNUTB": 3, "EDEN-NQTEJ": 3, "EDEN-P6PN7": 3, "EDEN-PNVGV": 3, "EDEN-R43CQ": 3, "EDEN-SCMGN": 3,
+    "EDEN-T7J7G": 3, "EDEN-TF48Q": 3, "EDEN-VNDEQ": 3, "EDEN-XRGF4": 3, "EDEN-YP5CU": 3, "EDEN-ZJ5TS": 3 },
   founder: { trialMonths: 1, fees: { single: 1.50, ep: 2.00, album: 2.50 } },
 
   // SELL YOUR MERCH WITH US

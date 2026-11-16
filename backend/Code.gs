@@ -87,7 +87,7 @@ const TABS = {
   Shows:        ['show_id','created','status','show_name','promoter','contact_name','email','member_id','repeat','day','date','start','length_min','timezone','stream_url','website','genres','description','clash','notes'],
   Giveaway:     ['received','giveaway','name','email','username','platform','newsletter','status'],
   RefundRequests: ['received','request_id','name','email','member_id','payment_for','payment_date','amount','paypal_txn','reason','description','status'],
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release','instagram','photo'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release','instagram','photo','trial_code','trial_ends'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
@@ -269,6 +269,12 @@ function handleSignup_(p) {
     billing: p.type === 'artist' && ['yearly', '3 months', '6 months', '9 months'].indexOf(p.billing) >= 0 ? p.billing : 'monthly',
     paypal_payout: p.type === 'artist' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(p.payout_paypal || '').trim()) ? String(p.payout_paypal).trim().toLowerCase() : ''
   });
+  // Free-trial code (e.g. EDEN-xxxxx, 3 months): remember it so the trial-ending warning goes out a week before the first payment
+  const trialCode = String(p.trial_code || '').toUpperCase().trim(), trialMonths = Math.round(Number(p.trial_months) || 0);
+  if (/^[A-Z0-9_-]{3,20}$/.test(trialCode) && trialMonths >= 1 && trialMonths <= 12 && p.founder !== 'yes') {
+    const ends = new Date(); ends.setMonth(ends.getMonth() + trialMonths);
+    updateRow_('Members', 'member_id', id, { trial_code: trialCode, trial_ends: ends });
+  }
   let photoUrl = '';
   try { photoUrl = saveMemberPhoto_(id, p.photo_data); if (photoUrl) updateRow_('Members', 'member_id', id, { photo: photoUrl }); } catch (e) { log_('member photo failed', String(e)); }
   if (p.type === 'artist' && p.founder === 'yes') {
@@ -286,6 +292,7 @@ function handleSignup_(p) {
       '\nInstagram: ' + (cleanHandle_(p.instagram) ? '@' + cleanHandle_(p.instagram) : 'not given') +
       '\nPhoto/logo: ' + (photoUrl ? 'yes – ' + photoUrl : 'not sent (the welcome video uses their name)') +
       (p.bandcamp ? '\nBandcamp: ' + p.bandcamp : '') + (p.referred_by ? '\nInvited by: ' + p.referred_by : '') +
+      (p.trial_code ? '\nFree-trial code: ' + String(p.trial_code).toUpperCase() + ' (' + (Number(p.trial_months) || 1) + ' months free)' : '') +
       '\n\nOpen the sheet: ' + sheetUrl_());
   } catch (e) { log_('new member alert failed', String(e)); }
 
@@ -759,6 +766,7 @@ function daily() {
   if (typeof submitDaily_ === 'function') submitDaily_(); // RRR Submit (Submit.gs)
   try { announceListings_(); } catch (e) { log_('listing announcements failed', String(e)); }
   try { onboardingEmails_(); } catch (e) { log_('onboarding emails failed', String(e)); }
+  try { trialEndingEmails_(); } catch (e) { log_('trial ending emails failed', String(e)); }
   morningJobs_();
   expireUnpaidBookings_();
   paymentChase_();
@@ -2819,6 +2827,39 @@ function onboardingEmails_() {
         done.add(m.member_id + '|' + st.key);
       } catch (e) { log_('onboarding email failed', m.member_id + ' ' + st.key + ' ' + String(e)); }
     });
+  });
+}
+
+// FREE-TRIAL ENDING WARNING (owner request 16 Nov 2026): about a week before a trial code's free months end,
+// the member gets a ⚠️ email saying when payments start, how to cancel, and asking what to improve. Sent once.
+// Prices: keep in step with assets/config.js prices.artist / prices.fan.
+const TRIAL_PRICES_ = { artist: 2, fan: 1 };
+function trialEndingEmails_() {
+  const now = Date.now(), day = 86400000, tz = Session.getScriptTimeZone();
+  const done = new Set(rows_('Onboarding').filter(r => r.step === 'trial-warning').map(r => r.member_id));
+  rows_('Members').forEach(m => {
+    if (!m.member_id || !m.email || !m.trial_ends || isDemo_(m.email) || done.has(m.member_id)) return;
+    if (!/^active/i.test(String(m.status)) || standing_(m) === 'removed') return; // cancelled during the trial: nothing to warn about
+    const ends = new Date(m.trial_ends), left = (ends.getTime() - now) / day;
+    if (!(left > 0 && left <= 8)) return;
+    const when = Utilities.formatDate(ends, tz, 'd MMMM yyyy'), isA = m.type === 'artist', base = isA ? TRIAL_PRICES_.artist : TRIAL_PRICES_.fan;
+    const b = String(m.billing || 'monthly'), n = Number((b.match(/^(\d+) months/) || [])[1]) || 0;
+    const price = b === 'yearly' ? '€' + (base * 12) + ' a year' : n ? '€' + (base * n) + ' every ' + n + ' months' : '€' + base.toFixed(2) + ' a month';
+    const dash = SETTINGS.siteUrl + 'member.html?id=' + m.member_id;
+    try {
+      MailApp.sendEmail({ to: m.email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail,
+        subject: '⚠️ Your free RRR trial ends on ' + when,
+        htmlBody: '<div style="font:15px/1.55 Arial,sans-serif;color:#222;max-width:560px"><p>Hi ' + (m.artist || m.name || '') + ',</p>' +
+          '<p><b>⚠️ Your free months with RRR end on ' + when + '.</b> We hope you\'ve enjoyed being part of the family.</p>' +
+          '<p><b>Enjoyed it and want to stay?</b> You don\'t need to do anything. PayPal starts your membership at <b>' + price + '</b> on ' + when + ', and you keep your points, belt and everything you\'ve built up.' +
+          (isA ? ' Releases and Stats Pro are still paid separately, as before.' : '') + '</p>' +
+          '<p><b>Not for you?</b> Cancel before ' + when + ' and you pay nothing: in PayPal go to Settings → Payments → <a href="https://www.paypal.com/myaccount/autopay/">Manage automatic payments</a> → Retro Reverb Records → Cancel.</p>' +
+          '<p><b>Help us make RRR better</b> (whether you stay or not). Just reply to this email:</p><ol>' +
+          '<li>What did you enjoy most?</li><li>What would you change, or what\'s missing?</li><li>How likely are you to recommend RRR to another artist, from 0 to 10?</li></ol>' +
+          '<p>Your dashboard: <a href="' + dash + '">' + dash + '</a></p>' +
+          '<p>Thank you for giving us a try.<br>Retro Reverb Records<br><span style="color:#888">Welcome to the family</span></p></div>' });
+      append_('Onboarding', { member_id: m.member_id, step: 'trial-warning', sent: new Date(), email: m.email });
+    } catch (e) { log_('trial warning email failed', m.member_id + ' ' + String(e)); }
   });
 }
 

@@ -65,8 +65,9 @@ window.RRR_CONFIG = {
   // €2/month or €24/year for life with stats included, first month free, and these upload prices for life.
   // FREE TRIAL LINKS: retroreverbrecords.com/?trial=CODE#join gives the first month(s) free (PayPal trial, cancel any time, pay nothing).
   // EDEN-xxxxx: 30 codes handed out by Eden to artists, 3 months free, membership only (16 Nov 2026).
-  // PANDA: Playlist Panda partner link, 3 months free (20 Nov 2026, DRAFT branch).
-  trialCodes: { SYNTHTALK: 1, PANDA: 3,
+  // PANDA: Playlist Panda partner link, 3 months free (20 Nov 2026, live 21 Nov).
+  // BLACKFRIDAY: Black Friday 2026 offer, 3 months free, 21–30 Nov 2026 (remove after 30 Nov).
+  trialCodes: { SYNTHTALK: 1, PANDA: 3, BLACKFRIDAY: 3,
     "EDEN-2BGH6": 3, "EDEN-3GNGV": 3, "EDEN-5P73J": 3, "EDEN-62VJG": 3, "EDEN-6A3KE": 3, "EDEN-762ZF": 3,
     "EDEN-7ZV5R": 3, "EDEN-82F97": 3, "EDEN-89P5N": 3, "EDEN-8BQAZ": 3, "EDEN-9MZ67": 3, "EDEN-AE8AF": 3,
     "EDEN-BA2VY": 3, "EDEN-CEW45": 3, "EDEN-EQ4NQ": 3, "EDEN-EQSDM": 3, "EDEN-JTDAF": 3, "EDEN-KKZMP": 3,

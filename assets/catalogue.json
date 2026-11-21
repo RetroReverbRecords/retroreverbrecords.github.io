@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-20",
+ "updated": "2026-11-21",
  "source": "https://retroreverbrecords.bandcamp.com",
  "releases": [
   {
@@ -31,12 +31,6 @@
    "artist": "LLUVA",
    "url": "https://lluva.bandcamp.com/album/lluva-lbum",
    "image": "https://f4.bcbits.com/img/a0031697369_16.jpg"
-  },
-  {
-   "title": "Two Roads, One Fire ( Feat Elena Canti)",
-   "artist": "Ettore Bandel",
-   "url": "https://ettorebandel.bandcamp.com/album/two-roads-one-fire-feat-elena-canti",
-   "image": "https://f4.bcbits.com/img/a1564428725_16.jpg"
   },
   {
    "title": "Maldigo tu nombre",
@@ -145,6 +139,12 @@
    "artist": "LLUVA",
    "url": "https://lluva.bandcamp.com/album/a-os-noventa",
    "image": "https://f4.bcbits.com/img/a2639486279_16.jpg"
+  },
+  {
+   "title": "Malphas",
+   "artist": "Prince Alucard",
+   "url": "https://princealucard.bandcamp.com/album/malphas",
+   "image": "https://f4.bcbits.com/img/a0605380170_16.jpg"
   }
  ],
  "merch": [

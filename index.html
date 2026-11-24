@@ -34,7 +34,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261124a">
+<link rel="stylesheet" href="assets/site.css?v=20261124b">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -75,26 +75,22 @@
   <!-- BLACK FRIDAY 2026 ribbon: shows until Mon 30 Nov 23:59 Italy time, then hides itself. Delete after 1 Dec. -->
   <div class="bf-ribbon" id="bf-ribbon" data-ends="2026-11-30T23:59:59+01:00" hidden>
     <div class="wrap">
-      <p class="bf-tag">Black Friday <span class="bf-count" id="bf-count">ends Mon 30 Nov</span></p>
-      <p class="bf-offer"><b>3 months free</b> + 50% off your first 2 releases + 2 extra promo posts</p>
-      <a class="btn primary bf-btn" href="/?trial=BLACKFRIDAY#join">Claim 3 months free</a>
+      <p class="bf-offer"><b>Black Friday:</b> 3 months free · <span class="bf-count" id="bf-count">ends Mon 30 Nov</span></p>
+      <a class="btn primary bf-btn" href="/?trial=BLACKFRIDAY#join">Claim</a>
     </div>
   </div>
-  <script>(function(){var r=document.getElementById('bf-ribbon');if(!r)return;var end=new Date(r.getAttribute('data-ends')).getTime(),c=document.getElementById('bf-count');function t(){var ms=end-Date.now();if(ms<=0){r.hidden=true;return false}r.hidden=false;var d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);c.textContent='ends in '+(d?d+'d ':'')+h+'h '+m+'m';return true}if(t())setInterval(t,30000)})();</script>
+  <script>(function(){var r=document.getElementById('bf-ribbon');if(!r)return;var end=new Date(r.getAttribute('data-ends')).getTime(),c=document.getElementById('bf-count');function t(){var ms=end-Date.now();if(ms<=0){r.hidden=true;return false}r.hidden=false;var d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);c.textContent='ends in '+(d?d+' days':h+'h '+m+'m');return true}if(t())setInterval(t,30000)})();</script>
 
   <div class="hero">
     <div class="horizon" aria-hidden="true"></div>
     <div class="floor" aria-hidden="true"></div>
     <div class="wrap">
       <h1>Release on a real label. <em>Keep 100%</em> of your royalties.</h1>
-      <p class="labelline">Bandcamp, Spotify, Apple Music and more · A label since 2018</p>
-      <p class="lede">Send your files, you're live in 3 weeks. We do the upload.</p>
-      <p class="hook-price"><b><span data-price="artist">€2.00</span> a month. Cancel any time.</b> <span>That's less than one pay-as-you-go release (<span data-price="paygSingle">€4.50</span>).</span></p>
+      <p class="lede">Bandcamp, Spotify and more. Live in 3 weeks. <span data-price="artist">€2.00</span> a month, cancel any time.</p>
       <div class="ctas">
         <a class="btn primary btn-big" href="release.html">Release my music</a>
         <a class="btn ghost btn-big" href="#membership">See what's included</a>
       </div>
-      <p class="proof">Home of The Bandcamp Hour · 400+ artists played</p>
       <div class="screen screen-small">
         <video src="assets/rrr-spin.mp4" poster="assets/rrr-spin-poster.jpg" autoplay muted playsinline preload="auto" aria-label="Retro Reverb Records logo animation"></video>
       </div>

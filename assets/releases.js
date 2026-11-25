@@ -9,6 +9,7 @@ window.RRR_RELEASES = {
     // { title: "Release title", artist: "Artist", date: "2026-11-06", format: "Single", where: "Bandcamp + streaming", url: "" },
     { title: "Ya Leil: The Machine Remembers", artist: "Cybertronix", date: "2026-10-23", format: "Single", where: "Bandcamp + streaming", url: "https://cybertronix.bandcamp.com/album/la-leil-the-machine-remembers", image: "assets/release-ya-leil-600.jpg" },
     { title: "Retro Reverb Retribution Vol. 3: Halloween", artist: "Various artists", date: "2026-10-30", format: "Compilation", where: "Bandcamp", url: "" },
+    { title: "Hallucinations", artist: "Ettore Bandel", date: "2026-11-27", format: "EP", where: "Bandcamp + streaming", url: "", image: "assets/release-hallucinations-600.jpg" },
   ],
   latest: [
     { title: "LLUVA (Álbum)", artist: "LLUVA", format: "Album", url: "https://lluva.bandcamp.com/album/lluva-lbum" },

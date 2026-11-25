@@ -1020,3 +1020,16 @@ details.pause[open] summary{margin-bottom:14px}
 /* Free submissions in the services directory (25 Nov 2026) */
 .tag.tag-free{background:#0f3b2a;border-color:#2ee59d;color:#7dffc8}
 .chip.chip-free[aria-pressed="false"]{border-color:#2ee59d;color:#7dffc8}
+
+/* Compare the value, simplified (fix 5, 25 Nov 2026) */
+#compare h3{font-family:var(--body);text-transform:none;letter-spacing:-.01em;font-size:clamp(24px,3vw,32px);margin:6px 0 14px}
+#compare .cmp td.us{color:#fff;font-weight:600}
+.yousave{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+.yousave>div{display:flex;flex-direction:column;gap:4px;padding:18px 20px;border:1px solid var(--line);border-radius:10px;text-align:center}
+.yousave span{color:var(--muted);font-size:14px}
+.yousave b{font:700 30px var(--body);color:#fff}
+.yousave .us{border:2px solid var(--pink);box-shadow:0 0 22px rgba(255,47,168,.25)}
+.yousave .us b{color:var(--pink)}
+.yousave small{color:var(--muted)}
+.cmp-note{margin-top:14px}
+@media (max-width:600px){.yousave{grid-template-columns:1fr}}

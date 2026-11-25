@@ -1045,3 +1045,17 @@ details.pause[open] summary{margin-bottom:14px}
 .navdrop-menu{position:absolute;top:calc(100% + 8px);left:0;z-index:50;display:flex;flex-direction:column;min-width:240px;padding:8px;background:#120a1c;border:1px solid var(--pink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .navdrop-menu a{padding:10px 12px;border-radius:6px;white-space:nowrap}
 .navdrop-menu a:hover,.navdrop-menu a:focus-visible{background:rgba(255,47,168,.15);color:#fff}
+
+/* Stronger together, 3 steps (fix 8, 25 Nov 2026) */
+.steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.steps3 .panel{padding:22px}
+.steps3 h3{font-family:var(--body);text-transform:none;letter-spacing:0;font-size:19px;margin:10px 0 6px}
+.steps3 p{margin:0;color:var(--muted)}
+.stepn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--pink);color:#fff;font:700 16px var(--body)}
+.together-if{margin:20px 0 0;font-size:18px;color:#fff;text-align:center}
+.heardon{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 14px;margin-top:22px}
+.heardon .label{width:100%;text-align:center}
+.heardon a{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;color:var(--text);text-decoration:none;font-size:14px}
+.heardon a:hover{border-color:var(--pink)}
+.heardon img{border-radius:50%;object-fit:cover}
+@media (max-width:760px){.steps3{grid-template-columns:1fr}}

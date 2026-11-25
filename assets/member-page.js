@@ -74,7 +74,8 @@
   $('#lk-id').value = id && id !== 'DEMO' ? id : '';
   $('#lookup').addEventListener('submit', e => {
     e.preventDefault();
-    const v = $('#lk-id').value.trim().toUpperCase();
+    let v = $('#lk-id').value.trim().toUpperCase().replace(/\s+/g, '');
+    if (v && !/^RRR-/.test(v)) v = 'RRR-' + v.replace(/^RRR/, '');
     if (v) location.search = '?id=' + encodeURIComponent(v);
   });
 
@@ -94,6 +95,7 @@
     const bar = $('#me-bar'); if (bar) { bar.hidden = false; bar.innerHTML = `Logged in as <b>${esc(m.name || m.id)}</b> on this device. <button type="button" class="linkbtn" id="logout">Log out</button>`;
       $('#logout').addEventListener('click', () => { try { ['rrr-me', 'rrr-member-id', 'rrr-me-email'].forEach(k => localStorage.removeItem(k)); } catch (e) {} location.href = 'member.html'; }); }
     const lg = $('#login'); if (lg) lg.hidden = true;
+    document.querySelectorAll('.or-id, #lookup').forEach(x => x.hidden = true);
   }
   const lg = $('#login');
   if (lg) {

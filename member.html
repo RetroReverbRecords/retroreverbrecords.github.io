@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261125f">
+<link rel="stylesheet" href="assets/site.css?v=20261125g">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -80,17 +80,20 @@
       <p class="label">Member dashboard</p>
       <h1>Your <em>progress</em></h1>
       <p class="lede">Achievements, rank, releases, social posts and stats, all in one place.</p>
+      <form class="login-box login-main" id="login" novalidate>
+        <label for="lg-email"><b>Log in with your email</b></label>
+        <input id="lg-email" type="email" placeholder="the email you joined with" autocomplete="email" required>
+        <button class="btn primary" type="submit">Email me a log-in link</button>
+        <p class="small" id="lg-status" role="status"></p>
+        <p class="small">Open the link on this phone or computer and you'll <b>stay logged in</b> here until you press Log out.</p>
+      </form>
+      <p class="small or-id">Or use your member ID (it starts with RRR-):</p>
       <form class="lookup" id="lookup" novalidate>
         <label for="lk-id" class="small">Member ID</label>
         <input id="lk-id" type="text" placeholder="RRR-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
-        <button class="btn primary" type="submit">Open</button>
+        <button class="btn ghost" type="submit">Open</button>
       </form>
-      <form class="login-box" id="login" novalidate>
-        <label for="lg-email" class="small">Lost your ID? Log in with your email</label>
-        <input id="lg-email" type="email" placeholder="the email you joined with" autocomplete="email" required>
-        <button class="btn ghost" type="submit">Email me a log-in link</button>
-        <p class="small" id="lg-status" role="status"></p>
-      </form>
+      
       <p class="small me-bar" id="me-bar" hidden></p>
       <div class="install" id="install" hidden>
         <p><strong>Get the RRR app.</strong> Add it to your home screen: it opens straight to your dashboard.</p>
@@ -145,7 +148,7 @@
 <script src="assets/levels.js?v=20261012a"></script>
 <script src="assets/site.js?v=20261116a"></script>
 <script src="assets/cards.js?v=20261013b"></script>
-<script src="assets/member-page.js?v=20261022a"></script>
+<script src="assets/member-page.js?v=20261125a"></script>
 <script src="assets/navdrop.js" defer></script>
 </body>
 </html>

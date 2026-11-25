@@ -1063,3 +1063,10 @@ details.pause[open] summary{margin-bottom:14px}
 /* Partner logos (25 Nov 2026) */
 .sv-logo{display:block;max-width:220px;height:auto;margin:0 0 10px}
 .partner-logo{display:block;max-width:320px;width:100%;height:auto;margin:0 0 16px}
+
+/* Member log-in: email first (25 Nov 2026) */
+.login-main{display:flex;flex-direction:column;gap:10px;max-width:520px;margin-top:10px}
+.login-main label{font-size:17px;color:#fff}
+.or-id{margin:22px 0 6px}
+.login-main label,.login-main .btn{align-self:flex-start;text-align:left}
+.lookup .btn.ghost{background:transparent}

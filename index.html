@@ -34,7 +34,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261124d">
+<link rel="stylesheet" href="assets/site.css?v=20261125a">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -263,60 +263,48 @@
       <div class="side-head">
         <span class="tag">C</span>
         <h2>Membership</h2>
-        <p>Two ways in: artist or fan. Artists get their own Synth Stars card. Fans collect them.</p>
-        <p class="lead"><b>More than a release service: a full-service community.</b> RRR keeps working for you between releases too. Stay in touch with fans, keep your music moving and the algorithms ticking over outside your release cycle, stay connected and supported, and support other artists in return.</p>
+        <p>Pick how you want to release. Every option keeps 100% of your royalties.</p>
       </div>
 
-      <div class="plans">
-        <article class="panel plan feature">
-          <div>
-            <p class="label">For artists</p>
-            <h3>Artist Membership</h3>
-          </div>
-          <div class="price"><b class="num" data-price="artist">€2.00</b><span>per month</span></div>
-          <p class="small">Pay monthly, or every 3, 6, 9 or 12 months in one go. Same price.</p>
+      <div class="pricecards">
+        <article class="pcard">
+          <p class="pc-name">Pay as you go</p>
+          <p class="pc-price"><b data-price="paygSingle">€4.50</b><span>per release</span></p>
+          <p class="pc-note">EP <span data-price="paygEp">€5.50</span> · album <span data-price="paygAlbum">€6.50</span> · no subscription</p>
           <ul class="ticks">
-            <li><b>Releases included:</b> unlimited streaming releases, plus 1 Bandcamp label release a month, under the RRR label</li>
-            <li>Membership of the RRR Community, a unique artist-focused community</li>
-            <li>Book promotional posts on community social media</li>
-            <li>Community-supported promotion through missions and engagement</li>
-            <li>YouTube video uploads to the RRR Community Channel, <span data-price="youtube">€1.00</span> per video</li>
-            <li>Community rewards, achievements, levels and recognition</li>
-            <li>Collaborate with artists, creators, labels and promoters</li>
-            <li>Your own digital Synth Stars card with your artist profile and stats; printed copies available to order plus postage</li>
+            <li>One release on Bandcamp, streaming or both</li>
+            <li>1 release post on the RRR socials</li>
+            <li>Considered for The Bandcamp Hour</li>
           </ul>
+          <a class="btn ghost" href="release.html#payg">Book one release</a>
         </article>
-        <article class="panel plan">
-          <div>
-            <p class="label">For fans</p>
-            <h3>Fan Membership</h3>
-          </div>
-          <div class="price"><b class="num" data-price="fan">€1.00</b><span>per month</span></div>
+        <article class="pcard pc-best">
+          <p class="pc-badge">Best value</p>
+          <p class="pc-name">Artist + Stats Pro</p>
+          <p class="pc-price"><b>€3.00</b><span>per month</span></p>
+          <p class="pc-note">Songstats alone costs from €11.99 a month</p>
           <ul class="ticks">
-            <li>Direct interaction with artists</li>
-            <li>Access to community events and activities</li>
-            <li>Eligible for Fan of the Month rewards</li>
-            <li>Community rewards and recognition programmes</li>
-            <li>Support artists and earn community points</li>
-            <li>Collect your favourite artists' Synth Stars cards: digital, or printed plus postage</li>
+            <li><b>Everything in Artist</b></li>
+            <li>Daily Spotify, playlist, YouTube, TikTok and radio stats</li>
+            <li>Weekly stats report and new-playlist alerts</li>
           </ul>
+          <a class="btn primary" href="#join" data-statspro="1">Join with Stats Pro</a>
+        </article>
+        <article class="pcard">
+          <p class="pc-name">Artist</p>
+          <p class="pc-price"><b data-price="artist">€2.00</b><span>per month</span></p>
+          <p class="pc-note">Cancel any time</p>
+          <ul class="ticks">
+            <li>Unlimited streaming releases</li>
+            <li>1 Bandcamp label release a month</li>
+            <li>2 social posts a month</li>
+            <li>Community, rewards and your Synth Stars card</li>
+          </ul>
+          <a class="btn ghost" href="#join" data-statspro="0">Join</a>
         </article>
       </div>
-
-      <div class="panel statspro">
-        <div>
-          <p class="label">Artist add-on</p>
-          <h3>Stats Pro <span class="price-inline">+<b class="num" data-price="statsPro">€1.00</b>/month</span></h3>
-          <p>Your numbers in one place, updated every day on your member dashboard, plus a weekly report. Powered by Songstats, where the same kind of data costs from <b>€11.99 a month</b> on its own (€19.99 with radio). With RRR it's <b data-price="statsPro">€1.00</b>.</p>
-        </div>
-        <ul class="ticks">
-          <li>Spotify monthly listeners and streams, YouTube and TikTok views</li>
-          <li>Radio plays and the playlists you're on, with an alert when you're added to a new one</li>
-          <li>Growth over 7 and 28 days, and a chart that builds over time</li>
-          <li>Weekly stats email, plus milestone badges and points (1k, 5k, 10k listeners…)</li>
-        </ul>
-        <p class="small">Stats run while your membership is active. If you pause or cancel, they stop until you're back.</p>
-      </div>
+      <p class="pc-foot">Fan membership <span data-price="fan">€1.00</span> a month · Pay monthly or every 3, 6, 9 or 12 months, same price · Members' extra Bandcamp releases: single <span data-price="single">€2.00</span>, EP <span data-price="ep">€2.50</span>, album <span data-price="album">€3.00</span></p>
+      <script>document.addEventListener('click',function(e){var a=e.target.closest('[data-statspro]');if(!a)return;var c=document.getElementById('f-statspro'),t=document.getElementById('type-artist');if(t&&!t.checked){t.checked=true;t.dispatchEvent(new Event('change',{bubbles:true}))}if(c){c.checked=a.getAttribute('data-statspro')==='1';c.dispatchEvent(new Event('change',{bubbles:true}))}});</script>
 
       <div class="panel showcase" id="stats-showcase">
         <div class="showcase-head">
@@ -341,10 +329,9 @@
         <p><a class="btn ghost" href="history.html#numbers">See all our numbers</a></p>
       </div>
 
-      <div class="panel pause">
+      <details class="panel pause">
+        <summary><b>Taking a break?</b> Keep your rank and points for <span data-price="supporterArtist">€1.00</span> a month</summary>
         <div>
-          <p class="label">Taking a break?</p>
-          <h3>Community Supporter Status</h3>
           <div class="rates">
             <div><span class="small">Artists</span><b class="num"><span data-price="supporterArtist">€1.00</span>/mo</b></div>
             <div><span class="small">Fans</span><b class="num"><span data-price="supporterFan">€0.50</span>/mo</b></div>
@@ -359,7 +346,7 @@
           </div>
           <p class="small" style="grid-column:1/-1">Reactivate your full membership at any time.</p>
         </div>
-      </div>
+      </details>
     </div>
   </section>
 
@@ -368,25 +355,7 @@
       <div class="side-head">
         <span class="tag">D</span>
         <h2>Releases</h2>
-        <p>A label-backed release on Bandcamp, streaming platforms, or both. You pay a one-off upload fee and keep 100% of your royalties.</p>
-      </div>
-
-      <div class="panel tablewrap">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Format</th>
-              <th scope="col">Upload fee<small>Bandcamp, streaming or both: same price</small></th>
-              <th scope="col">What's included</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><th scope="row">Single</th><td class="price num" data-price="single">€2.00</td><td rowspan="3"><b>We do the upload for you.</b> Bandcamp: listed on your page and the RRR catalogue, artist page edits, and you can check your release on your page before it goes live. Streaming: Spotify, Apple Music and more through the RRR account. Community promotion on both.</td></tr>
-            <tr><th scope="row">EP <small class="tracks">2–5 tracks</small></th><td class="price num" data-price="ep">€2.50</td></tr>
-            <tr><th scope="row">Album <small class="tracks">6+ tracks</small></th><td class="price num" data-price="album">€3.00</td></tr>
-            <tr><th scope="row">Royalties</th><td colspan="2">100% to you. Bandcamp sales are paid on to your PayPal every month (minus only Bandcamp and PayPal charges); streaming royalties are paid to you through RouteNote.</td></tr>
-          </tbody>
-        </table>
+        <p>We do the upload for you, under the Retro Reverb Records label. You keep 100% of your royalties: Bandcamp sales paid to your PayPal every month (minus only Bandcamp and PayPal charges), streaming royalties through RouteNote.</p>
       </div>
 
       <div class="panel compare" id="compare">

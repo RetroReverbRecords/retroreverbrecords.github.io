@@ -1059,3 +1059,7 @@ details.pause[open] summary{margin-bottom:14px}
 .heardon a:hover{border-color:var(--pink)}
 .heardon img{border-radius:50%;object-fit:cover}
 @media (max-width:760px){.steps3{grid-template-columns:1fr}}
+
+/* Partner logos (25 Nov 2026) */
+.sv-logo{display:block;max-width:220px;height:auto;margin:0 0 10px}
+.partner-logo{display:block;max-width:320px;width:100%;height:auto;margin:0 0 16px}

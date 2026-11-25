@@ -7,6 +7,9 @@
   const safeUrl = u => /^https?:\/\//i.test(String(u || '')) ? String(u) : '';
   const stars = n => { const r = Math.round(n); return '<span class="sv-stars" aria-label="' + n + ' out of 5">' + '★'.repeat(r) + '<span class="off">' + '★'.repeat(5 - r) + '</span></span>'; };
   const FREE = 'Free submissions';
+  /* Partner logos shown on directory cards (files supplied by the partner) */
+  const LOGOS = { 'playlist panda': 'assets/partners/playlist-panda-logo.png' };
+  const logoFor = n => LOGOS[String(n || '').trim().toLowerCase()];
   let all = [], filter = /[?&]show=free\b|#free\b/.test(location.search + location.hash) ? FREE : '';
   if (filter) document.querySelectorAll('.sv-filter .chip').forEach(x => x.setAttribute('aria-pressed', x.dataset.f === FREE));
   function draw(){
@@ -15,7 +18,7 @@
     list.innerHTML = show.map(p => {
       const links = [p.website && safeUrl(p.website) ? '<a href="' + esc(p.website) + '" target="_blank" rel="noopener nofollow">Website</a>' : '', p.social && safeUrl(p.social) ? '<a href="' + esc(p.social) + '" target="_blank" rel="noopener nofollow">Socials</a>' : ''].filter(Boolean).join(' · ');
       const rv = p.reviews.slice(0, 5).map(r => '<li>' + stars(r.stars) + ' <b>' + esc(r.name) + '</b>' + (r.comment ? '<br><span>' + esc(r.comment) + '</span>' : '') + '</li>').join('');
-      return '<article class="panel sv-card"><header><h3>' + esc(p.name) + '</h3>' + (p.count ? '<p class="sv-rating">' + stars(p.rating) + ' <b>' + p.rating + '</b> (' + p.count + (p.count === 1 ? ' review' : ' reviews') + ')</p>' : '<p class="sv-rating small">No reviews yet</p>') + '</header>' +
+      return '<article class="panel sv-card"><header>' + (logoFor(p.name) ? '<img class="sv-logo" src="' + logoFor(p.name) + '" alt="' + esc(p.name) + ' logo" loading="lazy">' : '') + '<h3>' + esc(p.name) + '</h3>' + (p.count ? '<p class="sv-rating">' + stars(p.rating) + ' <b>' + p.rating + '</b> (' + p.count + (p.count === 1 ? ' review' : ' reviews') + ')</p>' : '<p class="sv-rating small">No reviews yet</p>') + '</header>' +
         '<p class="sv-tags">' + p.services.map(s => s === FREE ? '<span class="tag tag-free">Free to submit · no payment</span>' : '<span class="tag">' + esc(s) + '</span>').join('') + (p.country ? '<span class="small"> · ' + esc(p.country) + '</span>' : '') + '</p>' +
         (p.genres ? '<p class="small"><b>Genres:</b> ' + esc(p.genres) + '</p>' : '') + '<p>' + esc(p.description) + '</p>' +
         (p.prices && p.services.indexOf(FREE) < 0 ? '<p class="small"><b>Prices:</b> ' + esc(p.prices) + '</p>' : '') + (links ? '<p class="small">' + links + '</p>' : '') +

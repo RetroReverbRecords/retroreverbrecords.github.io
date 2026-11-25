@@ -1033,3 +1033,15 @@ details.pause[open] summary{margin-bottom:14px}
 .yousave small{color:var(--muted)}
 .cmp-note{margin-top:14px}
 @media (max-width:600px){.yousave{grid-template-columns:1fr}}
+
+/* Top menu: Directory dropdown (fix 6, 25 Nov 2026) */
+.navdrop{position:relative;display:inline-block}
+.navdrop>summary{list-style:none;cursor:pointer;color:var(--muted);font:500 12px var(--head);letter-spacing:.12em;text-transform:uppercase}
+.navdrop>summary:hover{color:var(--pink);text-shadow:var(--glow-pink)}
+@media (max-width:900px){.navdrop>summary{font-size:11px;letter-spacing:.1em}}
+.navdrop>summary::-webkit-details-marker{display:none}
+.navdrop>summary::after{content:" ▾";font-size:.8em}
+.navdrop[open]>summary{color:var(--pink)}
+.navdrop-menu{position:absolute;top:calc(100% + 8px);left:0;z-index:50;display:flex;flex-direction:column;min-width:240px;padding:8px;background:#120a1c;border:1px solid var(--pink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.navdrop-menu a{padding:10px 12px;border-radius:6px;white-space:nowrap}
+.navdrop-menu a:hover,.navdrop-menu a:focus-visible{background:rgba(255,47,168,.15);color:#fff}

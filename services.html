@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261021d">
+<link rel="stylesheet" href="assets/site.css?v=20261125b">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -73,7 +73,7 @@
     <div class="wrap">
       <p class="label">Services directory</p>
       <h1>Find a <em>pro</em> for your release</h1>
-      <p class="lede">Mixing, mastering, production, artwork, video, marketing and promotion from people who know synthwave, darksynth and retrowave. Browse, read reviews from real customers, and contact them directly.</p>
+      <p class="lede">Mixing, mastering, production, artwork, video, promotion and <b>free submission opportunities</b> from people who know synthwave, darksynth and retrowave. Browse, read reviews from real customers, and contact them directly.</p>
     </div>
   </div>
   <section class="side">
@@ -81,6 +81,7 @@
       <p class="note sv-note"><b>A directory only.</b> Providers listed here are independent businesses, not part of RRR. RRR doesn't endorse, guarantee or take part in any service listed here, and <b>no provider can guarantee results</b> such as streams, sales, followers or playlist places. Choosing a provider is your own decision: check their work and reviews, and agree the price and what you get directly with them before you pay. RRR accepts no liability for any provider's work, results, prices or payments (<a href="terms.html#t10">terms</a>).</p>
       <div class="sv-filter" role="group" aria-label="Filter by service">
         <button type="button" class="chip" data-f="" aria-pressed="true">All</button>
+        <button type="button" class="chip chip-free" data-f="Free submissions" aria-pressed="false">Free to submit</button>
         <button type="button" class="chip" data-f="Mixing" aria-pressed="false">Mixing</button>
         <button type="button" class="chip" data-f="Mastering" aria-pressed="false">Mastering</button>
         <button type="button" class="chip" data-f="Production" aria-pressed="false">Production</button>
@@ -120,7 +121,7 @@
   <section class="side" id="list-yours">
     <div class="wrap">
       <h2>List your service, free</h2>
-      <p class="small">For mixing and mastering engineers, producers, artwork designers, video makers and music marketing services. <b>Promoters, radio shows and playlists:</b> join <a href="submit.html#curators-join">RRR Submit</a> instead, where you're paid to review tracks.</p>
+      <p class="small">For mixing and mastering engineers, producers, artwork designers, video makers and music marketing services. <b>Podcasts, radio shows, playlists and blogs that never charge artists:</b> tick <b>Free submissions</b> and use the description for your submission guidelines (genres, what you're looking for, how to send). We show you to artists with a <b>Free to submit</b> badge. <b>Paid reviews</b> go through <a href="submit.html">RRR Submit</a> instead, where curators are paid per answer.</p>
       <p class="small">Listed providers are welcome in the RRR Discord with a <b>Service Provider</b> badge. Points, belts and member rewards come with <a href="index.html#membership">RRR membership</a>, if you'd like to join too.</p>
       <form class="panel booking-form" id="sp-form" novalidate>
         <div class="status" role="status" id="sp-status"></div>
@@ -133,6 +134,7 @@
             <label><input type="checkbox" name="svc" value="Artwork"> Artwork</label>
             <label><input type="checkbox" name="svc" value="Video &amp; visuals"> Video &amp; visuals</label>
             <label><input type="checkbox" name="svc" value="Marketing &amp; promotion"> Marketing &amp; promotion</label>
+            <label><input type="checkbox" name="svc" value="Free submissions"> <b>Free submissions</b> (podcast, radio show, playlist or blog that never charges artists)</label>
           </div>
           <div class="fields">
             <label for="sp-name">Business or artist name (shown)<input id="sp-name" name="name" type="text" maxlength="80" required></label>
@@ -140,7 +142,7 @@
             <label for="sp-email">Email (artists contact you here)<input id="sp-email" name="email" type="email" autocomplete="email" required></label>
             <label for="sp-country">Country<input id="sp-country" name="country" type="text" maxlength="60"></label>
             <label for="sp-genres" class="wide">Genres you work with<input id="sp-genres" name="genres" type="text" maxlength="160" placeholder="e.g. synthwave, darkwave, dream pop"></label>
-            <label for="sp-desc" class="wide">Short description (up to 600 characters)<textarea id="sp-desc" name="description" maxlength="600" required placeholder="What you do, who you've worked with, turnaround time"></textarea></label>
+            <label for="sp-desc" class="wide">Short description (up to 600 characters)<textarea id="sp-desc" name="description" maxlength="600" required placeholder="What you do and who you've worked with. Free submissions: your submission guidelines (genres, what you look for, how to send)"></textarea></label>
             <label for="sp-prices" class="wide">Prices (optional)<input id="sp-prices" name="prices" type="text" maxlength="300" placeholder="e.g. Mastering from €40 per track"></label>
             <label for="sp-web">Website or portfolio<input id="sp-web" name="website" type="url" maxlength="200" placeholder="https://"></label>
             <label for="sp-social">Instagram or SoundCloud<input id="sp-social" name="social" type="url" maxlength="200" placeholder="https://"></label>
@@ -181,6 +183,6 @@
 <script src="assets/releases.js?v=20261020a"></script>
 <script src="assets/levels.js?v=20261012a"></script>
 <script src="assets/site.js?v=20261116a"></script>
-<script src="assets/services-page.js?v=20261016a"></script>
+<script src="assets/services-page.js?v=20261125a"></script>
 </body>
 </html>

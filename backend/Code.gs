@@ -2566,7 +2566,7 @@ function isFounderEmail_(email) {
 // Reviews: one per email per provider, confirmed by an emailed link, 1–5 stars + short comment.
 // RRR doesn't check or guarantee any provider: the page says so.
 // ============================================================
-const PROVIDER_SERVICES = ['Mixing', 'Mastering', 'Production', 'Artwork', 'Video & visuals', 'Marketing & promotion'];
+const PROVIDER_SERVICES = ['Mixing', 'Mastering', 'Production', 'Artwork', 'Video & visuals', 'Marketing & promotion', 'Free submissions'];
 function clean_(v, n) { return String(v || '').replace(/[<>]/g, '').trim().slice(0, n || 200); }
 function handleProviderApply_(p) {
   const email = clean_(p.email, 120).toLowerCase();

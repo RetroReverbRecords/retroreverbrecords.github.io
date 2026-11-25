@@ -1016,3 +1016,7 @@ label.rf-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 8px}
 details.pause summary{cursor:pointer;color:var(--text)}
 details.pause[open] summary{margin-bottom:14px}
 @media (max-width:860px){.pricecards{grid-template-columns:1fr;gap:26px}.pc-best{transform:none;order:-1}}
+
+/* Free submissions in the services directory (25 Nov 2026) */
+.tag.tag-free{background:#0f3b2a;border-color:#2ee59d;color:#7dffc8}
+.chip.chip-free[aria-pressed="false"]{border-color:#2ee59d;color:#7dffc8}

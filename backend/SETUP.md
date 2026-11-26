@@ -89,3 +89,74 @@ Artists share links on press.html. You get an email; type **yes** in the `approv
 
 ## 10. Phone app
 The site is an installable app. On the live site, members open **My dashboard** and tap **Install app** (Android/desktop Chrome) or **Share → Add to Home Screen** (iPhone). The app opens straight to their dashboard and remembers their member ID.
+
+## Release booking approval (Phase 1)
+
+Use the private spreadsheet's **Bookings** tab for Bandcamp and streaming
+booking decisions. Limit edit access to staff authorised to review releases,
+set dates, and see private artist and payment data. The separate **Releases**
+tab and its Selected Releases menu still handle series, affiliation and
+catalogue numbers.
+
+1. Filter `status` to `awaiting approval` or `changes requested`. Open the
+   artist's review link from `details`, or ask them privately for material.
+   Review the music, artwork, metadata, rights and release requirements.
+2. Set `release_decision` to `approve`, `request changes` or `decline`.
+   Use `decision_note` for an artist-facing change request or decline reason.
+   To approve a different date, set `approval_date` to YYYY-MM-DD. Keep it blank
+   to approve the preferred date. Approval checks availability and entitlement
+   again. An unavailable date needs an explicit replacement.
+3. Select a cell in that row and choose **RRR → Process selected booking
+   decision**. Approval creates the calendar events, deadlines and upload
+   reminders, then sends the confirmed date. If Calendar interrupts the run
+   and the row is marked `scheduling`, run the same action again. It uses the
+   saved date and finds existing events by booking reference. If a confirmed
+   row is missing a notification or reward, reconcile it manually using the
+   execution logs before sending or crediting it.
+4. Check **Payments** by `booking_id` for underpayments, extra transactions
+   and payments for inactive bookings. The booking retains its accepted
+   transaction. The ledger keeps separate transaction IDs, amounts, currencies
+   and outcomes. Reconcile exceptional payments manually with PayPal records.
+   Partial transactions are not automatically combined, and no action here
+   issues refunds. Review any paid decline separately.
+
+Pending included Bandcamp bookings reserve the allowance for the preferred
+month. A decline or cancellation releases a pending allowance. Approval in a
+different month checks the allowance there. Previously used Black Belt rewards
+were already deducted from the member balance. New reward bookings reserve or
+consume a credit through their booking record, so retain those rows.
+
+### Staging and rollout
+
+- Run `node --test tests/release-booking.test.cjs` from the checkout. These tests
+  mock Sheets, PayPal verification, Calendar and Mail.
+- In a separate staging spreadsheet and Apps Script deployment, load the
+  backend first. Use test-only service configuration, recipients and calendars.
+  Run `setup()` in staging to initialise headers, then reopen the spreadsheet
+  for the new menu. `sheet_()` adds missing columns to the existing headers.
+  No sheet rename or bulk rewrite is required.
+- Point the staging site at the staging script. The new paid release form
+  awaits server confirmation of the booking reference and price before
+  displaying PayPal. Verify this check, refusal handling and decision emails
+  in a browser. If rollout is approved later, update the Apps Script backend
+  before making the frontend available.
+- Audit legacy booking rows before rollout. Existing confirmations and
+  calendar events are preserved. A valid payment on a legacy awaiting-payment
+  row moves the old date to `preferred_date` and enters review. Reconcile any
+  ambiguous references, historical underpayments, and payments that were
+  recorded without a matching booking before editing their status.
+- Apps Script and Calendar cannot commit together. A stopped approval can
+  leave the row in `scheduling`. Notification attempts are recorded through
+  state transitions before sending to avoid duplicates. If delivery fails,
+  check execution logs and reconcile manually. The existing PayPal relay
+  acknowledges receipt before forwarding, so verify its forwarding and
+  reconcile delivery failures against PayPal and the spreadsheet.
+- The booking form still looks up membership by the submitted email. Review
+  the artist's identity with the registered contact before approving a
+  questionable member request. A private spreadsheet editor with decision
+  permissions can approve releases.
+- Investigate the historical possible duplicate payment separately using
+  authorised PayPal transaction records and the matching booking reference.
+  Compare completed transaction IDs, timestamps, amounts, currency and any
+  reversals. Repeated delivery of one transaction ID does not establish a
+  second charge.

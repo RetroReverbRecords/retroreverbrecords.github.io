@@ -318,7 +318,7 @@
       <div class="grid2">
         <div>
           <h3 class="subhead">Releases</h3>
-          ${(m.releases || []).length ? `<ul class="list">${m.releases.map(r => `<li class="panel"><div><b>${esc(r.title)}</b><span class="small">${esc(kindLabel(r.kind))}${r.format ? ' · ' + esc(r.format) : ''} · ${esc(fmt(r.date))}</span></div><span class="pill">${esc(statusLabel(r.status))}</span></li>`).join('')}</ul>`
+          ${(m.releases || []).length ? `<ul class="list">${m.releases.map(r => `<li class="panel"><div><b>${esc(r.title)}</b><span class="small">${esc(kindLabel(r.kind))}${r.format ? ' · ' + esc(r.format) : ''}${r.date ? ' · ' + esc(fmt(r.date)) : r.preferredDate ? ' · Preferred ' + esc(fmt(r.preferredDate)) : ''}</span></div><span class="pill">${esc(statusLabel(r.status))}</span></li>`).join('')}</ul>`
             : `<div class="panel empty"><b>No releases yet.</b><span><a href="book.html#bandcamp">Book a release</a></span></div>`}
         </div>
         <div>

@@ -259,7 +259,7 @@ window.rrrSend = function(url, data, onProblem){
   }, true);
   document.addEventListener('submit', () => blip(), true);
   window.rrrChime = chime;
-  async function send(form, statusEl, kind, extra){
+  async function send(form, statusEl, kind, extra, checkSaved){
     const data = new URLSearchParams();
     new FormData(form).forEach((v, k) => data.append(k, v));
     data.append('form', kind);
@@ -270,11 +270,16 @@ window.rrrSend = function(url, data, onProblem){
         // (it writes the sheet and sends emails). Show the confirmation as soon as the request is on its way;
         // keepalive lets it finish even if the person leaves the page. Only a network failure is reported.
         const btn = form.querySelector('[type=submit]'); if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Sending…'; }
-        await window.rrrSend(endpoint, data);
-        if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || btn.textContent; }
+        try {
+          const response = await window.rrrSend(endpoint, data);
+          if (checkSaved && (/^(refused|error)/i.test(response) || !await checkSaved())) throw new Error('Booking not verified');
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || btn.textContent; }
+        }
       } else {
         const res = await fetch(endpoint, { method: 'POST', body: data, headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error(res.status);
+        if (checkSaved && !await checkSaved()) throw new Error('Booking not verified');
       }
       statusEl.classList.add('open');
       statusEl.innerHTML = `<span class="dot"></span><span><strong>Sent ✓</strong> Check your email: we confirm everything there.</span>`;
@@ -284,7 +289,9 @@ window.rrrSend = function(url, data, onProblem){
       return true;
     } catch (e) {
       statusEl.classList.remove('open');
-      statusEl.innerHTML = `<span class="dot"></span><span><strong>That didn't send.</strong> Check your connection and try again, or email ${esc(C.email)}.</span>`;
+      statusEl.innerHTML = checkSaved
+        ? `<span class="dot"></span><span><strong>Payment is unavailable for this request.</strong> Check your booking details or email ${esc(C.email)}.</span>`
+        : `<span class="dot"></span><span><strong>That didn't send.</strong> Check your connection and try again, or email ${esc(C.email)}.</span>`;
       return false;
     }
   }
@@ -520,33 +527,45 @@ window.rrrSend = function(url, data, onProblem){
         const val = n => ((f.querySelector(`[name=${n}]`) || {}).value || '').trim();
         const title = val('title'), email = val('email');
         const date = val('release_date') || val('premiere_date') || val('preferred_date') || val('date');
-        const selfUpload = !!f.querySelector('input[name=upload_by][value=artist]:checked');
         if (/release/.test(f.dataset.kind)) { try { await checkFounder(); } catch (x) {} if (isMember === false && !f.checkValidity()) { f.reportValidity(); return; } }
-        const amt = amount();
-        const bookingId = 'BK-' + Array.from(crypto.getRandomValues(new Uint8Array(6)), x => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[x % 31]).join('');
-        const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : memberFree ? { member_free: 'yes' } : freeRelease ? { free_release: 'yes' } : {});
+        const release = /release/.test(f.dataset.kind), demo = isDemoEmail(email), amt = amount();
+        const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        const bookingId = 'BK-' + Array.from(crypto.getRandomValues(new Uint8Array(release && amt ? 12 : 6)), x => alphabet[x % alphabet.length]).join('');
+        const checkoutReady = async () => {
+          const url = new URL(endpoint, location.href);
+          url.searchParams.set('release_checkout', bookingId);
+          url.searchParams.set('amount', amt);
+          for (let attempt = 0; attempt < 5; attempt++) {
+            try {
+              const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+              if (response.ok && (await response.json()).ready === true) return true;
+            } catch (e) { /* Apps Script can take a few seconds to save the request. */ }
+            if (attempt < 4) await new Promise(resolve => setTimeout(resolve, 800));
+          }
+          return false;
+        };
+        const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : memberFree ? { member_free: 'yes' } : freeRelease ? { free_release: 'yes' } : {},
+          release && amt && !demo ? checkoutReady : null);
         if (!ok) return;
         track('Schedule', { content_name: f.dataset.kind });
-        const demo = isDemoEmail(email), kindName = (($('[role=tab][aria-selected=true]') || {}).textContent || f.dataset.kind.replace('-', ' ')).trim();
-        const D = C.deadlines || {}, nice = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
-        const minus = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - n); return d; };
+        const kindName = (($('[role=tab][aria-selected=true]') || {}).textContent || f.dataset.kind.replace('-', ' ')).trim();
+        const nice = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
         const steps = [];
-        if (amt && !demo) steps.push('<b>Pay below to confirm your date.</b> First to pay gets it.');
-        if (date && /bandcamp/.test(f.dataset.kind)) steps.push((selfUpload ? 'Set up your release on Bandcamp as a pre-order' : 'Send us your files (audio, artwork, words)') + ' by <b>' + esc(nice(minus(date, D.bandcampAssetsDays ?? 14))) + '</b>.');
-        if (date && /streaming/.test(f.dataset.kind)) steps.push('Send your streaming files by <b>' + esc(nice(minus(date, D.streamingAssetsDays ?? 21))) + '</b>.');
-        steps.push('Watch your email: we confirm everything there.');
+        if (amt && !demo) steps.push(release ? 'Pay below to send your release for review.' : '<b>Pay below to confirm your date.</b> First to pay gets it.');
+        if (release) steps.push('RRR will review your release and email you the decision. Wait for approval before scheduling your release.');
+        else steps.push('Watch your email: we confirm everything there.');
         const done = document.createElement('div'); done.className = 'signup-done'; done.setAttribute('role', 'status');
-        done.innerHTML = `<h3>${demo || !amt ? 'Booked! 🎉' : 'Almost there! 🎉'}</h3>
+        done.innerHTML = `<h3>${release ? 'Release request sent' : demo || !amt ? 'Booked! 🎉' : 'Almost there! 🎉'}</h3>
           <div class="idbox"><span class="small">Booking</span><b class="num">${esc(amt ? bookingId : kindName)}</b></div>
-          <p><b>${esc(kindName)}</b>${title ? ': ' + esc(title) : ''}${date ? ' · ' + esc(nice(new Date(date + 'T12:00:00'))) : ''}</p>
-          ${demo && amt ? '<p class="paid"><strong>Demo booking:</strong> no payment needed. It confirms automatically and you get a [DEMO] confirmation email.</p>' : ''}
+          <p><b>${esc(kindName)}</b>${title ? ': ' + esc(title) : ''}${date ? (release ? ' · Preferred date ' : ' · ') + esc(nice(new Date(date + 'T12:00:00'))) : ''}</p>
+          ${demo && release ? '<p class="paid"><strong>Demo request:</strong> no payment or date reservation.</p>' : demo && amt ? '<p class="paid"><strong>Demo booking:</strong> no payment needed. It confirms automatically and you get a [DEMO] confirmation email.</p>' : ''}
           <div class="done-pay"></div>
           <p class="label" style="margin-top:6px">What next</p>
           <ol class="nextsteps">${steps.map(x => '<li>' + x + '</li>').join('')}</ol>
           <div class="ctas-left"><button type="button" class="btn ghost" data-again>Book something else</button> ${/release/.test(f.dataset.kind) ? '<a class="btn ghost" href="release-policy.html">Release checklist</a>' : '<a class="btn ghost" href="member.html">My dashboard</a>'}</div>`;
         const fs = $('fieldset', f); fs.hidden = true; fs.insertAdjacentElement('beforebegin', done); st.innerHTML = ''; st.classList.remove('open');
         if (pl && amt && !demo) { done.querySelector('.done-pay').appendChild(pl); pl.hidden = false;
-          payButtons(pl, { kind: 'one-off', amount: amt, item: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title} (${bookingId})`, custom: bookingId, note: `Booking ${bookingId}. Your date is only confirmed when payment arrives: first to pay gets the date. You'll get a confirmation email.` }); }
+          payButtons(pl, { kind: 'one-off', amount: amt, item: `RRR ${f.dataset.kind.replace('-', ' ')}: ${title} (${bookingId})`, custom: bookingId, note: release ? `Booking ${bookingId}. Payment sends your release for review. RRR confirms the date by email after approval.` : `Booking ${bookingId}. Your date is only confirmed when payment arrives: first to pay gets the date. You'll get a confirmation email.` }); }
         done.querySelector('[data-again]').addEventListener('click', () => { if (pl && pl.parentNode !== f) { pl.hidden = true; pl.innerHTML = ''; fs.appendChild(pl); } done.remove(); fs.hidden = false; f.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
         try { done.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
       });

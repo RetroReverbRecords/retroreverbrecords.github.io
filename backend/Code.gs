@@ -89,8 +89,8 @@ const TABS = {
   RefundRequests: ['received','request_id','name','email','member_id','payment_for','payment_date','amount','paypal_txn','reason','description','status'],
   Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release','instagram','photo','trial_code','trial_ends'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
-  Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw'],
-  Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled'],
+  Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw','booking_id','booking_outcome'],
+  Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled','preferred_date','release_entitlement','payment_status','expected_amount','release_decision','decision_note','approval_date'],
   Achievements: ['member_id','achievement','earned_on','points','note','key'],
   Sales:        ['sale_id','date','member_id','artist','item','url','qty','price','currency','type','fan','payout_id'],
   Payouts:      ['payout_id','period','created','member_id','artist','paypal','currency','sales','gross','bandcamp_share','paypal_fees','fee_basis','net','status','sent_at','paypal_batch','statement_sent','note'],
@@ -193,6 +193,12 @@ function doPost(e) {
 // member.html calls: ?member=RRR-XXXX  → public JSON for that member
 function doGet(e) {
   const q = (e && e.parameter) || {};
+  if (q.release_checkout) {
+    const id = String(q.release_checkout).toUpperCase();
+    const b = /^BK-[A-Z0-9]{12}$/.test(id) && findRow_('Bookings', 'booking_id', id);
+    return json_({ ready: !!(b && isReleaseBooking_(b.kind) && b.release_entitlement === 'paid' &&
+      b.status === 'awaiting payment' && b.payment_status === 'unpaid' && Number(b.expected_amount) === Number(q.amount)) });
+  }
   if (q.press) return json_({ ok: true, press: rows_('Press').filter(r => /^yes/i.test(String(r.approved))).reverse().slice(0, 60)
     .map(r => ({ artist: r.artist, outlet: r.outlet, title: r.title, url: r.url, quote: r.quote, date: r.created })) });
   if (q.unsubscribe) return unsubscribe_(q.unsubscribe);
@@ -208,7 +214,7 @@ function doGet(e) {
   if (q.review) return reviewPost_(q.review, q.d, q.t);
   if (q.payout) return payoutPage_(q.payout, q.t);
   if (q.payoutconfirm) return payoutEmailConfirm_(q.payoutconfirm);
-  if (q.isfounder) { const fm = findRow_('Members', 'email', String(q.isfounder).trim()); return json_({ ok: true, memberFree: !!(fm && q.kind && memberReleaseFree_(fm, String(q.kind), String(q.d || ''))), member: !!(fm && /^active/i.test(String(fm.status)) && standing_(fm) !== 'removed'), founder: !!(fm && fm.founder === 'yes'), freeRelease: !!(fm && Number(fm.free_release) > 0) }); }
+  if (q.isfounder) { const fm = findRow_('Members', 'email', String(q.isfounder).trim()); return json_({ ok: true, memberFree: !!(fm && q.kind && memberReleaseFree_(fm, String(q.kind), String(q.d || ''))), member: !!(fm && /^active/i.test(String(fm.status)) && standing_(fm) !== 'removed'), founder: !!(fm && fm.founder === 'yes'), freeRelease: !!(fm && rewardReleaseAvailable_(fm)) }); }
   if (q.providers) return json_(providersPublic_());
   if (q.provreview) return providerReviewConfirm_(q.provreview);
   if (q.shows) return json_(showsPublic_());
@@ -382,6 +388,7 @@ function welcomeEmail_(p, id, version, isArtist) {
 }
 
 function handleBooking_(kind, p) {
+  if (isReleaseBooking_(kind)) return withBookingLock_(() => requestReleaseBooking_(kind, p));
   const date = p.release_date || p.preferred_date || p.premiere_date || '';
   const member = p.email ? findRow_('Members', 'email', String(p.email).trim()) : null;
   const memberId = member ? member.member_id : '';
@@ -406,37 +413,25 @@ function handleBooking_(kind, p) {
   const title = p.title || p.link || '';
   let eventId = '';
   const socialId = kind === 'social-post' ? 'SP-' + Utilities.getUuid().replace(/-/g, '').slice(0, 6).toUpperCase() : '';
-  // Release slots: dates are subject to availability
-  const full = /release/.test(kind) && date && SETTINGS.maxReleasesPerWeek > 0 &&
-    rows_('Bookings').filter(r => /release/.test(r.kind) && !/cancel|full/i.test(String(r.status)) && r.date && weekKey_(r.date) === weekKey_(date)).length >= SETTINGS.maxReleasesPerWeek;
-  // Paid bookings are only confirmed (and take their date) when the PayPal payment arrives
   if (SETTINGS.paidKinds.indexOf(kind) >= 0 && p.booking_id) {
     append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email, title: title, format: p.format || '',
       date: date, details: JSON.stringify(p).slice(0, 1500), status: 'awaiting payment', booking_id: String(p.booking_id).toUpperCase() });
     if (isDemo_(p.email)) confirmBooking_(String(p.booking_id).toUpperCase(), 'demo', 'DEMO');
     return text_('ok');
   }
-  // Member releases are included in membership (owner, 19 Oct 2026): streaming always, Bandcamp up to SETTINGS.memberFreeBandcampPerMonth a month
-  const memberFree = !!(member && /release/.test(kind) && !p.booking_id && String(p.member_free) === 'yes');
-  if (memberFree && !memberReleaseFree_(member, kind, date)) return text_('refused: this release isn\'t included in your membership (you have used your free Bandcamp release for that month). Book it again and pay the member upload fee');
-  const freeRel = !memberFree && !!(member && /release/.test(kind) && !p.booking_id && String(p.free_release) === 'yes' && Number(member.free_release) > 0);
   const dayFull = !!(date && SETTINGS.slotsPerDay[kind] && !slotFree_(kind, isoDate_(date)));
   if (dayFull) { append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email, title: title, date: date, details: JSON.stringify(p).slice(0, 1500), status: 'date full – suggest another date' });
     notify_('Booking date full: ' + kind + ' – ' + (p.artist || ''), date + ' was already full. Reply with the next free day: ' + nextFreeDate_(kind, isoDate_(date)) + '\n' + sheetUrl_()); return text_('ok'); }
-  if (date && !full) eventId = addToCalendar_(kind, p, date);
-  if (freeRel && !full) updateRow_('Members', 'member_id', memberId, { free_release: Number(member.free_release) - 1 });
+  if (date) eventId = addToCalendar_(kind, p, date);
   const reviewToken = kind === 'social-post' ? Utilities.getUuid().replace(/-/g, '') : '';
   append_('Bookings', { created: new Date(), kind: kind, member_id: memberId, artist: p.artist, email: p.email,
-    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: full ? 'date full – suggest another date' : kind === 'social-post' ? 'awaiting review' : memberFree && !full ? 'confirmed (member release)' : freeRel && !full ? 'confirmed (free release – Black Belt)' : 'requested', calendar_event_id: eventId,
+    title: title, format: p.format || '', date: date, details: JSON.stringify(p).slice(0, 1500), status: kind === 'social-post' ? 'awaiting review' : 'requested', calendar_event_id: eventId,
     booking_id: kind === 'social-post' ? socialId : '', review_token: reviewToken });
   if (kind === 'social-post' && p.email) try {
     MailApp.sendEmail({ to: p.email, name: 'Retro Reverb Records', subject: 'Social post booked: we\'re checking it (' + socialId + ')',
       body: 'Thanks! Your social post for ' + isoDate_(date) + ' is booked.\n\nWhat happens next:\n1. We check your link and artwork against the RRR Code of Conduct.\n2. You get an email when it\'s approved, with the time it goes live.\n3. It posts automatically on the day.\n\nYou can follow it on your dashboard: ' + SETTINGS.siteUrl + 'member.html\n\nBooking ' + socialId + '\n\nRetro Reverb Records' });
   } catch (e) { log_('social booked email failed', String(e)); }
-  if (full) notify_('⚠ Release week full: ' + (p.artist || '') + ' – ' + title, 'Requested ' + date + '. That week already has ' + SETTINGS.maxReleasesPerWeek +
-    ' release(s). Reply to ' + (p.email || 'the artist') + ' with the nearest free date, then change the status in the Bookings tab.\n' + sheetUrl_());
   if (memberId) {
-    if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title, 'releaseBooked'); }
     if (kind === 'youtube-upload') addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title, 'videoBooked');
     if (kind === 'social-post') { award_(memberId, 'firstPost'); addPoints_(memberId, POINTS.postBooked, 'Social post booked', 'postBooked'); append_('Posts', { member_id: memberId, platform: [].concat(p.platform || []).join(', '), date: date, link: p.link, status: 'awaiting review', caption: String(p.caption || '').slice(0, 2000), booking_id: socialId, assets: p.assets || '' }); }
     if (kind === 'youtube-upload') award_(memberId, 'firstVideo');
@@ -499,15 +494,15 @@ function reviewPost_(id, d, t) {
   return page(yes ? '✅ Approved' : '❌ Rejected', (b.artist || '') + ' – ' + when + '. ' + (yes ? 'It will be scheduled automatically.' : 'The artist has been told, and the slot is free again.'));
 }
 
-function addToCalendar_(kind, p, isoDate) {
+function addToCalendar_(kind, p, isoDate, bookingId) {
   const cal = getCalendar_();
   const d = new Date(isoDate + 'T12:00:00');
   const label = { 'bandcamp-release': 'Bandcamp release', 'streaming-release': 'Streaming release', 'social-post': 'Social post', 'youtube-upload': 'YouTube premiere' }[kind] || kind;
-  const main = cal.createAllDayEvent('RRR ' + label + ': ' + (p.artist || '') + ' – ' + (p.title || ''), d, { description: 'Booked via website. Email: ' + (p.email || '') });
+  const main = releaseCalendarEvent_(cal, bookingId, 'release', d, () => cal.createAllDayEvent('RRR ' + label + ': ' + (p.artist || '') + ' – ' + (p.title || ''), d, { description: 'Booked via website. Email: ' + (p.email || '') + releaseCalendarMarker_(bookingId, 'release') }));
   // Asset deadlines as their own reminders
   const addDeadline = (days, what) => {
     const dd = new Date(d); dd.setDate(dd.getDate() - days);
-    cal.createAllDayEvent('DEADLINE ' + what + ': ' + (p.artist || '') + ' – ' + (p.title || ''), dd);
+    releaseCalendarEvent_(cal, bookingId, what, dd, () => cal.createAllDayEvent('DEADLINE ' + what + ': ' + (p.artist || '') + ' – ' + (p.title || ''), dd, { description: releaseCalendarMarker_(bookingId, what) }));
   };
   if (kind === 'bandcamp-release') addDeadline(SETTINGS.bandcampAssetsDays, 'Bandcamp assets');
   if (kind === 'streaming-release' || p.also_streaming) addDeadline(SETTINGS.streamingAssetsDays, 'Streaming assets');
@@ -515,7 +510,7 @@ function addToCalendar_(kind, p, isoDate) {
   const job = (daysBefore, what) => {
     const st = new Date(d); st.setDate(st.getDate() - daysBefore); st.setHours(9, 0, 0, 0);
     const en = new Date(st); en.setMinutes(30);
-    try { const ev = cal.createEvent('⬆ UPLOAD ' + what + ': ' + (p.artist || '') + ' – ' + (p.title || ''), st, en, { description: 'Mark "uploaded" = yes in the Bookings tab when done.\n' + sheetUrl_() }); ev.addPopupReminder(0); ev.addPopupReminder(24 * 60); } catch (e) { log_('job event failed', String(e)); }
+    try { const ev = releaseCalendarEvent_(cal, bookingId, what, st, () => cal.createEvent('⬆ UPLOAD ' + what + ': ' + (p.artist || '') + ' – ' + (p.title || ''), st, en, { description: 'Mark "uploaded" = yes in the Bookings tab when done.\n' + sheetUrl_() + releaseCalendarMarker_(bookingId, what) })); if (bookingId) ev.removeAllReminders(); ev.addPopupReminder(0); ev.addPopupReminder(24 * 60); } catch (e) { if (bookingId) throw e; log_('job event failed', String(e)); }
   };
   if (kind === 'streaming-release' || p.also_streaming) job(SETTINGS.streamingUploadDays, 'to RouteNote');
   if (kind === 'bandcamp-release' && p.upload_by === 'rrr') job(0, 'to Bandcamp');
@@ -539,6 +534,24 @@ function handlePayPal_(e) {
   if (String(p.receiver_email || p.business || '').toLowerCase() !== SETTINGS.paypalEmail.toLowerCase()) {
     log_('PayPal wrong receiver', p.receiver_email); return text_('ok');
   }
+  const bookingId = String(p.custom || '').trim().toUpperCase();
+  if (/^BK-/.test(bookingId) && /^(Completed|Pending)$/.test(p.payment_status)) {
+    const handled = withBookingLock_(() => {
+      const booking = findRow_('Bookings', 'booking_id', bookingId);
+      if (booking && isReleaseBooking_(booking.kind)) {
+        recordReleasePayment_(booking, p, raw);
+      } else if (p.payment_status !== 'Completed') {
+        return false;
+      } else if (!p.txn_id || !findRow_('Payments', 'txn_id', p.txn_id)) {
+        append_('Payments', { received: new Date(), txn_type: p.txn_type, payment_status: p.payment_status,
+          amount: p.mc_gross || '', currency: p.mc_currency, item_name: p.item_name, payer_email: p.payer_email,
+          txn_id: p.txn_id || '', booking_id: bookingId, raw: raw.slice(0, 2000) });
+        confirmBooking_(bookingId, p.mc_gross, p.txn_id);
+      }
+      return true;
+    });
+    if (handled) return text_('ok');
+  }
   // 2. Ignore repeats. PayPal resends the same message (same ipn_track_id) if it isn't sure we got it,
   // and sign-up messages have no txn_id, so also skip a second sign-up for the same subscription.
   const cache = CacheService.getScriptCache(), trackKey = p.ipn_track_id ? 'ipn_' + p.ipn_track_id : '';
@@ -546,13 +559,6 @@ function handlePayPal_(e) {
   if (trackKey) cache.put(trackKey, '1', 21600);
   if (p.txn_id && findRow_('Payments', 'txn_id', p.txn_id)) return text_('ok');
   if (p.txn_type === 'subscr_signup' && p.subscr_id && rows_('Payments').some(r => r.txn_type === 'subscr_signup' && String(r.subscr_id) === String(p.subscr_id))) return text_('ok');
-  // Booking payment: custom = booking ID (BK-XXXXXX). Confirms the booking and takes the date.
-  if (/^BK-/i.test(String(p.custom || '')) && /completed/i.test(String(p.payment_status || ''))) {
-    append_('Payments', { received: new Date(), txn_type: p.txn_type, payment_status: p.payment_status, amount: p.mc_gross || '', currency: p.mc_currency,
-      item_name: p.item_name, payer_email: p.payer_email, member_id: '', txn_id: p.txn_id || '', subscr_id: '', raw: raw.slice(0, 2000) });
-    confirmBooking_(String(p.custom).toUpperCase(), p.mc_gross, p.txn_id);
-    return text_('ok');
-  }
   // RRR Submit payment (Submit.gs): custom = submission ID (SUB-XXXXXX)
   if (/^SUB-/i.test(String(p.custom || '')) && /completed/i.test(String(p.payment_status || '')) && typeof confirmSubmissionPayment_ === 'function') {
     append_('Payments', { received: new Date(), txn_type: p.txn_type, payment_status: p.payment_status, amount: p.mc_gross || '', currency: p.mc_currency,
@@ -649,7 +655,9 @@ function publicProfile_(m) {
       series: r.series, catalogue: r.catalogue_no, date: r.release_date, url: r.bandcamp_url, artwork: r.artwork_url })),
     achievements: rows_('Achievements').filter(r => r.member_id === id && r.achievement !== 'Points').map(r => ({ title: r.achievement, on: r.earned_on, points: r.points })),
     recentPoints: rows_('Achievements').filter(r => r.member_id === id && r.achievement === 'Points').slice(-10).reverse().map(r => ({ note: r.note, on: r.earned_on, points: r.points })),
-    releases: rows_('Bookings').filter(r => r.member_id === id && /release/.test(r.kind)).map(r => ({ title: r.title, kind: r.kind, format: r.format, date: r.date, status: r.status })),
+    releases: rows_('Bookings').filter(r => r.member_id === id && isReleaseBooking_(r.kind)).map(r => ({ title: r.title, kind: r.kind, format: r.format,
+      date: /^confirmed/i.test(String(r.status)) || (!r.release_entitlement && !/^awaiting payment/i.test(String(r.status))) ? r.date : '',
+      preferredDate: r.preferred_date || (!r.release_entitlement && r.status === 'awaiting payment' ? r.date : ''), status: r.status })),
     posts: rows_('Posts').filter(r => r.member_id === id).map(r => ({ platform: r.platform, date: r.date, link: r.link, status: r.status })),
     links: { bandcamp: /^https:\/\//.test(String(m.bandcamp)) ? m.bandcamp : '', spotify: /^https:\/\/open\.spotify\.com\//.test(String(m.spotify)) ? m.spotify : '' },
     notifications: notifications_(m),
@@ -768,7 +776,7 @@ function daily() {
   try { onboardingEmails_(); } catch (e) { log_('onboarding emails failed', String(e)); }
   try { trialEndingEmails_(); } catch (e) { log_('trial ending emails failed', String(e)); }
   morningJobs_();
-  expireUnpaidBookings_();
+  withBookingLock_(expireUnpaidBookings_);
   paymentChase_();
   try { cleanDisputeFiles_(); } catch (e) { log_('dispute cleanup failed', String(e)); }
   try { importBandcampSales_(); } catch (e) { log_('bandcamp sales import failed', String(e)); }
@@ -1692,14 +1700,13 @@ function processDisputesNow() {
 }
 
 // ============================================================
-// BOOKING SLOTS: first to pay gets the date
-// The booking form asks ?slot=<kind>&date=YYYY-MM-DD before sending, so artists
-// only book free dates. The date is taken when PayPal confirms the payment.
+// BOOKING SLOTS: releases take a slot when approval begins.
+// The booking form asks ?slot=<kind>&date=YYYY-MM-DD for availability.
 // ============================================================
 // A day is taken by paid bookings once paid, and by free bookings (social posts) once requested
 function holdsSlot_(r) {
   const st = String(r.status);
-  if (/^confirmed/i.test(st)) return true;
+  if (/^confirmed/i.test(st) || (isReleaseBooking_(r.kind) && st === 'scheduling')) return true;
   return SETTINGS.paidKinds.indexOf(r.kind) < 0 && /^(requested|awaiting review|approved|scheduled|posted)/i.test(st);
 }
 function slotsTaken_(kind, iso) {
@@ -1741,6 +1748,262 @@ function slotInfo_(kind, iso) {
   return { ok: true, free: free, limited: true, next: free ? iso : nextFreeDate_(kind, iso) };
 }
 
+function isReleaseBooking_(kind) {
+  return kind === 'bandcamp-release' || kind === 'streaming-release';
+}
+
+function withBookingLock_(work) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try { return work(); }
+  finally {
+    try { SpreadsheetApp.flush(); } finally { lock.releaseLock(); }
+  }
+}
+
+function releaseInReview_(b) {
+  return ['awaiting approval', 'changes requested', 'scheduling'].includes(b.status);
+}
+
+function rewardReleaseAvailable_(member, excludeBookingId) {
+  const used = rows_('Bookings').filter(b => b.member_id === member.member_id && b.booking_id !== excludeBookingId &&
+    b.release_entitlement === 'reward' && (releaseInReview_(b) || b.calendar_event_id)).length;
+  return Number(member.free_release) > used;
+}
+
+function releasePrice_(format, memberId, founder) {
+  if (!['single', 'ep', 'album'].includes(format)) return 0;
+  // Keep in step with assets/config.js. Store the amount due when the request is made.
+  if (!memberId) return PAYG_FEES_[format];
+  return { single: 2, ep: 2.5, album: 3 }[format] - (founder ? 0.5 : 0);
+}
+
+function validBookingDate_(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const midnight = new Date(date + 'T00:00:00Z');
+  return !isNaN(midnight) && midnight.toISOString().slice(0, 10) === date;
+}
+
+function requestReleaseBooking_(kind, p) {
+  const email = String(p.email || '').trim(), date = String(p.release_date || p.preferred_date || '');
+  const format = String(p.format || '').trim().toLowerCase(), title = String(p.title || '').trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !title || !validBookingDate_(date) ||
+      date < isoDate_(new Date()) || !releasePrice_(format)) return text_('refused: check your email, title, format and preferred date');
+  const member = findRow_('Members', 'email', email);
+  if (member && (!/^active/i.test(String(member.status)) || !inGoodStanding_(member))) {
+    return text_('refused: booking requires an active membership in good standing');
+  }
+  const memberId = member ? member.member_id : '';
+  const paid = !!p.booking_id && p.member_free !== 'yes' && p.free_release !== 'yes';
+  const id = String(p.booking_id || ('BK-' + Utilities.getUuid().replace(/-/g, '').slice(0, 12))).toUpperCase();
+  if (!/^BK-[A-Z0-9]{6,32}$/.test(id)) return text_('refused: invalid booking reference');
+  const existing = findRow_('Bookings', 'booking_id', id);
+  if (existing) {
+    return text_(existing.kind === kind && existing.email === email && existing.title === title &&
+      existing.format === format && isoDate_(existing.preferred_date) === date &&
+      existing.release_entitlement === 'paid' && paid && existing.status === 'awaiting payment'
+      ? 'ok' : 'refused: booking reference already in use');
+  }
+
+  let entitlement = 'paid';
+  if (!paid) {
+    if (member && p.member_free === 'yes' && memberReleaseFree_(member, kind, date)) entitlement = 'member';
+    else if (member && p.free_release === 'yes' && rewardReleaseAvailable_(member)) entitlement = 'reward';
+    else return text_('refused: this release is not included for that date. Check your membership allowance or rebook at the upload fee');
+  }
+  const details = JSON.stringify(p);
+  if (details.length > 45000) return text_('refused: shorten your submission notes');
+  const demo = isDemo_(email);
+  const booking = {
+    created: new Date(), booking_id: id, kind: kind, member_id: memberId, artist: String(p.artist || ''),
+    email: email, title: title, format: format, preferred_date: date, release_entitlement: entitlement,
+    status: demo ? 'demo (not a real booking)' : paid ? 'awaiting payment' : 'awaiting approval',
+    payment_status: demo ? 'demo' : paid ? 'unpaid' : 'included',
+    expected_amount: paid ? releasePrice_(format, memberId, member && member.founder === 'yes') : 0,
+    details: details
+  };
+  // Sheets interprets leading equals signs as formulas.
+  const sheetText = value => value.startsWith('=') ? "'" + value : value;
+  append_('Bookings', Object.assign({}, booking, { artist: sheetText(booking.artist), title: sheetText(title), email: sheetText(email) }));
+  SpreadsheetApp.flush();
+  if (!demo && !paid) notifyReleaseReceived_(booking);
+  return text_('ok');
+}
+
+function notifyReleaseReceived_(b) {
+  sendReleaseBookingEmail_(b, 'Release awaiting approval', 'We received your release request. Your preferred date is ' +
+    isoDate_(b.preferred_date || b.date) + '. We will email you after review.');
+  notify_('👉 Action: Review release booking ' + b.booking_id, 'Review the music and assets for "' + b.title +
+    '" by ' + b.artist + ' in the Bookings tab.\n' + sheetUrl_());
+}
+
+function sendReleaseBookingEmail_(b, subject, body) {
+  if (!b.email) return;
+  try {
+    MailApp.sendEmail({ to: b.email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail,
+      subject: subject + ': "' + b.title + '" (' + b.booking_id + ')',
+      body: body + '\n\nRetro Reverb Records' });
+  } catch (e) { log_('release booking email failed', b.booking_id + ' ' + String(e)); }
+}
+
+// Update each transition in a single sheet write, preserving other cells and formulas.
+function writeBookingTransition_(bookingId, patch) {
+  const sh = sheet_('Bookings'), values = sh.getDataRange().getValues(), h = values.shift();
+  const index = values.findIndex(row => String(row[h.indexOf('booking_id')]).toUpperCase() === bookingId);
+  if (index < 0) throw new Error('Booking no longer exists');
+  const range = sh.getRange(index + 2, 1, 1, h.length);
+  const formulas = range.getFormulas()[0];
+  const row = values[index].map((value, i) => {
+    if (formulas[i] && !Object.prototype.hasOwnProperty.call(patch, h[i])) return formulas[i];
+    const next = Object.prototype.hasOwnProperty.call(patch, h[i]) ? patch[h[i]] : value;
+    return typeof next === 'string' && next.startsWith('=') ? "'" + next : next;
+  });
+  range.setValues([row]);
+}
+
+function recordReleasePayment_(b, p, raw) {
+  const id = String(b.booking_id).toUpperCase(), txn = String(p.txn_id || '').trim();
+  if (!/^[A-Za-z0-9_-]+$/.test(txn)) {
+    log_('release payment missing valid transaction ID', id);
+    return;
+  }
+  const prior = findRow_('Payments', 'txn_id', txn);
+  const legacyPending = prior && !prior.booking_id && prior.payment_status === 'Pending' &&
+    String(prior.raw).toUpperCase().split('&').includes('CUSTOM=' + id);
+  if (prior && ((!legacyPending && prior.booking_id !== id) ||
+      (prior.booking_outcome && prior.booking_outcome !== 'pending'))) return;
+  if (prior && p.payment_status === 'Pending') return;
+  if (!prior) {
+    append_('Payments', { received: new Date(), txn_type: p.txn_type, payment_status: p.payment_status,
+      amount: p.mc_gross, currency: p.mc_currency, item_name: p.item_name, payer_email: p.payer_email,
+      member_id: b.member_id, txn_id: txn, booking_id: id, raw: raw.slice(0, 2000),
+      booking_outcome: p.payment_status === 'Pending' ? 'pending' : '' });
+    SpreadsheetApp.flush();
+  }
+
+  if (p.payment_status !== 'Completed') return;
+  const member = b.member_id && findRow_('Members', 'member_id', b.member_id);
+  const expected = Number(b.expected_amount || releasePrice_(String(b.format).toLowerCase(), b.member_id, member && member.founder === 'yes'));
+  const amount = Number(p.mc_gross);
+  let outcome;
+  if (b.txn_id === txn) outcome = 'accepted'; // Resume after a successful booking write.
+  else if (b.txn_id) outcome = 'duplicate payment';
+  else if (b.status !== 'awaiting payment' || (b.release_entitlement && b.release_entitlement !== 'paid')) outcome = 'payment for inactive booking';
+  else if (!(expected > 0) || p.mc_currency !== 'EUR' || !/^\d+(\.\d{1,2})?$/.test(String(p.mc_gross)) || !Number.isFinite(amount)) outcome = 'payment needs verification';
+  else if (Math.round(amount * 100) < Math.round(expected * 100)) outcome = 'underpaid';
+  else outcome = 'accepted';
+
+  if (outcome === 'accepted' && b.txn_id !== txn) {
+    const patch = { status: 'awaiting approval', payment_status: 'paid', paid_amount: amount, txn_id: txn,
+      expected_amount: expected, release_entitlement: 'paid', preferred_date: b.preferred_date || isoDate_(b.date), date: '' };
+    writeBookingTransition_(id, patch);
+    Object.assign(b, patch);
+    SpreadsheetApp.flush();
+  } else if (b.status === 'awaiting payment' && ['underpaid', 'payment needs verification'].includes(outcome)) {
+    writeBookingTransition_(id, { payment_status: outcome });
+  }
+  updateRow_('Payments', 'txn_id', txn, { payment_status: p.payment_status, amount: p.mc_gross,
+    currency: p.mc_currency, raw: raw.slice(0, 2000), booking_id: id, booking_outcome: outcome });
+  SpreadsheetApp.flush();
+  if (outcome === 'accepted') notifyReleaseReceived_(b);
+  else notify_('👉 Action: ' + outcome + ' for ' + id, 'PayPal transaction ' + txn + ' · ' + p.mc_gross + ' ' + p.mc_currency +
+    ' · expected EUR ' + expected + '. Check the Payments and Bookings tabs.\n' + sheetUrl_());
+}
+
+function releaseCalendarMarker_(bookingId, purpose) {
+  return bookingId ? '\nRRR booking ' + bookingId + ' / ' + purpose + '\n' : '';
+}
+
+function releaseCalendarEvent_(calendar, bookingId, purpose, date, create) {
+  if (bookingId) {
+    const marker = releaseCalendarMarker_(bookingId, purpose);
+    const existing = calendar.getEventsForDay(date).find(event => event.getDescription().includes(marker));
+    if (existing) return existing;
+  }
+  return create();
+}
+
+function processBookedReleaseDecision() {
+  const ui = SpreadsheetApp.getUi(), selected = ss_().getActiveRange();
+  if (!selected || selected.getSheet().getName() !== 'Bookings' || selected.getRow() < 2 || selected.getNumRows() !== 1) {
+    ui.alert('Select one release row in the Bookings tab.');
+    return;
+  }
+  const sh = sheet_('Bookings'), headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const id = String(sh.getRange(selected.getRow(), headers.indexOf('booking_id') + 1).getValue()).toUpperCase();
+  if (!id) { ui.alert('This row has no booking reference.'); return; }
+  const result = withBookingLock_(() => decideBookedRelease_(id));
+  ui.alert(result);
+}
+
+function decideBookedRelease_(id) {
+  const b = findRow_('Bookings', 'booking_id', id);
+  if (!b || !isReleaseBooking_(b.kind) || !releaseInReview_(b)) return 'This release is not awaiting a decision.';
+  const action = String(b.release_decision).trim().toLowerCase();
+  if (b.status === 'scheduling' && action !== 'approve') return 'Resume the saved approval before making further changes.';
+  if (action === 'decline' || action === 'request changes') {
+    const status = action === 'decline' ? 'declined' : 'changes requested';
+    if (b.status === status) {
+      writeBookingTransition_(id, { release_decision: '' });
+      return 'The change request was already recorded.';
+    }
+    writeBookingTransition_(id, { status: status, release_decision: '' });
+    SpreadsheetApp.flush();
+    sendReleaseBookingEmail_(b, 'Release ' + status, (action === 'decline' ? 'RRR declined your release request.' :
+      'RRR needs changes before it can approve your release. Please reply with your updated material.') +
+      (b.decision_note ? '\n\n' + b.decision_note : '') +
+      (action === 'decline' && b.payment_status === 'paid' ? '\n\nRRR will follow up about your payment.' : ''));
+    return status === 'declined' && b.payment_status === 'paid' ? 'Release declined. Review the payment separately.' : 'Release ' + status + '.';
+  }
+  if (action !== 'approve') return 'Enter approve, request changes, or decline in release_decision.';
+  const date = b.status === 'scheduling' ? isoDate_(b.date) : isoDate_(b.approval_date || b.preferred_date);
+  if (b.status !== 'scheduling') {
+    if (!validBookingDate_(date) || date < isoDate_(new Date())) return 'Set approval_date to a valid release date.';
+    if (!slotFree_(b.kind, date) || (SETTINGS.maxReleasesPerWeek > 0 &&
+        rows_('Bookings').filter(r => isReleaseBooking_(r.kind) && holdsSlot_(r) &&
+          weekKey_(isoDate_(r.date)) === weekKey_(date)).length >= SETTINGS.maxReleasesPerWeek)) {
+      return 'That date or week is full. Set a different approval_date.';
+    }
+    const member = b.member_id && findRow_('Members', 'member_id', b.member_id);
+    const eligible = b.release_entitlement === 'paid' ? b.payment_status === 'paid' && !!b.txn_id :
+      b.release_entitlement === 'member' ? memberReleaseFree_(member, b.kind, date, id) :
+      b.release_entitlement === 'reward' && member && /^active/i.test(String(member.status)) &&
+        inGoodStanding_(member) && rewardReleaseAvailable_(member, id);
+    if (!eligible) return 'Verify payment or membership entitlement before approving.';
+  }
+  let details;
+  try { details = JSON.parse(b.details || '{}'); } catch (e) { return 'Repair the booking details before approving.'; }
+  if (b.status !== 'scheduling') {
+    writeBookingTransition_(id, { status: 'scheduling', date: date });
+    SpreadsheetApp.flush();
+  }
+  const eventId = addToCalendar_(b.kind, Object.assign({}, details, b), date, id);
+  if (b.member_id && b.kind === 'bandcamp-release' && String(details.listening_party) === 'yes') {
+    const calendar = getCalendar_(), start = new Date(date + 'T19:00:00Z');
+    releaseCalendarEvent_(calendar, id, 'listening party', start, () => calendar.createEvent(
+      'Listening party: ' + b.artist + ' – ' + b.title, start, new Date(start.getTime() + 3600000),
+      { description: 'Set it up in Bandcamp and adjust the placeholder time.' + releaseCalendarMarker_(id, 'listening party') }));
+  }
+  writeBookingTransition_(id, { status: b.release_entitlement === 'member' ? 'confirmed (member release)' :
+    b.release_entitlement === 'reward' ? 'confirmed (free release – Black Belt)' : 'confirmed',
+    calendar_event_id: eventId, release_decision: '' });
+  SpreadsheetApp.flush();
+
+  // External notifications have no idempotency key. Finalize first so a retry cannot resend them.
+  sendReleaseBookingEmail_(b, 'Release approved', 'Your confirmed release date is ' + date +
+    '.\n\nChecklist and asset deadlines: ' + SETTINGS.siteUrl + 'release-policy.html');
+  if (b.member_id) {
+    award_(b.member_id, 'firstRelease');
+    addPoints_(b.member_id, POINTS.releaseBooked, 'Release booked: ' + b.title, 'releaseBooked');
+  } else {
+    notice_('release', '', String(b.artist || 'A new artist').slice(0, 60) + ' releases "' +
+      String(b.title).slice(0, 80) + '" on Retro Reverb Records on ' + date + ' 🎶', 'See what\'s on', 'news.html');
+    notify_('Pay-as-you-go release approved: ' + b.title, 'Booking ' + id + ' · ' + date +
+      '\nArrange label delivery, Spotify pitch where applicable, one label social post and a Discord announcement. Consider it for The Bandcamp Hour.\n' + sheetUrl_());
+  }
+  return 'Release approved for ' + date + '.';
+}
+
 function confirmBooking_(bookingId, amount, txnId) {
   const sh = sheet_('Bookings'), v = sh.getDataRange().getValues(), h = v[0];
   const c = k => h.indexOf(k);
@@ -1748,7 +2011,9 @@ function confirmBooking_(bookingId, amount, txnId) {
     if (String(v[i][c('booking_id')]).toUpperCase() !== bookingId) continue;
     const row = i + 1, status = String(v[i][c('status')]);
     if (/^confirmed/i.test(status)) return;          // already done (PayPal can repeat)
-    const kind = v[i][c('kind')], p = JSON.parse(v[i][c('details')] || '{}');
+    const kind = v[i][c('kind')];
+    if (isReleaseBooking_(kind)) return; // Release payments and approval have their own transitions.
+    const p = JSON.parse(v[i][c('details')] || '{}');
     const demo = txnId === 'DEMO';
     let date = isoDate_(v[i][c('date')]), moved = '';
     if (date && !demo && !slotFree_(kind, date)) { const nd = nextFreeDate_(kind, date); moved = date; date = nd; sh.getRange(row, c('date') + 1).setValue(date); }
@@ -1759,21 +2024,8 @@ function confirmBooking_(bookingId, amount, txnId) {
     sh.getRange(row, c('txn_id') + 1).setValue(txnId || '');
     const memberId = v[i][c('member_id')], title = v[i][c('title')];
     if (memberId) {
-      if (/release/.test(kind)) { award_(memberId, 'firstRelease'); addPoints_(memberId, POINTS.releaseBooked, 'Release booked: ' + title, 'releaseBooked'); }
       if (kind === 'youtube-upload') { award_(memberId, 'firstVideo'); addPoints_(memberId, POINTS.videoBooked, 'YouTube upload booked: ' + title, 'videoBooked'); }
-      if (kind === 'bandcamp-release' && !demo && String(p.listening_party) === 'yes' && date) {
-        try { const st = new Date(date + 'T19:00:00Z'); getCalendar_().createEvent('Listening party: ' + v[i][c('artist')] + ' – ' + title, st, new Date(st.getTime() + 3600000), { description: 'Set it up in Bandcamp (release page → Listening party). Time is a placeholder: 8pm UK.' }); } catch (e) { log_('listening party event failed', String(e)); }
-        notify_('🎧 Listening party requested: ' + v[i][c('artist')] + ' – ' + title, 'Release day ' + date + '. A placeholder is in the RRR Releases calendar (8pm UK). Set the party up on Bandcamp and adjust the time; the weekly bulletin picks it up from the calendar.');
-      }
       if (kind === 'youtube-upload' && !demo) notice_('premiere', memberId, v[i][c('artist')] + ' premieres "' + title + '" on the RRR YouTube channel on ' + date + ' 🎬', 'Subscribe so you don\'t miss it', 'https://www.youtube.com/@RetroReverbRecords?sub_confirmation=1');
-    }
-    // Pay as you go (no membership, owner decision 19 Oct 2026): check the price and list what RRR owes them
-    const fmtKey = String(v[i][c('format')] || p.format || '').toLowerCase();
-    if (!memberId && /release/.test(kind) && !demo) {
-      const want = PAYG_FEES_[fmtKey];
-      if (want && Number(amount) + 0.001 < want) notify_('⚠️ Underpaid pay-as-you-go release: ' + bookingId, 'Paid ' + amount + ', price is ' + want + ' (' + fmtKey + '). Ask them for the difference before uploading.\n' + sheetUrl_());
-      notice_('release', '', String(v[i][c('artist')] || 'A new artist').slice(0, 60) + ' releases "' + String(title).slice(0, 80) + '" on Retro Reverb Records' + (date ? ' on ' + date : '') + ' 🎶', 'See what\'s on', 'news.html');
-      notify_('💳 Pay-as-you-go release: ' + v[i][c('artist')] + ' – ' + title, 'Not a member. Included, for you to do:\n1. Release it under the RRR label (and list it on the RRR Bandcamp page)\n2. Spotify pitch, once they add RRR as a team member in Spotify for Artists\n3. One label social post for the release\n4. Announce it in Discord (the Notice Board post was added automatically)\n5. Consider it for The Bandcamp Hour\n\nBooking ' + bookingId + ' · ' + kind + ' · ' + (date || 'no date') + '\n' + sheetUrl_());
     }
     const email = v[i][c('email')];
     if (email) try {
@@ -1800,6 +2052,7 @@ function expireUnpaidBookings_() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('RRR')
     .addItem('Give approved points now', 'approveClaimsNow')
+    .addItem('Process selected booking decision', 'processBookedReleaseDecision')
     .addItem('Process release decisions now', 'processReleasesNow')
     .addItem('Apply suspensions and removals now', 'processStandingNow')
     .addItem('Process AI disputes now', 'processDisputesNow')
@@ -1846,8 +2099,8 @@ function buildNewsletter_(forDate) {
   const nextEnd = new Date(forDate.getFullYear(), forDate.getMonth() + 1, 1);
   const inRange = (d, a, b) => { const x = new Date(d); return x >= a && x < b; };
   const monthName = Utilities.formatDate(start, Session.getScriptTimeZone(), 'MMMM yyyy');
-  const releases = rows_('Bookings').filter(r => /release/.test(r.kind) && r.date && inRange(r.date, start, end) && !/cancel/i.test(r.status));
-  const upcoming = rows_('Bookings').filter(r => /release/.test(r.kind) && r.date && inRange(r.date, end, nextEnd) && !/cancel/i.test(r.status));
+  const releases = rows_('Bookings').filter(r => /release/.test(r.kind) && r.date && inRange(r.date, start, end) && /^confirmed/i.test(String(r.status)));
+  const upcoming = rows_('Bookings').filter(r => /release/.test(r.kind) && r.date && inRange(r.date, end, nextEnd) && /^confirmed/i.test(String(r.status)));
   const posts = topPosts_(start, end);
   const newMembers = rows_('Members').filter(r => r.created && inRange(r.created, start, end) && /active/.test(r.status) && !/demo/.test(r.status) && r.type === 'artist');
   const press = rows_('Press').filter(r => String(r.approved).toLowerCase() === 'yes' && inRange(r.created, start, end));
@@ -2735,13 +2988,16 @@ function handleShowRequest_(p) {
 // Streaming: included for active members. Bandcamp: SETTINGS.memberFreeBandcampPerMonth per calendar month (the label calendar takes one Bandcamp release a day).
 // The membership must still be active on the release day; if it has ended, the artist is asked to rejoin or pay the pay-as-you-go price.
 // ============================================================
-function memberReleaseFree_(m, kind, date) {
+function memberReleaseFree_(m, kind, date, excludeBookingId) {
   if (!m || !/^active/i.test(String(m.status)) || !inGoodStanding_(m)) return false;
   if (kind === 'streaming-release') return true;
   if (kind !== 'bandcamp-release') return false;
   const month = isoDate_(date || new Date()).slice(0, 7);
-  const used = rows_('Bookings').filter(r => r.member_id === m.member_id && r.kind === 'bandcamp-release' && !/cancel|full|declined|refused/i.test(String(r.status)) &&
-    /member release/i.test(String(r.status)) && isoDate_(r.date).slice(0, 7) === month).length;
+  const used = rows_('Bookings').filter(r => (!excludeBookingId || r.booking_id !== excludeBookingId) &&
+    r.member_id === m.member_id && r.kind === 'bandcamp-release' &&
+    (/^confirmed \(member release\)/i.test(String(r.status)) || (r.release_entitlement === 'member' && releaseInReview_(r))) &&
+    (isoDate_(r.date || r.preferred_date).slice(0, 7) === month ||
+      (r.status === 'scheduling' && isoDate_(r.preferred_date).slice(0, 7) === month))).length;
   return used < (SETTINGS.memberFreeBandcampPerMonth || 0);
 }
 function checkMemberReleases_() {

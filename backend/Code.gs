@@ -1881,7 +1881,8 @@ function releaseIntakeDetails_(kind, p, format) {
   if (!/^https?:\/\/[^\s/]+[^\s]*$/i.test(String(p.assets_link || '').trim())) {
     throw new Error('add a valid private review folder link');
   }
-  if (!['none', 'partial', 'heavy'].includes(p.ai_use) || p.collaborators_agreed !== 'yes' || p.start_now !== 'yes') {
+  const aiChoices = p.ai_declaration_version === '2' ? ['none', 'assisted', 'partial', 'heavy'] : ['none', 'partial', 'heavy'];
+  if (!aiChoices.includes(p.ai_use) || p.collaborators_agreed !== 'yes' || p.start_now !== 'yes') {
     throw new Error('complete the release declarations');
   }
   if (bandcamp && (!['artist', 'rrr'].includes(p.upload_by) || p.agree !== 'on')) {
@@ -1901,6 +1902,21 @@ function releaseIntakeDetails_(kind, p, format) {
   const limits = { title: 160, version: 100, featured_artists: 200, contributors: 300,
     songwriters: 200, lyricists: 200, language: 80, explicit: 3, isrc: 24 };
   const details = Object.assign({}, p, { track_count: count });
+  if (p.ai_declaration_version === '2') {
+    const aiFields = { ai_tools: 300, ai_elements: 1000, ai_artist_work: 1000 };
+    for (const [field, limit] of Object.entries(aiFields)) {
+      if (p.ai_use === 'none') delete details[field];
+      else {
+        const value = String(p[field] || '').trim();
+        if (!value || value.length > limit) throw new Error('complete the AI tools, generated elements and artist contribution fields');
+        details[field] = value;
+      }
+    }
+    const process = String(p.production_process || '').trim();
+    if (process.length > 500) throw new Error('shorten the production process description');
+    details.production_process = process;
+  }
+
   details.release_tracks = tracks.map((track, index) => {
     if (!track || typeof track !== 'object' || !['yes', 'no'].includes(track.explicit) ||
         typeof track.title !== 'string' || !track.title.trim() ||
@@ -1985,12 +2001,40 @@ function notifyReleaseReceived_(b) {
     '" by ' + b.artist + ' in the Bookings tab.\n' + sheetUrl_());
 }
 
-function sendReleaseBookingEmail_(b, subject, body) {
+function releaseCalendarAttachment_(booking, date) {
+  const start = new Date(date + 'T00:00:00Z');
+  const end = new Date(start.getTime() + 86400000);
+  const compact = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+  const calendarText = value => String(value).replace(/\\/g, '\\\\')
+    .replace(/\r?\n|\r/g, '\\n').replace(/[;,]/g, '\\$&');
+  // Fold by UTF-8 byte length, keeping each Unicode character intact.
+  const fold = line => {
+    let bytes = 0, output = '';
+    for (const char of line) {
+      const value = char.codePointAt(0);
+      const length = value < 128 ? 1 : value < 2048 ? 2 : value < 65536 ? 3 : 4;
+      if (bytes + length > 75) { output += '\r\n '; bytes = 1; }
+      output += char;
+      bytes += length;
+    }
+    return output;
+  };
+  const stamp = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Retro Reverb Records//Release Booking//EN',
+    'BEGIN:VEVENT', 'UID:' + booking.booking_id + '@retroreverbrecords.com', 'DTSTAMP:' + stamp,
+    'DTSTART;VALUE=DATE:' + compact(start), 'DTEND;VALUE=DATE:' + compact(end),
+    'SUMMARY:' + calendarText('RRR release: ' + booking.title), 'END:VEVENT', 'END:VCALENDAR'];
+  return Utilities.newBlob(lines.map(fold).join('\r\n') + '\r\n', 'text/calendar', 'rrr-release.ics');
+}
+
+function sendReleaseBookingEmail_(b, subject, body, confirmedDate) {
   if (!b.email) return;
   try {
-    MailApp.sendEmail({ to: b.email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail,
+    const message = { to: b.email, name: 'Retro Reverb Records', replyTo: SETTINGS.ownerEmail,
       subject: subject + ': "' + b.title + '" (' + b.booking_id + ')',
-      body: body + '\n\nRetro Reverb Records' });
+      body: body + '\n\nRetro Reverb Records' };
+    if (confirmedDate) message.attachments = [releaseCalendarAttachment_(b, confirmedDate)];
+    MailApp.sendEmail(message);
   } catch (e) { log_('release booking email failed', b.booking_id + ' ' + String(e)); }
 }
 
@@ -2139,7 +2183,7 @@ function decideBookedRelease_(id) {
 
   // External notifications have no idempotency key. Finalize first so a retry cannot resend them.
   sendReleaseBookingEmail_(b, 'Release approved', 'Your confirmed release date is ' + date +
-    '.\n\nChecklist and asset deadlines: ' + SETTINGS.siteUrl + 'release-policy.html');
+    '. Add the attached calendar file if you want to save the date.\n\nChecklist and asset deadlines: ' + SETTINGS.siteUrl + 'release-policy.html', date);
   if (b.member_id) {
     award_(b.member_id, 'firstRelease');
     addPoints_(b.member_id, POINTS.releaseBooked, 'Release booked: ' + b.title, 'releaseBooked');

@@ -188,3 +188,38 @@ rollout. No manual sheet migration is required.
 Profile edits affect release intake details. The registered email, payout
 settings, public dashboard identity and live linked-platform settings are
 managed through their existing workflows.
+
+### Local release delivery and audio checks
+
+From the repository root, save the JSON from the approved Bookings row's
+`details` cell as `details.json`. Put only that release's audio, artwork and
+lyrics in a local folder. Run the following with Python 3.12 and FFmpeg
+installed:
+
+```sh
+python3 scripts/release_audio.py path/to/assets/track.wav path/to/assets/track.mp3
+python3 scripts/release_package.py details.json path/to/assets release.zip
+```
+
+The audio command returns JSON measurements of the first audio stream in each
+file. A nonzero exit status means at least one file could not be decoded or
+measured. A full-scale or overs flag indicates clipping risk. Use the
+measurements for technical review alongside listening and current distributor
+requirements. These tools run locally and do not upload files. The ZIP contains
+private release and contact metadata, so keep it with the release team.
+
+The intake stores the new AI declaration and the artist's explanation in
+`details`. Use the existing `request changes` decision and an artist-facing
+note to ask for clarification. AI disclosures do not trigger automatic
+eligibility decisions. This workflow does not send release masters to the
+existing AI checker.
+
+Apps Script continues to own approval, payment state and calendar events.
+Local packaging and analysis avoid adding storage, paid services or public
+CI jobs for private masters. A future Drive integration would need private
+folder permissions, consent and a repeatable way to assign each submitted file
+to its track. Add it only after those details and staging delivery are verified.
+
+An approved release email includes an all-day `rrr-release.ics` attachment
+with the confirmed date. Verify import in a staging inbox before rollout.
+Rescheduling and cancellation still use the existing manual calendar process.

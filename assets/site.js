@@ -494,6 +494,11 @@ window.rrrSend = function(url, data, onProblem){
           $('[data-streaming-prices]', f).hidden = bandcamp;
         };
         updateDestination();
+        const aiOptions = $$('[name=ai_use]', f);
+        const updateAiDetails = () => toggleFields('[data-ai-details]', aiOptions.some(
+          option => option.checked && option.value !== 'none'));
+        aiOptions.forEach(option => option.addEventListener('change', updateAiDetails));
+        updateAiDetails();
         addTrack();
         destination.addEventListener('change', updateDestination);
         previous.addEventListener('change', updateTracks);
@@ -518,6 +523,7 @@ window.rrrSend = function(url, data, onProblem){
           updateDestination();
           tracks.replaceChildren();
           addTrack();
+          updateAiDetails();
           destination.dispatchEvent(new Event('change'));
         }, 0));
       }

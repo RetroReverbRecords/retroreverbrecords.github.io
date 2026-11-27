@@ -35,6 +35,7 @@ function fixture() {
     SpreadsheetApp: { flush() {} },
     Session: { getScriptTimeZone: () => 'UTC' },
     Utilities: { getUuid: () => String(++uid).padStart(32, '0').slice(-12).padEnd(32, '0'),
+      newBlob: (text, contentType, filename) => ({ text, contentType, filename }),
       DigestAlgorithm: { SHA_256: 'sha256' },
       computeDigest: (algorithm, token) => createHash(algorithm).update(token).digest(),
       base64EncodeWebSafe: digest => digest.toString('base64url'),
@@ -117,6 +118,11 @@ test('paid release requires approval, and repeated notifications or approval do 
   assert.equal(f.events.length, 3);
   assert.equal(f.notices.length, 1);
   assert.equal(f.emails.length, 2);
+  assert.equal(f.emails[0].attachments, undefined);
+  const [calendar] = f.emails[1].attachments;
+  assert.equal(calendar.filename, 'rrr-release.ics');
+  assert.match(calendar.text, /UID:BK-ABCDEF234567@retroreverbrecords.com/);
+  assert.ok(calendar.text.includes('DTSTART;VALUE=DATE:' + f.date.replace(/-/g, '')));
   assert.match(f.decide(paidId, 'approve'), /not awaiting/);
   f.ipn(paidId, 'TX1');
   assert.equal(f.events.length, 3);
@@ -348,4 +354,23 @@ test('artist profiles require an unexpired emailed token and retain existing mem
   f.Members[0].artist_profile_expires = Date.now() - 1;
   assert.equal(post('read', { token }).ok, false);
   assert.equal(post('save', { token, artist: 'Unexpected edit' }).ok, false);
+});
+
+test('new AI declarations keep artist explanations for review and do not determine eligibility', () => {
+  const f = fixture();
+  const incomplete = intake('bandcamp', { booking_id: paidId, ai_declaration_version: '2', ai_use: 'assisted' });
+  assert.match(f.request('bandcamp-release', incomplete), /^refused: complete the AI tools/);
+  assert.equal(f.request('bandcamp-release', { ...incomplete, ai_use: 'heavy', ai_tools: 'Test tool',
+    ai_elements: 'Generated an instrumental part', ai_artist_work: 'Wrote lyrics and recorded vocals',
+    production_process: 'Recorded and mixed locally' }), 'ok');
+  f.ipn(paidId, 'AI-TXN');
+  const details = JSON.parse(f.row(paidId).details);
+  assert.equal(details.ai_artist_work, 'Wrote lyrics and recorded vocals');
+  assert.equal(f.row(paidId).status, 'awaiting approval');
+  assert.match(f.decide(paidId, 'request changes'), /changes requested/);
+  assert.equal(f.events.length, 0);
+  const humanId = 'BK-HUMAN123456';
+  assert.equal(f.request('streaming-release', intake('streaming', { booking_id: humanId,
+    ai_declaration_version: '2', ai_tools: 'stale' })), 'ok');
+  assert.equal(JSON.parse(f.row(humanId).details).ai_tools, undefined);
 });

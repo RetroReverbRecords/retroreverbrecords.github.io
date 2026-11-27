@@ -223,3 +223,18 @@ to its track. Add it only after those details and staging delivery are verified.
 An approved release email includes an all-day `rrr-release.ics` attachment
 with the confirmed date. Verify import in a staging inbox before rollout.
 Rescheduling and cancellation still use the existing manual calendar process.
+
+### Repeatable release checks
+
+From the repository root, run `scripts/check_release_workflow.sh` with Node,
+Python 3.12, FFmpeg/FFprobe and Playwright with Chromium available. If using
+system Chromium, set `RRR_CHROMIUM` to its executable path. The browser
+fixtures intercept requests and use synthetic data. No service credentials,
+test payments, or access to the production site are needed.
+
+Before rollout, separately verify staging PayPal notification delivery,
+profile email delivery, and opening the approval calendar attachment in a
+test inbox. The simulated Sheets approval, included membership, and
+underpayment decisions were already exercised. Use the staging relay to
+diagnose PayPal delivery when it is available. Hold production rollout
+pending staging validation and owner approval.

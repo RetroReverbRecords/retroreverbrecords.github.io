@@ -222,7 +222,20 @@ to its track. Add it only after those details and staging delivery are verified.
 
 An approved release email includes an all-day `rrr-release.ics` attachment
 with the confirmed date. Verify import in a staging inbox before rollout.
-Rescheduling and cancellation still use the existing manual calendar process.
+For a future, unuploaded release approved with the current code, enter
+`reschedule` or `cancel` in `release_decision` and select **RRR → Process
+selected booking decision**. For a move, put the new date in `approval_date`.
+Use `decision_note` for any extra information to send the artist. The system
+updates the recorded release calendar events and linked Notice Board entry.
+It sends the artist a revised calendar file for a move. A cancellation keeps
+the payment on record for separate reconciliation.
+
+If calendar execution stops partway through, rerun the same decision. It
+continues with the saved target date. Use the manual calendar process for
+older bookings that lack a stored set of event IDs, events with changed
+markers, past releases and releases already uploaded to a distributor.
+Verify a move and cancellation against an isolated staging calendar and
+test inbox before rollout.
 
 ### Repeatable release checks
 

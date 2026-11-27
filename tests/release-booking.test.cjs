@@ -7,23 +7,32 @@ const { createHash } = require('node:crypto');
 const code = readFileSync(require('node:path').join(__dirname, '../backend/Code.gs'), 'utf8');
 
 function fixture() {
-  const tables = { Bookings: [], Payments: [], Members: [], Posts: [] };
+  const tables = { Bookings: [], Payments: [], Members: [], Posts: [], Notices: [] };
   const emails = [], notices = [], events = [], points = [], alerts = [];
   const date = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
-  let locked = false, uid = 0, failEvent = false, verified = true;
+  let locked = false, uid = 0, eventId = 0, failEvent = false, failDeletion = false, verified = true;
   const day = d => d.toISOString().slice(0, 10);
   function calendarEvent(title, start, options = {}) {
     if (failEvent && title.startsWith('DEADLINE')) {
       failEvent = false;
       throw new Error('calendar unavailable');
     }
-    const event = { title, start, getId: () => String(events.indexOf(event) + 1),
-      getDescription: () => options.description || '', removeAllReminders() {}, addPopupReminder() {} };
+    const id = String(++eventId);
+    const event = { title, start, getId: () => id,
+      getDescription: () => options.description || '', removeAllReminders() {}, addPopupReminder() {},
+      deleteEvent() {
+        if (failDeletion && title.startsWith('DEADLINE')) {
+          failDeletion = false;
+          throw new Error('calendar deletion unavailable');
+        }
+        events.splice(events.indexOf(event), 1);
+      } };
     events.push(event);
     return event;
   }
   const calendar = {
     getEventsForDay: d => events.filter(event => day(event.start) === day(d)),
+    getEventById: id => events.find(event => event.getId() === id),
     createAllDayEvent: calendarEvent,
     createEvent: (title, start, end, options) => calendarEvent(title, start, options)
   };
@@ -52,7 +61,11 @@ function fixture() {
   Object.assign(context, {
     text_: x => x, json_: x => x, rows_: name => tables[name].map(row => ({ ...row })),
     append_: (name, row) => tables[name].push(rowFor(name, values(name, row))),
-    updateRow_: (name, key, value, patch) => Object.assign(tables[name].find(row => row[key] === value), patch),
+    updateRow_: (name, key, value, patch) => {
+      const row = tables[name].find(candidate => candidate[key] === value);
+      if (row) Object.assign(row, patch);
+      return !!row;
+    },
     sheet_: name => ({
       getDataRange: () => ({ getValues: () => [headers[name].slice(), ...tables[name].map(row => values(name, row))] }),
       getRange: (row, col, height, width) => ({
@@ -63,13 +76,19 @@ function fixture() {
     }),
     getCalendar_: () => calendar, sheetUrl_: () => 'sheet',
     award_: (id, key) => points.push([id, key]), addPoints_: (id, amount) => points.push([id, amount]),
-    notice_: (...message) => notices.push(message), notify_: (...alert) => alerts.push(alert),
+    notice_: (...message) => {
+      notices.push(message);
+      tables.Notices.push({ text: message[2], booking_id: message[5], public: 'yes' });
+    },
+    discordNotice_: () => {},
+    notify_: (...alert) => alerts.push(alert),
     log_: () => {}, isDemo_: email => email.startsWith('demo@'), isSpam_: () => false
   });
   const settings = vm.runInContext('SETTINGS', context);
   return {
     ...tables, date, events, emails, alerts, points, notices, context,
     failCalendar: () => { failEvent = true; },
+    failCalendarDeletion: () => { failDeletion = true; },
     failVerification: () => { verified = false; },
     request(kind, extra = {}) {
       return context.doPost({ parameter: { form: kind, release_date: date, email: 'artist@example.invalid',
@@ -373,4 +392,53 @@ test('new AI declarations keep artist explanations for review and do not determi
   assert.equal(f.request('streaming-release', intake('streaming', { booking_id: humanId,
     ai_declaration_version: '2', ai_tools: 'stale' })), 'ok');
   assert.equal(JSON.parse(f.row(humanId).details).ai_tools, undefined);
+});
+
+test('reschedule creates replacement events, updates the notice and sends a revised calendar attachment once', () => {
+  const f = fixture();
+  f.request('streaming-release', { booking_id: paidId });
+  f.ipn(paidId, 'MOVE-TXN');
+  f.decide(paidId, 'approve');
+  const previous = new Set(JSON.parse(f.row(paidId).calendar_event_ids));
+  const date = new Date(Date.parse(f.date) + 2 * 86400000).toISOString().slice(0, 10);
+  f.failCalendarDeletion();
+  assert.throws(() => f.decide(paidId, 'reschedule', date), /calendar deletion unavailable/);
+  assert.equal(f.row(paidId).date, f.date);
+  assert.equal(f.row(paidId).calendar_change_date, date);
+  assert.equal(f.context.slotsTaken_('streaming-release', date), 1);
+  assert.equal(f.emails.length, 2);
+  assert.match(f.decide(paidId, 'cancel'), /Finish the saved calendar change/);
+  assert.match(f.decide(paidId, 'reschedule', '2099-01-01'), /Release rescheduled/);
+  assert.equal(f.row(paidId).date, date);
+  assert.equal(f.events.length, 3);
+  assert.ok(f.events.every(event => !previous.has(event.getId())));
+  assert.equal(f.row(paidId).txn_id, 'MOVE-TXN');
+  assert.equal(f.Notices.length, 1);
+  assert.ok(f.Notices[0].text.includes(date));
+  assert.equal(f.emails.length, 3);
+  assert.match(f.emails[2].attachments[0].text, /SEQUENCE:1/);
+  assert.match(f.emails[2].attachments[0].text, /UID:BK-ABCDEF234567@retroreverbrecords.com/);
+});
+
+test('cancellation removes only recorded matching events and leaves payment for manual reconciliation', () => {
+  const f = fixture();
+  f.request('bandcamp-release', { booking_id: paidId, upload_by: 'rrr' });
+  f.ipn(paidId, 'CANCEL-TXN');
+  f.decide(paidId, 'approve');
+  const calendar = f.context.getCalendar_();
+  const unrelated = calendar.createAllDayEvent('Other event', new Date(f.date + 'T12:00:00Z'));
+  const original = f.events[0].getDescription;
+  f.events[0].getDescription = () => 'Manual calendar edit removed the booking marker';
+  assert.match(f.decide(paidId, 'cancel'), /calendar marker changed/);
+  assert.equal(f.events.length, 4);
+  f.events[0].getDescription = original;
+  assert.match(f.decide(paidId, 'cancel'), /Review the payment separately/);
+  assert.equal(f.row(paidId).status, 'cancelled');
+  assert.equal(f.row(paidId).payment_status, 'paid');
+  assert.equal(f.row(paidId).txn_id, 'CANCEL-TXN');
+  assert.equal(f.Notices[0].public, 'no');
+  assert.deepEqual(f.events, [unrelated]);
+  assert.equal(f.context.slotsTaken_('bandcamp-release', f.date), 0);
+  f.decide(paidId, 'cancel');
+  assert.equal(f.emails.length, 3);
 });

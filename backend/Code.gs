@@ -87,7 +87,7 @@ const TABS = {
   Shows:        ['show_id','created','status','show_name','promoter','contact_name','email','member_id','repeat','day','date','start','length_min','timezone','stream_url','website','genres','description','clash','notes'],
   Giveaway:     ['received','giveaway','name','email','username','platform','newsletter','status'],
   RefundRequests: ['received','request_id','name','email','member_id','payment_for','payment_date','amount','paypal_txn','reason','description','status'],
-  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release','instagram','photo','trial_code','trial_ends'],
+  Members:      ['member_id','created','type','name','artist','email','country','address_line1','address_line2','city','postcode','bandcamp','status','plan','paypal_subscr_id','points','rank','songstats_artist_id','public','referred_by','artist_type','bandcamp_linked','bandcamp_pro','admin_notes','link_method','standing','payment_issue_since','payment_chase','role','admin_key','spotify','rank_since','youtube_name','stats_pro','stats_link','paypal_payout','paypal_pending','paypal_token','founder','billing','free_release','instagram','photo','trial_code','trial_ends','artist_profile','artist_profile_digest','artist_profile_expires'],
   Agreements:   ['member_id','signed_at_server','signed_at_client','signature_name','email','type','terms_version','agreed_terms_conduct_privacy','agreed_ai_release_policy','agreed_bandcamp_link','user_agent','page','copy_emailed'],
   Payments:     ['received','txn_type','payment_status','amount','currency','item_name','payer_email','member_id','txn_id','subscr_id','raw','booking_id','booking_outcome'],
   Bookings:     ['created','kind','member_id','artist','email','title','format','date','details','status','calendar_event_id','booking_id','paid_amount','txn_id','uploaded','review_token','check_note','scheduled','preferred_date','release_entitlement','payment_status','expected_amount','release_decision','decision_note','approval_date'],
@@ -153,6 +153,7 @@ function doPost(e) {
     const kind = p.form || 'unknown';
     if (isSpam_(kind, p)) return text_('ok'); // bot protection: quietly drop, logged in the Spam tab
     if (kind === 'signup') return handleSignup_(p);
+    if (/^artist-profile-(link|read|save)$/.test(kind)) return json_(artistProfileAction_(kind, p));
     // Bookings: exact names only (an earlier loose match sent 'rrr-release' Series submissions here by mistake)
     if (/^(bandcamp-release|streaming-release|social-post|youtube-upload|merch-listing)$/.test(kind)) return handleBooking_(kind, p);
     if (kind === 'newsletter') return handleSubscribe_(p);
@@ -247,6 +248,87 @@ function loginLink_(email) {
     log_('login link sent', m.member_id);
   } catch (err) { log_('login link failed', String(err)); }
   return json_({ ok: true });
+}
+
+// Artist profile links are a separate email-verified session. Dashboard IDs are public.
+const ARTIST_PROFILE_FIELDS_ = {
+  artist: 160, contact: 160, location: 160, bio: 2000, photo: 600, social: 800,
+  spotify: 600, apple_music: 600, bandcamp: 600, routenote_account: 60,
+  publishing_org: 160, publisher: 160
+};
+
+function artistProfileMember_(member) {
+  return member && member.type === 'artist' && inGoodStanding_(member);
+}
+
+function artistProfileDigest_(token) {
+  return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token));
+}
+
+function artistProfileLink_(email) {
+  const address = String(email || '').trim().toLowerCase();
+  const generic = { ok: true };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address) || address.length > 254) return generic;
+  return withBookingLock_(() => {
+    const member = findRow_('Members', 'email', address);
+    if (!artistProfileMember_(member) || Number(member.artist_profile_expires) > Date.now() + 20 * 60000) return generic;
+    const token = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
+    updateRow_('Members', 'member_id', member.member_id, {
+      artist_profile_digest: artistProfileDigest_(token),
+      artist_profile_expires: Date.now() + 30 * 60000
+    });
+    SpreadsheetApp.flush();
+    try {
+      MailApp.sendEmail({ to: member.email, name: 'Retro Reverb Records', subject: 'Your private RRR artist profile link',
+        body: 'Open this link to edit your RRR artist profile. It expires in 30 minutes.\n\n' +
+          SETTINGS.siteUrl + 'artist-profile.html#' + token + '\n\nIf you did not request this link, you can ignore this email.' });
+    } catch (e) {
+      updateRow_('Members', 'member_id', member.member_id, { artist_profile_expires: 0 });
+      log_('artist profile link delivery failed', member.member_id);
+    }
+    return generic;
+  });
+}
+
+function artistProfileData_(member) {
+  let saved = {};
+  try { saved = JSON.parse(member.artist_profile || '{}') || {}; } catch (e) {}
+  const defaults = {
+    artist: member.artist || member.name, contact: member.name, location: member.country,
+    photo: member.photo, social: member.instagram, bandcamp: member.bandcamp, spotify: member.spotify
+  };
+  const profile = {};
+  Object.keys(ARTIST_PROFILE_FIELDS_).forEach(field => {
+    profile[field] = String(Object.prototype.hasOwnProperty.call(saved, field) ? saved[field] : defaults[field] || '');
+  });
+  return Object.assign(profile, { email: String(member.email || '') });
+}
+
+function artistProfileAction_(action, p) {
+  if (action === 'artist-profile-link') return artistProfileLink_(p.email);
+  const token = String(p.token || '');
+  const expired = { ok: false, error: 'This link has expired. Request a new link to continue.' };
+  if (!/^[a-f0-9]{64}$/i.test(token)) return expired;
+  return withBookingLock_(() => {
+    const digest = artistProfileDigest_(token);
+    const member = findRow_('Members', 'artist_profile_digest', digest);
+    if (!artistProfileMember_(member) || member.artist_profile_digest !== digest ||
+        !(Number(member.artist_profile_expires) > Date.now())) return expired;
+    if (action === 'artist-profile-read') return { ok: true, profile: artistProfileData_(member) };
+
+    const profile = {};
+    for (const [field, limit] of Object.entries(ARTIST_PROFILE_FIELDS_)) {
+      const value = String(p[field] || '').trim();
+      if (value.length > limit) return { ok: false, error: 'Shorten the ' + field.replace(/_/g, ' ') + ' field.' };
+      if (value && ['photo', 'bandcamp', 'spotify', 'apple_music'].includes(field) && !/^https:\/\/[^\s/]+(?:[/][^\s]*)?$/i.test(value)) {
+        return { ok: false, error: 'Use an HTTPS link for ' + field.replace(/_/g, ' ') + '.' };
+      }
+      profile[field] = value;
+    }
+    if (!profile.artist) return { ok: false, error: 'Enter an artist name.' };
+    updateRow_('Members', 'member_id', member.member_id, { artist_profile: JSON.stringify(profile) });
+    return { ok: true };
+  });
 }
 
 // ============================================================

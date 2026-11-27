@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>Artist profile · Retro Reverb Records</title>
+  <link rel="icon" href="assets/favicon-96.png">
+  <link rel="stylesheet" href="assets/site.css?v=20261125f">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <a class="brand" href="index.html"><img src="assets/rrr-logo-header.png" width="210" height="34" alt="Retro Reverb Records home"></a>
+      <nav aria-label="Sections"><a href="member.html">Member dashboard</a><a href="book.html#release">Book a release</a></nav>
+    </div>
+  </header>
+  <main class="side">
+    <div class="wrap">
+      <h1>Artist profile</h1>
+      <p id="profile-status" role="status" aria-live="polite"></p>
+      <form class="panel" id="profile-link">
+        <p>Use the email on your RRR artist membership to get a private editing link.</p>
+        <div class="fields"><label>Registered email<input name="email" type="email" maxlength="254" autocomplete="email" required></label></div>
+        <p><button type="submit" class="btn primary">Email my profile link</button></p>
+      </form>
+      <form class="panel" id="profile-edit" hidden>
+        <div class="fields">
+          <label>Artist name<input name="artist" maxlength="160" required></label>
+          <label>Contact name<input name="contact" maxlength="160" autocomplete="name"></label>
+          <label>Registered email<input name="email" type="email" readonly></label>
+          <label>Location<input name="location" maxlength="160"></label>
+          <label class="wide">Biography<textarea name="bio" maxlength="2000"></textarea></label>
+          <label>Artist photo URL<input name="photo" type="url" maxlength="600"></label>
+          <label>Social links, one per line<textarea name="social" maxlength="800"></textarea></label>
+          <label>Spotify artist URL<input name="spotify" type="url" maxlength="600"></label>
+          <label>Apple Music artist URL<input name="apple_music" type="url" maxlength="600"></label>
+          <label>Bandcamp artist URL<input name="bandcamp" type="url" maxlength="600"></label>
+          <label>RouteNote account number<input name="routenote_account" maxlength="60"></label>
+          <label>Publishing organisation<input name="publishing_org" maxlength="160"></label>
+          <label>Publisher<input name="publisher" maxlength="160"></label>
+        </div>
+        <p>Use HTTPS links. These details are for RRR’s release team. To change your registered email, contact RRR.</p>
+        <p class="ctas-left">
+          <button type="submit" class="btn primary">Save profile</button>
+          <button type="button" class="btn ghost" id="profile-book">Use saved details for a release</button>
+          <button type="button" class="linkbtn" id="profile-close">Close profile</button>
+        </p>
+      </form>
+    </div>
+  </main>
+  <script src="assets/config.js?v=20261116a"></script>
+  <script src="assets/artist-profile.js"></script>
+</body>
+</html>

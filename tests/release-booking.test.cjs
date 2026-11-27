@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const test = require('node:test');
 const vm = require('node:vm');
+const { createHash } = require('node:crypto');
 
 const code = readFileSync(require('node:path').join(__dirname, '../backend/Code.gs'), 'utf8');
 
@@ -34,6 +35,9 @@ function fixture() {
     SpreadsheetApp: { flush() {} },
     Session: { getScriptTimeZone: () => 'UTC' },
     Utilities: { getUuid: () => String(++uid).padStart(32, '0').slice(-12).padEnd(32, '0'),
+      DigestAlgorithm: { SHA_256: 'sha256' },
+      computeDigest: (algorithm, token) => createHash(algorithm).update(token).digest(),
+      base64EncodeWebSafe: digest => digest.toString('base64url'),
       formatDate: (d, tz, format) => format === 'MMMM' ? String(d.getUTCMonth() + 1) : day(d) },
     MailApp: { sendEmail: email => emails.push(email) },
     ScriptApp: { getService: () => ({ getUrl: () => 'https://example.invalid' }) },
@@ -312,4 +316,36 @@ test('structured intake rejects inconsistent destinations, malformed tracks and 
     assert.match(f.request('bandcamp-release', { ...request, booking_id: paidId }), /^refused/);
   }
   assert.equal(f.Bookings.length, 0);
+});
+
+test('artist profiles require an unexpired emailed token and retain existing member and payment fields', () => {
+  const f = fixture();
+  f.activeMember({ type: 'artist', name: 'Existing Contact', artist: 'Existing Artist',
+    bandcamp: 'https://artist.bandcamp.com', paypal_payout: 'payout@example.invalid' });
+  const post = (action, fields = {}) => f.context.doPost({ parameter: { form: 'artist-profile-' + action, ...fields } });
+  assert.equal(post('link', { email: 'unknown@example.invalid' }).ok, true);
+  assert.equal(f.emails.length, 0);
+  assert.equal(post('read', { token: 'RRR-TEST' }).ok, false);
+  assert.equal(post('link', { email: 'artist@example.invalid' }).ok, true);
+  post('link', { email: 'artist@example.invalid' });
+  assert.equal(f.emails.length, 1);
+  const token = f.emails[0].body.match(/#([a-f0-9]{64})/)[1];
+  assert.notEqual(f.Members[0].artist_profile_digest, token);
+  const first = post('read', { token });
+  assert.equal(first.profile.artist, 'Existing Artist');
+  assert.equal(first.profile.contact, 'Existing Contact');
+  assert.equal(first.profile.bandcamp, 'https://artist.bandcamp.com');
+  assert.equal(first.profile.paypal_payout, undefined);
+  assert.equal(post('save', { token, artist: 'New Artist', photo: 'javascript:alert(1)' }).ok, false);
+  assert.equal(post('save', { token, artist: 'New Artist', routenote_account: '00123',
+    email: 'alternate@example.invalid', paypal_payout: 'alternate@example.invalid' }).ok, true);
+  const saved = post('read', { token }).profile;
+  assert.equal(saved.artist, 'New Artist');
+  assert.equal(saved.routenote_account, '00123');
+  assert.equal(f.Members[0].email, 'artist@example.invalid');
+  assert.equal(f.Members[0].paypal_payout, 'payout@example.invalid');
+  assert.equal(f.Members[0].artist, 'Existing Artist');
+  f.Members[0].artist_profile_expires = Date.now() - 1;
+  assert.equal(post('read', { token }).ok, false);
+  assert.equal(post('save', { token, artist: 'Unexpected edit' }).ok, false);
 });

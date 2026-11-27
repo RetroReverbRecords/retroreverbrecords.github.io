@@ -174,3 +174,17 @@ migration is required. The backend still accepts the older booking format.
 Run `node --test tests/release-booking.test.cjs` for intake and approval
 regression coverage. Distributor-specific validation and any new rights
 agreement language require verification and review before they are added.
+
+### Phase 3 private artist profiles
+
+The Book page and member dashboard link to the artist profile editor. The
+editor sends a 30-minute link to the email already registered on an artist
+membership. The sheet stores only a digest of the token, its expiration and
+the profile JSON, in new columns on the existing Members tab. Open the editor
+and verify email delivery, profile save and release form prefill using a staging
+artist and a test inbox. Deploy the backend before the editor in an approved
+rollout. No manual sheet migration is required.
+
+Profile edits affect release intake details. The registered email, payout
+settings, public dashboard identity and live linked-platform settings are
+managed through their existing workflows.

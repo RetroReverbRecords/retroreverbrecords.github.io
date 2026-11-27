@@ -252,3 +252,64 @@ test('Black Belt rewards cannot be reserved or consumed more than once', () => {
   assert.match(f.decide(id, 'approve'), /Release approved/);
   assert.match(f.request('bandcamp-release', { free_release: 'yes' }), /^refused/);
 });
+
+function intake(destination, extra = {}) {
+  return {
+    destination, genre: 'Synthwave', copyright_owner: 'Staging artist', copyright_year: '2026',
+    previously_released: 'no', assets_link: 'https://example.invalid/private-review',
+    ai_use: 'none', collaborators_agreed: 'yes', start_now: 'yes', payg_terms: 'yes',
+    upload_by: 'rrr', agree: 'on', artwork_logo: 'no', streaming_agree: 'on',
+    release_tracks: JSON.stringify([{ title: 'Opening', language: 'Instrumental', explicit: 'no' }]),
+    ...extra
+  };
+}
+
+test('structured intake keeps track order and destination details for paid or included review', () => {
+  const f = fixture();
+  assert.equal(f.request('bandcamp-release', intake('both', { booking_id: paidId, format: 'ep',
+    previously_released: 'yes', upc: '012345678905', routenote_account: 'RN-TEST', bandcamp_tags: 'synthwave',
+    release_tracks: JSON.stringify([{ title: 'Second', language: 'English', explicit: 'yes', isrc: 'GBTEST000001' },
+      { title: 'First', language: 'Instrumental', explicit: 'no' }]) })), 'ok');
+  const details = JSON.parse(f.row(paidId).details);
+  assert.deepEqual(details.release_tracks.map(track => [track.position, track.title]), [[1, 'Second'], [2, 'First']]);
+  assert.equal(details.also_streaming, 'yes');
+  assert.equal(details.routenote_account, 'RN-TEST');
+  assert.equal(details.upc, '012345678905');
+  assert.equal(details.release_tracks[0].isrc, 'GBTEST000001');
+  assert.equal(f.row(paidId).expected_amount, 5.5);
+  f.ipn(paidId, 'BOTH-TXN', '5.50');
+  assert.equal(f.events.length, 0);
+  assert.equal(f.row(paidId).status, 'awaiting approval');
+  assert.match(f.decide(paidId, 'approve'), /Release approved/);
+  assert.ok(f.events.some(event => event.title.includes('to RouteNote')));
+  assert.ok(f.events.some(event => event.title.includes('to Bandcamp')));
+
+  const member = fixture();
+  member.activeMember();
+  assert.equal(member.request('streaming-release', intake('streaming', {
+    member_free: 'yes', bandcamp_tags: 'stale', also_streaming: 'yes', upc: 'stale'
+  })), 'ok');
+  const stored = JSON.parse(member.Bookings[0].details);
+  assert.equal(stored.bandcamp_tags, undefined);
+  assert.equal(stored.also_streaming, undefined);
+  assert.equal(stored.upc, undefined);
+  assert.equal(member.Bookings[0].status, 'awaiting approval');
+  assert.equal(member.events.length, 0);
+});
+
+test('structured intake rejects inconsistent destinations, malformed tracks and incomplete asset or agreement fields', () => {
+  const f = fixture();
+  const invalid = [
+    intake('streaming'),
+    intake('bandcamp', { release_tracks: '[null]' }),
+    intake('bandcamp', { format: 'ep' }),
+    intake('bandcamp', { assets_link: 'javascript:alert(1)' }),
+    intake('bandcamp', { agree: '' }),
+    intake('bandcamp', { payg_terms: '' }),
+    intake('both', { streaming_agree: '' })
+  ];
+  for (const request of invalid) {
+    assert.match(f.request('bandcamp-release', { ...request, booking_id: paidId }), /^refused/);
+  }
+  assert.equal(f.Bookings.length, 0);
+});

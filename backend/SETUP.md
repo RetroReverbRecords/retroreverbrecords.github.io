@@ -160,3 +160,17 @@ consume a credit through their booking record, so retain those rows.
   Compare completed transaction IDs, timestamps, amounts, currency and any
   reversals. Repeated delivery of one transaction ID does not establish a
   second charge.
+
+### Phase 2 release intake
+
+The Book page uses one release form for Bandcamp, streaming, or both. Older
+Bandcamp and streaming booking links still preselect their destination. Review
+the existing Bookings row's `details` JSON for destination, review folder,
+rights notes and the ordered `release_tracks` array. A combined release is
+still one Bandcamp booking with streaming enabled, at the existing price.
+Deploy the backend before the new page in an approved rollout. No sheet
+migration is required. The backend still accepts the older booking format.
+
+Run `node --test tests/release-booking.test.cjs` for intake and approval
+regression coverage. Distributor-specific validation and any new rights
+agreement language require verification and review before they are added.

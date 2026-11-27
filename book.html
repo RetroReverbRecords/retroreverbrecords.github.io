@@ -86,8 +86,7 @@
   <section class="side">
     <div class="wrap">
       <div class="tabs" role="tablist" aria-label="Booking type">
-        <button role="tab" id="tab-bandcamp" data-panel="bandcamp" aria-controls="panel-bandcamp">Bandcamp release</button>
-        <button role="tab" id="tab-streaming" data-panel="streaming" aria-controls="panel-streaming">Streaming release</button>
+        <button role="tab" id="tab-release" data-panel="release" aria-controls="panel-release">Release</button>
         <button role="tab" id="tab-social" data-panel="social" aria-controls="panel-social">Social media post</button>
         <button role="tab" id="tab-youtube" data-panel="youtube" aria-controls="panel-youtube">YouTube upload</button>
         <button role="tab" id="tab-merch" data-panel="merch" aria-controls="panel-merch">Sell merch</button>
@@ -97,29 +96,81 @@
 
       <div class="bookgrid">
         <div>
-          <!-- Bandcamp -->
-          <div class="tabpanel" id="panel-bandcamp" role="tabpanel" aria-labelledby="tab-bandcamp">
-            <form class="panel booking-form" data-kind="bandcamp-release" novalidate>
-              <h2>Bandcamp release</h2>
-              <p class="intro">Released through the RRR Bandcamp catalogue, shown on your page and the RRR page. You keep 100% of royalties.</p>
-              <div class="feerow"><span>Members<b>1 a month included</b></span><span>Extra that month<b data-price="single">€2.00</b></span><span>Pay as you go<b data-price="paygSingle">€4.50</b></span></div>
-              <p class="small payg-line">Prices shown for singles. EP / album: extra member Bandcamp release <b data-price="ep">€2.50</b> / <b data-price="album">€3.00</b>; pay as you go <b data-price="paygEp">€5.50</b> / <b data-price="paygAlbum">€6.50</b>. Member releases need your membership active on the release day. <a href="release.html#payg">What's included</a></p>
+          <div class="tabpanel" id="panel-release" role="tabpanel" aria-labelledby="tab-release">
+            <form class="panel booking-form" data-kind="bandcamp-release" data-release-intake novalidate>
+              <h2>Submit a release</h2>
               <div class="status" role="status"></div>
               <fieldset>
+                <label class="fields" for="release-destination">Where would you like to release?
+                  <select id="release-destination" name="destination">
+                    <option value="bandcamp">Bandcamp only</option>
+                    <option value="streaming">Streaming platforms only</option>
+                    <option value="both">Bandcamp and streaming</option>
+                  </select>
+                </label>
+                <div data-bandcamp-prices>
+              <div class="feerow"><span>Members<b>1 a month included</b></span><span>Extra that month<b data-price="single">€2.00</b></span><span>Pay as you go<b data-price="paygSingle">€4.50</b></span></div>
+              <p class="small payg-line">Prices shown for singles. EP / album: extra member Bandcamp release <b data-price="ep">€2.50</b> / <b data-price="album">€3.00</b>; pay as you go <b data-price="paygEp">€5.50</b> / <b data-price="paygAlbum">€6.50</b>. Member releases need your membership active on the release day. <a href="release.html#payg">What's included</a></p>
+                </div>
+                <div data-streaming-prices hidden>
+              <div class="feerow"><span>Members<b>Included</b></span><span>Pay as you go<b data-price="paygSingle">€4.50</b></span></div>
+              <p class="small payg-line">Streaming releases are included in membership with no monthly limit, while your membership is active on the release day. Pay as you go: single <b data-price="paygSingle">€4.50</b>, EP <b data-price="paygEp">€5.50</b>, album <b data-price="paygAlbum">€6.50</b>. <a href="release.html#payg">What's included</a></p>
+                </div>
+
+                <h3>Release details</h3>
                 <div class="fields">
-                  <label for="bc-artist">Artist name<input id="bc-artist" name="artist" type="text" required></label>
-                  <label for="bc-email">Email<input id="bc-email" name="email" type="email" required></label>
-                  <label for="bc-title">Release title<input id="bc-title" name="title" type="text" required></label>
-                  <label for="bc-genre">Genre<select id="bc-genre" name="genre" required data-genres></select></label>
-                  <label for="bc-format">Format<select id="bc-format" name="format" required><option value="single">Single</option><option value="ep">EP, 2–5 tracks</option><option value="album">Album, 6+ tracks</option></select></label>
-                  <label for="bc-date">Preferred release date<input id="bc-date" name="release_date" type="date" required></label>
-                  <label for="bc-page">Your Bandcamp page<input id="bc-page" name="bandcamp" type="url" placeholder="https://yourname.bandcamp.com"></label>
-                  <label for="bc-notes" class="wide">Notes<textarea id="bc-notes" name="notes" placeholder="Genre, pre-order plans, anything we should know"></textarea></label>
+                  <label>Artist name<input name="artist" type="text" maxlength="160" required></label>
+                  <label>Email<input name="email" type="email" required></label>
+                  <label>Release title<input name="title" type="text" maxlength="160" required></label>
+                  <label>Genre<select name="genre" required data-genres></select></label>
+                  <label>Format<select name="format" required><option value="single">Single</option><option value="ep">EP, 2–5 tracks</option><option value="album">Album, 6+ tracks</option></select></label>
+                  <label>Preferred release date<input name="release_date" type="date" required></label>
+                  <label>Copyright owner<input name="copyright_owner" maxlength="160" required></label>
+                  <label>Copyright year<input name="copyright_year" type="number" min="1000" max="9999" required></label>
+                  <label>Previously released?
+                    <select name="previously_released" required><option value="">Choose one</option><option value="no">No</option><option value="yes">Yes</option></select>
+                  </label>
+                  <fieldset data-previous-release hidden disabled>
+                    <label>Existing release UPC (if available)<input name="upc" inputmode="numeric" maxlength="20"></label>
+                  </fieldset>
+                  <label class="wide">Private review folder link<input name="assets_link" type="url" maxlength="1000" required aria-describedby="release-folder-help"></label>
                 </div>
-                <div class="checks">
-                  <label><input type="checkbox" id="bc-also-stream" name="also_streaming"> Also release on streaming (no extra fee)</label>
-                  <label><input type="checkbox" id="bc-party" name="listening_party" value="yes"> Host a Bandcamp listening party on release day (free): fans listen together and chat with you, and it goes in the RRR weekly bulletin</label>
-                </div>
+                <p id="release-folder-help" class="small">Include audio, artwork, and any relevant lyrics. Share the folder privately with RRR so the label can review it.</p>
+
+                <h3>Tracks</h3>
+                <p class="small">Enter each title as it should appear. Put version names such as Remix or Radio Edit in the version field.</p>
+                <div data-release-tracks></div>
+                <p><button class="btn ghost" type="button" data-add-track>Add track</button></p>
+                <template id="release-track">
+                  <fieldset class="panel release-track">
+                    <legend data-track-heading>Track</legend>
+                    <div class="fields">
+                      <label>Track title<input data-track-field="title" maxlength="160" required></label>
+                      <label>Version<input data-track-field="version" maxlength="100" placeholder="e.g. Radio Edit"></label>
+                      <label>Featured artists<input data-track-field="featured_artists" maxlength="200"></label>
+                      <label>Contributors and roles<input data-track-field="contributors" maxlength="300"></label>
+                      <label>Songwriters<input data-track-field="songwriters" maxlength="200"></label>
+                      <label>Lyricists<input data-track-field="lyricists" maxlength="200"></label>
+                      <label>Language<input data-track-field="language" maxlength="80" placeholder="e.g. English or Instrumental" required></label>
+                      <label>Explicit content<select data-track-field="explicit" required><option value="">Choose one</option><option value="no">No</option><option value="yes">Yes</option></select></label>
+                      <label data-track-isrc hidden>Existing ISRC (if available)<input data-track-field="isrc" maxlength="24" disabled></label>
+                    </div>
+                    <p>
+                      <button type="button" class="copy" data-track-action="up">Move up</button>
+                      <button type="button" class="copy" data-track-action="down">Move down</button>
+                      <button type="button" class="copy" data-track-action="remove">Remove track</button>
+                    </p>
+                  </fieldset>
+                </template>
+
+                <fieldset data-bandcamp-fields>
+                  <legend>Bandcamp</legend>
+                  <div class="fields">
+                    <label>Your Bandcamp page<input name="bandcamp" type="url" maxlength="500"></label>
+                    <label>Tags<input name="bandcamp_tags" maxlength="250" placeholder="Genre and mood, separated by commas"></label>
+                    <label class="wide">Release description (recommended)<textarea name="bandcamp_description" maxlength="2000"></textarea></label>
+                  </div>
+                  <div class="checks"><label><input type="checkbox" name="listening_party" value="yes"> Request a Bandcamp listening party on release day</label></div>
                 <fieldset class="aidecl uploadby"><legend class="label">Who uploads it to Bandcamp? · required</legend>
                   <label><input type="radio" name="upload_by" value="artist" required> I'll upload it myself (see the steps)</label>
                   <label><input type="radio" name="upload_by" value="rrr"> Please upload it for me (see what we need)</label>
@@ -128,7 +179,7 @@
                   <ol class="safe">
                     <li>Make sure your Bandcamp is <a href="series.html#linking">linked to the RRR label</a>.</li>
                     <li>On your Bandcamp page: <b>+ add → album</b> (or track). Upload lossless audio (WAV, AIFF or FLAC) and artwork at least 1400 × 1400 px.</li>
-                    <li>Set it up as a <b>pre-order with your booked release date</b>, so it goes live on the right day by itself. Don't publish it early as a normal release.</li>
+                    <li>Set it up as a <b>pre-order with your confirmed release date</b>, so it goes live on the right day by itself. Don't publish it early as a normal release.</li>
                     <li>In the album's <b>credits</b>, paste exactly: <code>Released by RetroReverbRecords · ℗ &amp; © <span data-year>2026</span> <span data-artistname>your artist name</span></code> <span class="small">(you keep the copyright: the © line names you, the release line names RRR)</span></li>
                     <li>Add your genre as the first tag, plus "retro reverb records".</li>
                     <li>On release day, <b>send a Bandcamp message to your fans</b>.</li>
@@ -144,63 +195,41 @@
                     <li><b>Tags:</b> up to 5 genre or mood tags.</li>
                     <li>Put it all in one <b>Google Drive or Dropbox folder</b> and paste the link below, at least 2 weeks before release.</li>
                   </ul>
-                  <label for="bc-assets" class="wide">Assets folder link<input id="bc-assets" name="assets_link" type="url" placeholder="https://drive.google.com/…"></label>
                 </details>
-                <label class="agree"><input type="checkbox" id="bc-agree" name="agree" required> I'll supply assets at least 2 weeks before release, and RRR may include this release in discount codes, giveaways and offers.</label>
-                                <fieldset class="aidecl"><legend class="label">AI use in this release · required</legend>
-                  <label><input type="radio" name="ai_use" value="none" required> No AI usage</label>
-                  <label><input type="radio" name="ai_use" value="partial"> Partial AI assistance</label>
-                  <label><input type="radio" name="ai_use" value="heavy"> Heavily AI-generated</label>
-                  <a class="small" href="terms.html#ai" target="_blank">What counts?</a>
+                  <label class="agree"><input type="checkbox" name="agree" required> I'll supply assets at least 2 weeks before release, and RRR may include this release in discount codes, giveaways and offers.</label>
                 </fieldset>
-                <p class="small">Bandcamp bans music made "wholly or in substantial part" by AI. <b>Heavily AI-generated releases can go to streaming only</b>, not Bandcamp. Undeclared AI is at your own risk: if Bandcamp removes a release, RRR doesn't refund it.</p>
-                <label for="bc-collab" class="wide collab">Featured artists, producers, remixers (if any)<input id="bc-collab" name="collaborators" type="text" placeholder="Names, or leave empty"></label>
-                <label class="agree"><input type="checkbox" id="bc-collab-ok" name="collaborators_agreed" value="yes" required> Everyone who worked on this release has agreed to it being released.</label>
-                <p class="paylink" hidden></p>
-                <label class="agree"><input type="checkbox" name="start_now" value="yes" required> <span>Please start work on this booking straight away. I understand that once RRR has uploaded it, I can no longer withdraw from this booking (<a href="refunds.html#r1" target="_blank">Refund Policy</a>).</span></label>
-                <p class="small member-free-note" hidden>✓ <b>Included in your membership.</b> No payment needed for this release.</p>
-                <p class="small payg-note" hidden>💡 <b>No RRR membership found for this email</b>, so this is a pay-as-you-go release at the price above. Already a member? Use the email you joined with. <a href="index.html#join">Join</a> to pay member prices.</p>
-                <label class="agree payg-agree" hidden><input type="checkbox" name="payg_terms" value="yes"> <span>I agree to the RRR <a href="terms.html" target="_blank">terms</a> and <a href="release-policy.html" target="_blank">release policy</a>, including the AI policy and RRR being the only streaming distributor of this recording for 18 months.</span></label>
-                <button class="btn primary" type="submit">Book Bandcamp release</button>
-              </fieldset>
-            </form>
-          </div>
+                <fieldset data-streaming-fields hidden disabled>
+                  <legend>Streaming</legend>
+                  <div class="fields">
+                    <label>RouteNote account number (if available)<input name="routenote_account" maxlength="60"></label>
+                    <label>May RRR add its logo to your artwork?
+                      <select name="artwork_logo" required><option value="">Choose one</option><option value="yes">Yes</option><option value="no">No</option></select>
+                    </label>
+                  </div>
+                  <p class="small"><a href="https://routenote.com/" target="_blank" rel="noopener">Visit RouteNote</a> to register if you need an account.</p>
+                  <p class="small">Include a Word document with lyrics in your review folder where applicable.</p>
+                  <details class="needs"><summary>Prepare your review files on Windows or Mac</summary>
+                    <p>On Windows or Mac, export each track from your DAW, keep the original lossless masters, and name the files in track order. Add the artwork and lyrics to the same review folder. RRR will confirm delivery formats during review.</p>
+                  </details>
+                  <label class="agree"><input type="checkbox" name="streaming_agree" required> I'll supply assets at least 3 weeks before release.</label>
+                </fieldset>
 
-          <!-- Streaming -->
-          <div class="tabpanel" id="panel-streaming" role="tabpanel" aria-labelledby="tab-streaming" hidden>
-            <form class="panel booking-form" data-kind="streaming-release" novalidate>
-              <h2>Streaming release</h2>
-              <p class="intro">Uploaded and managed through the RRR RouteNote account. You keep 100% of streaming royalties.</p>
-              <div class="feerow"><span>Members<b>Included</b></span><span>Pay as you go<b data-price="paygSingle">€4.50</b></span></div>
-              <p class="small payg-line">Streaming releases are included in membership with no monthly limit, while your membership is active on the release day. Pay as you go: single <b data-price="paygSingle">€4.50</b>, EP <b data-price="paygEp">€5.50</b>, album <b data-price="paygAlbum">€6.50</b>. <a href="release.html#payg">What's included</a></p>
-              <div class="status" role="status"></div>
-              <fieldset>
-                <div class="fields">
-                  <label for="st-artist">Artist name<input id="st-artist" name="artist" type="text" required></label>
-                  <label for="st-email">Email<input id="st-email" name="email" type="email" required></label>
-                  <label for="st-title">Release title<input id="st-title" name="title" type="text" required></label>
-                  <label for="st-genre">Genre<select id="st-genre" name="genre" required data-genres></select></label>
-                  <label for="st-format">Format<select id="st-format" name="format" required><option value="single">Single</option><option value="ep">EP, 2–5 tracks</option><option value="album">Album, 6+ tracks</option></select></label>
-                  <label for="st-date">Preferred release date<input id="st-date" name="release_date" type="date" required></label>
-                  <label for="st-isrc">ISRC codes (if you have them)<input id="st-isrc" name="isrc" type="text"></label>
-                  <label for="st-assets" class="wide">Private review folder link<input id="st-assets" name="assets_link" type="url" placeholder="https://drive.google.com/…"></label>
-                  <label for="st-notes" class="wide">Notes<textarea id="st-notes" name="notes"></textarea></label>
-                </div>
-                <label class="agree"><input type="checkbox" id="st-agree" name="agree" required> I'll supply assets at least 3 weeks before release.</label>
-                                <fieldset class="aidecl"><legend class="label">AI use in this release · required</legend>
+                <h3>Rights and declarations</h3>
+                <label class="fields">Rights notes<textarea name="rights_notes" maxlength="1500" placeholder="List any covers, samples, third-party permissions, or existing label or distribution agreements."></textarea></label>
+                <fieldset class="aidecl"><legend class="label">AI use in this release · required</legend>
                   <label><input type="radio" name="ai_use" value="none" required> No AI usage</label>
                   <label><input type="radio" name="ai_use" value="partial"> Partial AI assistance</label>
                   <label><input type="radio" name="ai_use" value="heavy"> Heavily AI-generated</label>
                   <a class="small" href="terms.html#ai" target="_blank">What counts?</a>
                 </fieldset>
-                <label for="st-collab" class="wide collab">Featured artists, producers, remixers (if any)<input id="st-collab" name="collaborators" type="text" placeholder="Names, or leave empty"></label>
-                <label class="agree"><input type="checkbox" id="st-collab-ok" name="collaborators_agreed" value="yes" required> Everyone who worked on this release has agreed to it being released.</label>
+                <p class="small">Review the <a href="terms.html#ai">RRR AI policy</a> before submitting.</p>
+                <label class="agree"><input type="checkbox" name="collaborators_agreed" value="yes" required> Everyone who worked on this release has agreed to it being released.</label>
                 <p class="paylink" hidden></p>
                 <label class="agree"><input type="checkbox" name="start_now" value="yes" required> <span>Please start work on this booking straight away. I understand that once RRR has uploaded it, I can no longer withdraw from this booking (<a href="refunds.html#r1" target="_blank">Refund Policy</a>).</span></label>
                 <p class="small member-free-note" hidden>✓ <b>Included in your membership.</b> No payment needed for this release.</p>
                 <p class="small payg-note" hidden>💡 <b>No RRR membership found for this email</b>, so this is a pay-as-you-go release at the price above. Already a member? Use the email you joined with. <a href="index.html#join">Join</a> to pay member prices.</p>
                 <label class="agree payg-agree" hidden><input type="checkbox" name="payg_terms" value="yes"> <span>I agree to the RRR <a href="terms.html" target="_blank">terms</a> and <a href="release-policy.html" target="_blank">release policy</a>, including the AI policy and RRR being the only streaming distributor of this recording for 18 months.</span></label>
-                <button class="btn primary" type="submit">Book streaming release</button>
+                <button class="btn primary" type="submit">Submit release request</button>
               </fieldset>
             </form>
           </div>
@@ -396,7 +425,7 @@
 <script src="assets/config.js?v=20261116a"></script>
 <script src="assets/releases.js?v=20261125a"></script>
 <script src="assets/levels.js?v=20261012a"></script>
-<script src="assets/site.js?v=20261126a"></script>
+<script src="assets/site.js?v=20261127a"></script>
 <script src="assets/navdrop.js" defer></script>
 </body>
 </html>

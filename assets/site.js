@@ -444,7 +444,8 @@ window.rrrSend = function(url, data, onProblem){
     };
     tabs.forEach(t => t.addEventListener('click', () => { show(t.dataset.panel); history.replaceState(null, '', '#' + t.dataset.panel); }));
     const start = (location.hash || '').slice(1);
-    show(tabs.some(t => t.dataset.panel === start) ? start : tabs[0].dataset.panel);
+    const legacyDestination = ['bandcamp', 'streaming'].includes(start) ? start : '';
+    show(legacyDestination ? 'release' : tabs.some(t => t.dataset.panel === start) ? start : tabs[0].dataset.panel);
 
     const open = !!(bookingOn && endpoint);
     const fees0 = C.uploadFees || {};
@@ -454,41 +455,116 @@ window.rrrSend = function(url, data, onProblem){
       setStatus(st, open, '<strong>Booking is open.</strong> We confirm every booking by email.',
         '<strong>Coming soon.</strong> Booking opens when RRR membership launches. You can still use the deadline planner.');
       const pl = $('.paylink', f), sel = $('select[name=format]', f);
+      const destination = $('[name=destination]', f);
+      const tracks = $('[data-release-tracks]', f);
+      const trackRows = () => Array.from(tracks.children);
+      const previous = $('[name=previously_released]', f);
+      const toggleFields = (selector, enabled) => {
+        const section = $(selector, f);
+        section.hidden = !enabled;
+        section.disabled = !enabled;
+      };
+      const updateTracks = () => {
+        const rows = trackRows(), showIds = previous.value === 'yes';
+        toggleFields('[data-previous-release]', showIds);
+        rows.forEach((row, i) => {
+          $('[data-track-heading]', row).textContent = 'Track ' + (i + 1);
+          $('[data-track-action=up]', row).disabled = i === 0;
+          $('[data-track-action=down]', row).disabled = i === rows.length - 1;
+          $('[data-track-action=remove]', row).disabled = rows.length === 1;
+          $('[data-track-isrc]', row).hidden = !showIds;
+          $('[data-track-field=isrc]', row).disabled = !showIds;
+        });
+        $('[data-add-track]', f).disabled = rows.length >= 50;
+      };
+      const addTrack = () => {
+        const row = $('#release-track').content.firstElementChild.cloneNode(true);
+        tracks.appendChild(row);
+        updateTracks();
+        return row;
+      };
+      if (destination) {
+        if (legacyDestination) destination.value = legacyDestination;
+        const updateDestination = () => {
+          const bandcamp = destination.value !== 'streaming';
+          f.dataset.kind = bandcamp ? 'bandcamp-release' : 'streaming-release';
+          toggleFields('[data-bandcamp-fields]', bandcamp);
+          toggleFields('[data-streaming-fields]', destination.value !== 'bandcamp');
+          $('[data-bandcamp-prices]', f).hidden = !bandcamp;
+          $('[data-streaming-prices]', f).hidden = bandcamp;
+        };
+        updateDestination();
+        addTrack();
+        destination.addEventListener('change', updateDestination);
+        previous.addEventListener('change', updateTracks);
+        $('[data-add-track]', f).addEventListener('click', () => $('[data-track-field=title]', addTrack()).focus());
+        tracks.addEventListener('click', event => {
+          const action = event.target.closest('[data-track-action]');
+          if (!action || action.disabled) return;
+          const row = action.closest('.release-track');
+          if (action.dataset.trackAction === 'up') tracks.insertBefore(row, row.previousElementSibling);
+          if (action.dataset.trackAction === 'down') tracks.insertBefore(row.nextElementSibling, row);
+          if (action.dataset.trackAction === 'remove') {
+            const next = row.nextElementSibling || row.previousElementSibling;
+            row.remove();
+            $('[data-track-field=title]', next).focus();
+          } else {
+            $('[data-track-field=title]', row).focus();
+          }
+          updateTracks();
+        });
+        f.addEventListener('reset', () => setTimeout(() => {
+          if (legacyDestination) destination.value = legacyDestination;
+          updateDestination();
+          tracks.replaceChildren();
+          addTrack();
+          destination.dispatchEvent(new Event('change'));
+        }, 0));
+      }
       $$('[data-year]', f).forEach(x => { x.textContent = new Date().getFullYear(); });
       const an = f.querySelector('[name=artist]'); if (an) an.addEventListener('input', () => $$('[data-artistname]', f).forEach(x => { x.textContent = an.value.trim() || 'your artist name'; }));
       // Bandcamp: show upload steps or "what we need", depending on who uploads
       const ub = $$('input[name=upload_by]', f);
       if (ub.length) { const showUb = () => { const v = (ub.find(r => r.checked) || {}).value; $$('[data-upload]', f).forEach(d => { d.hidden = !!v && d.dataset.upload !== v; if (v && d.dataset.upload === v) d.open = true; }); const al = $('#bc-assets', f); if (al) al.required = v === 'rrr'; }; ub.forEach(r => r.addEventListener('change', showUb)); showUb(); }
-      // Daily slots: check the date is free before booking. First to pay gets it.
+      // Check availability for the preferred date.
       const slotField = { 'bandcamp-release': 'release_date', 'streaming-release': 'release_date', 'youtube-upload': 'premiere_date', 'social-post': 'preferred_date' }[f.dataset.kind];
       const dateIn = slotField ? f.querySelector(`input[name=${slotField}]`) : null;
       let slotOk = true;
       if (dateIn && endpoint) {
         const msg = document.createElement('span'); msg.className = 'slotmsg small'; msg.setAttribute('aria-live', 'polite'); dateIn.insertAdjacentElement('afterend', msg);
         const check = () => {
-          const d = dateIn.value; if (!d) { msg.textContent = ''; return; }
+          const d = dateIn.value, kind = f.dataset.kind;
+          if (!d) { msg.textContent = ''; dateIn.setCustomValidity(''); return; }
           msg.textContent = 'Checking…'; slotOk = false;
           const chs = f.dataset.kind === 'social-post' ? $$('input[name=platform]:checked', f).map(x => x.value).join(',') : '';
           if (f.dataset.kind === 'social-post' && !chs) { msg.textContent = 'Pick where it should go to check the date.'; slotOk = true; dateIn.setCustomValidity(''); return; }
           fetch(endpoint + (endpoint.includes('?') ? '&' : '?') + 'slot=' + encodeURIComponent(f.dataset.kind) + '&date=' + d + (chs ? '&ch=' + encodeURIComponent(chs) : '')).then(r => r.json()).then(j => {
-            if (dateIn.value !== d) return;
+            if (dateIn.value !== d || f.dataset.kind !== kind) return;
             if (j.ok && !j.free && j.full) { slotOk = false; dateIn.setCustomValidity('Some of your picks are full that day.'); msg.innerHTML = '<b class="no">Full that day:</b> ' + j.full.map(x => esc(x.label) + (x.next ? ' (next free ' + esc(x.next) + ')' : '')).join(', ') + '. Untick it or pick another date.'; return; }
-            if (!j.ok || j.free) { slotOk = true; dateIn.setCustomValidity(''); msg.innerHTML = '<b class="ok">✓ ' + esc(new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })) + ' is free.</b> It\'s yours when you pay.'; return; }
+            if (!j.ok || j.free) { slotOk = true; dateIn.setCustomValidity(''); msg.innerHTML = '<b class="ok">✓ ' + esc(new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })) + ' is free.</b>' + (destination ? ' RRR confirms it after approval.' : " It's yours when you pay."); return; }
             slotOk = false; dateIn.setCustomValidity('That date is taken. Pick another date.');
             msg.innerHTML = '<b class="no">Taken.</b> ' + (j.next ? 'Next free day: <button type="button" class="copy">Use ' + esc(j.next) + '</button>' : 'Pick another date.');
             const b = msg.querySelector('button'); if (b) b.addEventListener('click', () => { dateIn.value = j.next; check(); });
-          }).catch(() => { slotOk = true; dateIn.setCustomValidity(''); msg.textContent = 'Couldn\'t check the date right now. We\'ll confirm it when you pay.'; });
+          }).catch(() => { slotOk = true; dateIn.setCustomValidity(''); msg.textContent = destination ? 'Availability could not be checked. RRR confirms the date after review.' : 'Couldn\'t check the date right now. We\'ll confirm it when you pay.'; });
         };
         dateIn.addEventListener('change', check);
         if (f.dataset.kind === 'social-post') $$('input[name=platform]', f).forEach(x => x.addEventListener('change', () => { if (dateIn.value) check(); }));
         // Availability calendar: free days in green, taken in red, too soon in grey. Click a free day to pick it.
-        const DL = C.deadlines || {}, lead = { 'bandcamp-release': DL.bandcampAssetsDays ?? 14, 'streaming-release': DL.streamingAssetsDays ?? 21, 'youtube-upload': 3, 'social-post': 3 }[f.dataset.kind] ?? 3;
+        const DL = C.deadlines || {};
         const isoOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-        const first = new Date(); first.setHours(12, 0, 0, 0); first.setDate(first.getDate() + lead);
+        const earliest = () => {
+          const lead = destination && destination.value !== 'bandcamp' ? DL.streamingAssetsDays ?? 21 :
+            { 'bandcamp-release': DL.bandcampAssetsDays ?? 14, 'youtube-upload': 3, 'social-post': 3 }[f.dataset.kind] ?? 3;
+          const day = new Date();
+          day.setHours(12, 0, 0, 0);
+          day.setDate(day.getDate() + lead);
+          return day;
+        };
+        let first = earliest();
         dateIn.min = isoOf(first);
         const cal = document.createElement('div'); cal.className = 'slotcal'; msg.insertAdjacentElement('afterend', cal);
         let full = new Set(), loaded = false, month = new Date(first.getFullYear(), first.getMonth(), 1);
-        const minMonth = new Date(first.getFullYear(), first.getMonth(), 1);
+        let minMonth = month;
         const draw = () => {
           const y = month.getFullYear(), m = month.getMonth(), days = new Date(y, m + 1, 0).getDate(), off = (new Date(y, m, 1).getDay() + 6) % 7;
           let h = `<div class="calhead"><button type="button" data-nav="-1" aria-label="Previous month"${month <= minMonth ? ' disabled' : ''}>‹</button><b>${month.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</b><button type="button" data-nav="1" aria-label="Next month">›</button></div>`;
@@ -501,33 +577,119 @@ window.rrrSend = function(url, data, onProblem){
           h += `</div><div class="callegend"><span class="free">Free</span><span class="taken">Taken</span><span class="soon">Too soon</span>${loaded ? '' : '<em>checking dates…</em>'}</div>`;
           cal.innerHTML = h;
           cal.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => { const n = new Date(month); n.setMonth(n.getMonth() + Number(b.dataset.nav)); if (n < minMonth) return; month = n; draw(); }));
-          cal.querySelectorAll('.day.free').forEach(b => b.addEventListener('click', () => { dateIn.value = b.dataset.d; check(); draw(); }));
+          cal.querySelectorAll('.day.free').forEach(b => b.addEventListener('click', () => { dateIn.value = b.dataset.d; dateIn.dispatchEvent(new Event('change')); }));
         };
-        draw();
-        fetch(endpoint + (endpoint.includes('?') ? '&' : '?') + 'slots=' + encodeURIComponent(f.dataset.kind)).then(r => r.json()).then(j => { full = new Set(j.full || []); loaded = true; draw(); }).catch(() => { loaded = true; draw(); });
+        let calendarRequest = 0;
+        const loadSlots = () => {
+          const request = ++calendarRequest;
+          full = new Set();
+          loaded = false;
+          draw();
+          fetch(endpoint + (endpoint.includes('?') ? '&' : '?') + 'slots=' + encodeURIComponent(f.dataset.kind))
+            .then(r => r.json()).then(j => { if (request === calendarRequest) full = new Set(j.full || []); })
+            .catch(() => {}).finally(() => { if (request === calendarRequest) { loaded = true; draw(); } });
+        };
+        loadSlots();
+        if (destination) destination.addEventListener('change', () => {
+          first = earliest();
+          dateIn.min = isoOf(first);
+          minMonth = new Date(first.getFullYear(), first.getMonth(), 1);
+          if (month < minMonth) month = minMonth;
+          loadSlots();
+          check();
+        });
         dateIn.addEventListener('change', () => { if (dateIn.value) { const d = new Date(dateIn.value + 'T12:00:00'); month = new Date(d.getFullYear(), d.getMonth(), 1); } draw(); });
       }
       // Founding artists pay founder upload prices: we look up the member ID they type
-      let isFounder = false, freeRelease = false, isMember = null, memberFree = false, lastChecked = ''; const ff = ((C.founder || {}).fees) || {};
+      let isFounder = false, freeRelease = false, isMember = null, memberFree = false, founderRequest = 0;
+      const ff = ((C.founder || {}).fees) || {};
       const PRc = C.prices || {}, payg = { single: PRc.paygSingle, ep: PRc.paygEp, album: PRc.paygAlbum };
       const emIn = f.querySelector('[name=email]');
-      const paygNote = () => { const n = f.querySelector('.payg-note'); if (!n) return; n.hidden = !(isMember === false && /release/.test(f.dataset.kind)); const ag = f.querySelector('.payg-agree'); if (ag) { ag.hidden = n.hidden; const cb = ag.querySelector('input'); if (cb) cb.required = !n.hidden; } };
-      const checkFounder = () => { const v = (emIn && emIn.value || '').trim().toLowerCase(); if (!endpoint || !/@/.test(v)) { isFounder = false; isMember = null; paygNote(); return Promise.resolve(); }
-        lastChecked = v;
-        const rd = ((f.querySelector('input[name=release_date]') || {}).value || '');
-        return fetch(endpoint + '?isfounder=' + encodeURIComponent(v) + '&kind=' + encodeURIComponent(f.dataset.kind) + '&d=' + encodeURIComponent(rd)).then(r => r.json()).then(j => { isMember = !!(j && j.member); memberFree = !!(j && j.memberFree) && /release/.test(f.dataset.kind); const mn = f.querySelector('.member-free-note'); if (mn) mn.hidden = !memberFree; paygNote(); isFounder = !!(j && j.founder); freeRelease = !!(j && j.freeRelease) && /release/.test(f.dataset.kind); const n = f.querySelector('.founder-note'); if (n) n.hidden = !isFounder;
-          let fr = f.querySelector('.free-note'); if (!fr && emIn) { fr = document.createElement('p'); fr.className = 'small free-note'; fr.innerHTML = '🥋 <b>Black Belt reward:</b> this release upload is free.'; (emIn.closest('label') || emIn).insertAdjacentElement('afterend', fr); } if (fr) fr.hidden = !freeRelease; }).catch(() => {}); };
+      const showMembership = () => {
+        const note = $('.payg-note', f), agreement = $('.payg-agree', f);
+        if (note) note.hidden = isMember !== false;
+        if (agreement) { agreement.hidden = isMember !== false; $('input', agreement).required = isMember === false; }
+        const included = $('.member-free-note', f), founder = $('.founder-note', f);
+        if (included) included.hidden = !memberFree;
+        if (founder) founder.hidden = !isFounder;
+        let reward = $('.free-note', f);
+        if (!reward && freeRelease && emIn) {
+          reward = document.createElement('p');
+          reward.className = 'small free-note';
+          reward.textContent = 'Black Belt reward: this release upload is free.';
+          emIn.closest('label').insertAdjacentElement('afterend', reward);
+        }
+        if (reward) reward.hidden = !freeRelease || memberFree;
+      };
+      const checkFounder = async () => {
+        const request = ++founderRequest;
+        const email = (emIn?.value || '').trim().toLowerCase();
+        const d = $('[name=release_date]', f)?.value || '';
+        const kind = f.dataset.kind;
+        if (!endpoint || !email.includes('@')) {
+          isMember = null;
+          isFounder = freeRelease = memberFree = false;
+          showMembership();
+          return;
+        }
+        try {
+          const url = new URL(endpoint, location.href);
+          url.searchParams.set('isfounder', email);
+          url.searchParams.set('kind', kind);
+          url.searchParams.set('d', d);
+          const response = await fetch(url);
+          if (!response.ok) throw new Error('Membership lookup failed');
+          const info = await response.json();
+          if (request !== founderRequest) return;
+          isMember = !!info.member;
+          memberFree = !!info.memberFree && !!destination;
+          isFounder = !!info.founder;
+          freeRelease = !!info.freeRelease && !!destination;
+        } catch {
+          if (request !== founderRequest) return;
+          isMember = null;
+          isFounder = freeRelease = memberFree = false;
+        }
+        showMembership();
+      };
       if (emIn) emIn.addEventListener('change', checkFounder);
-      const rdIn = f.querySelector('input[name=release_date]'); if (rdIn) rdIn.addEventListener('change', () => { if (emIn && /@/.test(emIn.value)) checkFounder(); });
+      if (destination) {
+        destination.addEventListener('change', checkFounder);
+        $('[name=release_date]', f).addEventListener('change', checkFounder);
+      }
       const amount = () => { const key = (pl && pl.dataset.amount) ? pl.dataset.amount : (sel ? sel.value : null); if (key == null) return null; if (memberFree && /^(single|ep|album)$/.test(key)) return 0; if (freeRelease && /^(single|ep|album)$/.test(key)) return 0; if (isMember === false && /release/.test(f.dataset.kind) && payg[key] != null) return payg[key]; return isFounder && ff[key] != null ? ff[key] : fees0[key]; };
       f.addEventListener('submit', async e => {
         e.preventDefault();
         if (!open) return;
-        if (!f.checkValidity()) { f.reportValidity(); return; }
+        if (!destination && !f.reportValidity()) return;
         const val = n => ((f.querySelector(`[name=${n}]`) || {}).value || '').trim();
         const title = val('title'), email = val('email');
         const date = val('release_date') || val('premiere_date') || val('preferred_date') || val('date');
-        if (/release/.test(f.dataset.kind)) { try { await checkFounder(); } catch (x) {} if (isMember === false && !f.checkValidity()) { f.reportValidity(); return; } }
+        if (destination) {
+          const count = trackRows().length;
+          const format = sel.value;
+          if ((format === 'single' && count !== 1) || (format === 'ep' && (count < 2 || count > 5)) ||
+              (format === 'album' && count < 6)) {
+            sel.setCustomValidity('Choose a format that matches the number of tracks.');
+            sel.reportValidity();
+            sel.setCustomValidity('');
+            return;
+          }
+          const choice = destination.value;
+          await checkFounder();
+          if (choice !== destination.value || email !== val('email') || date !== val('release_date')) {
+            st.classList.add('open');
+            st.textContent = 'Your booking details changed. Please submit again.';
+            return;
+          }
+          if (isMember === null) {
+            st.classList.add('open');
+            st.textContent = 'Membership and pricing could not be checked. Please try again.';
+            return;
+          }
+          if (!f.reportValidity()) return;
+        }
+        const destinationValue = destination?.value;
         const release = /release/.test(f.dataset.kind), demo = isDemoEmail(email), amt = amount();
         const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
         const bookingId = 'BK-' + Array.from(crypto.getRandomValues(new Uint8Array(release && amt ? 12 : 6)), x => alphabet[x % alphabet.length]).join('');
@@ -544,11 +706,22 @@ window.rrrSend = function(url, data, onProblem){
           }
           return false;
         };
-        const ok = await send(f, st, f.dataset.kind, amt ? { booking_id: bookingId } : memberFree ? { member_free: 'yes' } : freeRelease ? { free_release: 'yes' } : {},
+        const extra = amt ? { booking_id: bookingId } : memberFree ? { member_free: 'yes' } : freeRelease ? { free_release: 'yes' } : {};
+        if (destination) {
+          extra.release_tracks = JSON.stringify(trackRows().map(row => Object.fromEntries(
+            $$('[data-track-field]:enabled', row).map(field => [field.dataset.trackField, field.value.trim()]))));
+          if (destinationValue === 'both') extra.also_streaming = 'yes';
+          if (JSON.stringify(Object.fromEntries(new FormData(f))).length + extra.release_tracks.length > 40000) {
+            st.classList.add('open');
+            st.textContent = 'This release has too much text for one booking. Shorten the track or release notes and try again.';
+            return;
+          }
+        }
+        const ok = await send(f, st, f.dataset.kind, extra,
           release && amt && !demo ? checkoutReady : null);
         if (!ok) return;
         track('Schedule', { content_name: f.dataset.kind });
-        const kindName = (($('[role=tab][aria-selected=true]') || {}).textContent || f.dataset.kind.replace('-', ' ')).trim();
+        const kindName = destination ? { bandcamp: 'Bandcamp release', streaming: 'Streaming release', both: 'Bandcamp and streaming release' }[destinationValue] : (($('[role=tab][aria-selected=true]') || {}).textContent || f.dataset.kind.replace('-', ' ')).trim();
         const nice = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
         const steps = [];
         if (amt && !demo) steps.push(release ? 'Pay below to send your release for review.' : '<b>Pay below to confirm your date.</b> First to pay gets it.');

@@ -1784,15 +1784,81 @@ function validBookingDate_(date) {
   return !isNaN(midnight) && midnight.toISOString().slice(0, 10) === date;
 }
 
+function releaseIntakeDetails_(kind, p, format) {
+  const destination = p.destination;
+  if (!['bandcamp', 'streaming', 'both'].includes(destination) ||
+      kind !== (destination === 'streaming' ? 'streaming-release' : 'bandcamp-release')) {
+    throw new Error('choose a valid release destination');
+  }
+  const bandcamp = destination !== 'streaming', streaming = destination !== 'bandcamp';
+  if (!String(p.artist || '').trim() || !String(p.genre || '').trim() ||
+      !String(p.copyright_owner || '').trim() || !/^\d{4}$/.test(String(p.copyright_year)) ||
+      Number(p.copyright_year) < 1000 || !['yes', 'no'].includes(p.previously_released)) {
+    throw new Error('complete the release details and copyright information');
+  }
+  if (!/^https?:\/\/[^\s/]+[^\s]*$/i.test(String(p.assets_link || '').trim())) {
+    throw new Error('add a valid private review folder link');
+  }
+  if (!['none', 'partial', 'heavy'].includes(p.ai_use) || p.collaborators_agreed !== 'yes' || p.start_now !== 'yes') {
+    throw new Error('complete the release declarations');
+  }
+  if (bandcamp && (!['artist', 'rrr'].includes(p.upload_by) || p.agree !== 'on')) {
+    throw new Error('complete the Bandcamp upload details');
+  }
+  if (streaming && (!['yes', 'no'].includes(p.artwork_logo) || p.streaming_agree !== 'on')) {
+    throw new Error('complete the streaming upload details');
+  }
+
+  let tracks;
+  try { tracks = JSON.parse(p.release_tracks); } catch (e) { throw new Error('enter a valid track list'); }
+  if (!Array.isArray(tracks) || !tracks.length || tracks.length > 50) throw new Error('enter 1 to 50 tracks');
+  const count = tracks.length;
+  if ((format === 'single' && count !== 1) || (format === 'ep' && (count < 2 || count > 5)) ||
+      (format === 'album' && count < 6)) throw new Error('choose a format that matches the number of tracks');
+
+  const limits = { title: 160, version: 100, featured_artists: 200, contributors: 300,
+    songwriters: 200, lyricists: 200, language: 80, explicit: 3, isrc: 24 };
+  const details = Object.assign({}, p, { track_count: count });
+  details.release_tracks = tracks.map((track, index) => {
+    if (!track || typeof track !== 'object' || !['yes', 'no'].includes(track.explicit) ||
+        typeof track.title !== 'string' || !track.title.trim() ||
+        typeof track.language !== 'string' || !track.language.trim()) {
+      throw new Error('complete the title, language and explicit declaration for track ' + (index + 1));
+    }
+    const clean = { position: index + 1 };
+    Object.keys(limits).forEach(key => {
+      if (key === 'isrc' && p.previously_released !== 'yes') return;
+      const value = track[key];
+      if (value === undefined || value === '') return;
+      if (typeof value !== 'string' || value.length > limits[key]) throw new Error('check track ' + (index + 1) + ' details');
+      clean[key] = value.trim();
+    });
+    return clean;
+  });
+  if (p.previously_released !== 'yes') delete details.upc;
+  if (destination === 'both') details.also_streaming = 'yes';
+  else delete details.also_streaming;
+  if (!bandcamp) ['bandcamp', 'bandcamp_tags', 'bandcamp_description', 'upload_by', 'listening_party'].forEach(key => delete details[key]);
+  if (!streaming) ['artwork_logo', 'routenote_account', 'streaming_agree'].forEach(key => delete details[key]);
+  return details;
+}
+
 function requestReleaseBooking_(kind, p) {
   const email = String(p.email || '').trim(), date = String(p.release_date || p.preferred_date || '');
   const format = String(p.format || '').trim().toLowerCase(), title = String(p.title || '').trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !title || !validBookingDate_(date) ||
       date < isoDate_(new Date()) || !releasePrice_(format)) return text_('refused: check your email, title, format and preferred date');
+  let intake = p;
+  if (p.destination !== undefined || p.release_tracks !== undefined) {
+    if (String(p.release_tracks || '').length > 45000) return text_('refused: shorten the track details');
+    try { intake = releaseIntakeDetails_(kind, p, format); }
+    catch (e) { return text_('refused: ' + e.message); }
+  }
   const member = findRow_('Members', 'email', email);
   if (member && (!/^active/i.test(String(member.status)) || !inGoodStanding_(member))) {
     return text_('refused: booking requires an active membership in good standing');
   }
+  if (intake !== p && !member && p.payg_terms !== 'yes') return text_('refused: accept the pay-as-you-go terms');
   const memberId = member ? member.member_id : '';
   const paid = !!p.booking_id && p.member_free !== 'yes' && p.free_release !== 'yes';
   const id = String(p.booking_id || ('BK-' + Utilities.getUuid().replace(/-/g, '').slice(0, 12))).toUpperCase();
@@ -1811,7 +1877,7 @@ function requestReleaseBooking_(kind, p) {
     else if (member && p.free_release === 'yes' && rewardReleaseAvailable_(member)) entitlement = 'reward';
     else return text_('refused: this release is not included for that date. Check your membership allowance or rebook at the upload fee');
   }
-  const details = JSON.stringify(p);
+  const details = JSON.stringify(intake);
   if (details.length > 45000) return text_('refused: shorten your submission notes');
   const demo = isDemo_(email);
   const booking = {
